@@ -21,7 +21,7 @@ class Empire
 		if(Game.time & 8191)
 			return;
 		
-		if(Memory.empire && Memory.expire.autoExpand && this.ownedRoomCount() < Game.gcl.level) {
+		if(Memory.empire && Memory.empire.autoExpand && this.ownedRoomCount() < Game.gcl.level) {
 			if(this.cpuAllowsExpansion())
 				Empire.expand();				
 			else

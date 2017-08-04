@@ -149,7 +149,7 @@ module.exports = {
 		// Unit.requestUpgrader(spawn,roomName,25);	
 		// energy use is  active work * UPGRADE_CONTROLLER_POWER, so 11 work parts is 11 ept, over half a room's normal production
 				
-		if(spawn.room.controller.level === 2) {
+		if(spawn.room.controller.level <= 2) {
 			body = [CARRY,MOVE,WORK,WORK];
 		} else {
 			if(_.get(spawn.room, 'storage.store.energy', 0) < 100000) {
