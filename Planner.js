@@ -333,7 +333,8 @@ class BuildPlanner
 		// Then build other stuff
 		this.placeRamparts(room);
 		this.placeRampartsOnWalls(room);		
-		this.buildSourceRoads(room, room.storage || room.controller, room.controller.level == 3);
+		if(level >= 3)
+			this.buildSourceRoads(room, room.storage || room.controller, room.controller.level == 3);
 		this.findRoadMisplacements(room).invoke('destroy').commit();
 		// if(level >= 3)
 		//	this.exitPlanner(room.name, {commit: true});
