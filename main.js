@@ -120,7 +120,7 @@ module.exports = {
 			var dTC = Time.measure( () => _.invoke(Game.creeps, 'run') ); // Run MUST have try-catch				
 			var dTS = Time.measure( () => _.invoke(Game.structures, 'logic') );
 			var dTF = Time.measure( () => _.invoke(Game.flags, 'run') );
-			// var dEM = Time.measure( () => Empire.tick() );
+			var dEM = Time.measure( () => Empire.tick() );
 			// var dPL = Time.measure( () => Planner.tick() );
 			var dCS = Time.measure( () => Command.tick() );			
 			var dCM = Time.measure( () => Scheduler.staggerKeys(Game.rooms, r => _.set(global, 'logisticsMatrix.' + r.name, new CostMatrix.LogisticsMatrix(r.name))) );

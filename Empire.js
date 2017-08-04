@@ -15,13 +15,13 @@ class Empire
 {
 	static tick() {
 		Empire.updateGCL();
-		var used = Time.measure( () => this.drawVisuals() );
+		// var used = Time.measure( () => this.drawVisuals() );
 		// console.log('used: ' + used);
 		
 		if(Game.time & 8191)
 			return;
 		
-		if(this.ownedRoomCount() < Game.gcl.level) {
+		if(Memory.empire && Memory.expire.autoExpand && this.ownedRoomCount() < Game.gcl.level) {
 			if(this.cpuAllowsExpansion())
 				Empire.expand();				
 			else
