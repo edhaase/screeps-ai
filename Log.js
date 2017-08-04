@@ -105,4 +105,7 @@ Log.color = {
 	[Log.LEVEL_SUCCESS]: 'green'
 };
 
+Object.freeze(Log);
+Object.freeze(Log.color);
+
 module.exports = Log;

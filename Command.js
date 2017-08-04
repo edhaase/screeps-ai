@@ -42,4 +42,4 @@ class Command
 	}
 }
 
-module.exports = Command;
+module.exports = Object.freeze(Command);

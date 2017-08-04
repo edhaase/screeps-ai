@@ -113,7 +113,7 @@ class FleePlanner
 		this.cm = opts.cm || new PathFinder.CostMatrix;
 		this.plan = [];
 		this.stuffToAdd = [];
-		this.stuffToAdd = Util.RLD([1,'terminal',60,STRUCTURE_EXTENSION,3,STRUCTURE_SPAWN,1,STRUCTURE_OBSERVER,1,STRUCTURE_STORAGE,1,'powerSpawn',1,'nuker',6,STRUCTURE_TOWER]);
+		this.stuffToAdd = Util.RLD([1,'terminal',CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][8],STRUCTURE_EXTENSION,3,STRUCTURE_SPAWN,1,STRUCTURE_OBSERVER,1,STRUCTURE_STORAGE,1,STRUCTURE_POWER_SPAWN,1,STRUCTURE_NUKER,6,STRUCTURE_TOWER]);
 		this.seed = 4;										// If we use a pRNG we want a seed.
 		this.iteration = 0;									// Iteration might be important if we use a PRNG
 		this.incomplete = true;								// State of planner, not path result.
@@ -335,8 +335,8 @@ class BuildPlanner
 		this.placeRampartsOnWalls(room);		
 		this.buildSourceRoads(room, room.storage || room.controller, room.controller.level == 3);
 		this.findRoadMisplacements(room).invoke('destroy').commit();
-		if(level >= 3)
-			this.exitPlanner(room.name, {commit: true});
+		// if(level >= 3)
+		//	this.exitPlanner(room.name, {commit: true});
 		if(level >= 6) {
 			let mineral = room.mineral;
 			if(mineral && !mineral.pos.hasStructure(STRUCTURE_EXTRACTOR)) {
@@ -742,15 +742,21 @@ class BuildPlanner
 		}}
 	}
 	
-	static distanceTransformWithController(room) {
+	/**
+	 * Finds a position in a room to expand outwards from.
+	 * 
+	 * @param {Room} room - Room object to analyze
+	 * @param {Number} maxClearance - Score above which extra clearance doesn't really matter
+	 */
+	static distanceTransformWithController(room, maxClearance=5) {
 		var roomName = room.name;
 		var cm = this.distanceTransform(roomName);
 		var vis = new RoomVisual(roomName);
-		var x,y,value,pos,dist;
+		var x,y,value,pos,dist,clear;
 		var c = room.controller;
 		var s = room.find(FIND_SOURCES);
 		var points = [c,...s];
-		var maxv = 0, maxp = null;
+		var maxc = 0, maxv = 0, maxp = null;
 		for(y = 49; y >= 0; --y) {
 		for(x = 49; x >= 0; --x) {
 			pos = new RoomPosition(x,y,roomName);
@@ -759,15 +765,19 @@ class BuildPlanner
 			// value = cm.get(x,y) / (dist / 25);
 			if(dist < 3)
 				continue;
-			value = Math.pow(cm.get(x,y),2);
+			// value = Math.pow(cm.get(x,y),2);
+			clear = Math.min(cm.get(x,y),maxClearance);
+			value = Math.pow(clear,2);
 			value /= dist;
 			if(value > maxv) {
 				maxv = value;
 				maxp = pos;
+				maxc = clear;
 			}
 			vis.circle(x, y, {radius:value / 25});
 		}}
-		console.log('Best position: ' + maxp + ' with score ' + maxv);
+		console.log(`Best position: ${maxp} with score ${maxv} and clearance ${maxc}`);
+		// console.log('Best position: ' + maxp + ' with score ' + maxv);
 		return maxp;
 	}
 	

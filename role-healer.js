@@ -6,9 +6,7 @@
 // Game.spawns.Spawn1.createCreep([HEAL,MOVE], null, {role:'healer'})
 // Game.spawns.Spawn1.createCreep([TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,HEAL,HEAL,HEAL], null, {role:'healer'})
 module.exports = function(creep) {
-	var flag = Game.flags["Kill"];
-	if(!flag)
-		return;	
+	var follow = Game.getObjectById(this.memory.follow);
 		
 	// target lowest health
 	// let target = creep.pos.findClosestByRange(FIND_MY_CREEPS, {filter: c => c.hits < c.hitsMax});
@@ -27,10 +25,10 @@ module.exports = function(creep) {
 			creep.heal(target);
 		else
 			creep.rangedHeal(target);
-		creep.moveTo(target);
+		creep.moveTo(target,{range: 1});
 	} else {
 		// if(creep.pos.roomName != flag.pos.roomName)
-		if(!creep.pos.inRangeTo(flag,2))
-			creep.moveTo(flag, {range: 2, ignoreCreeps: false}); // unless stuck
+		if(!creep.pos.inRangeTo(follow,2))
+			creep.moveTo(follow, {range: 2, ignoreCreeps: false}); // unless stuck
 	}
 }

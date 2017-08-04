@@ -66,9 +66,9 @@ module.exports = {
 			body = [WORK,WORK,WORK,WORK,WORK,MOVE];
 		if(avail >= 650)
 			body = [WORK,WORK,WORK,WORK,WORK,CARRY,MOVE,MOVE]; */
-		let body = _.find(MINING_BODIES, b => UNIT_COST(b) <= spawn.room.energyCapacityAvailable);			
+		let body = _.find(MINING_BODIES, b => UNIT_COST(b) <= spawn.room.energyCapacityAvailable);
 		// spawn.enqueue(body, null, {role:'miner', site: flagName}, 10);
-		spawn.enqueue(body, null, {role:'miner', dest: dest, travelTime: 0}, prio, 0, 1, DEFAULT_SPAWN_JOB_EXPIRE);
+		spawn.enqueue(body, null, {role:'miner', dest: dest, home: dest.roomName, travelTime: 0}, prio, 0, 1, DEFAULT_SPAWN_JOB_EXPIRE);
 	},
 	
 	/* requestMineralMiner(spawn, flagName, expire=Infinity) {
@@ -80,7 +80,6 @@ module.exports = {
 	
 	requestMineralHarvester(spawn, site, cid, expire) {
 		var body = Unit.repeat([WORK,WORK,MOVE], spawn.room.energyCapacityAvailable);
-		body = Unit.sort(body);
 		spawn.enqueue(body, null, {role: 'harvester', site: site, cid: cid}, 10, 0, 1, expire);
 	},
 	

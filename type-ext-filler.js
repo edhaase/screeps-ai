@@ -269,7 +269,7 @@ class CreepExtFiller extends Creep
 				let {storage,terminal} = this.room;
 				if(storage && storage.store[RESOURCE_ENERGY] < 300000 && storage.my)
 					goal = storage;
-				else if(terminal && terminal.my)
+				else if(terminal && terminal.my && terminal.storedTotal < terminal.storeCapacity)
 					goal = terminal;
 				else
 					goal = null;

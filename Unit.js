@@ -159,9 +159,13 @@ module.exports = {
 				max = Unit.cost([MOVE,MOVE,MOVE,CARRY]) + BODYPART_COST[WORK] * CONTROLLER_MAX_UPGRADE_PER_TICK * UPGRADE_CONTROLLER_POWER;
 			// Ignore top 20% of spawn energy (might be in use by renewels)
 			var avail = Math.clamp(250, spawn.room.energyCapacityAvailable - (SPAWN_ENERGY_CAPACITY * 0.20), max);
-			// body = [MOVE,MOVE,MOVE,CARRY,WORK].concat(this.repeat([WORK], avail - 300)).sort(); // better for a dedicated upgrader
 			var count = Math.floor((avail - 300) / BODYPART_COST[WORK]);
-			body = Util.RLD([1,CARRY,1,WORK,count,WORK,3,MOVE]);
+			let ccarry = 1;
+			if(count > 5) {
+				ccarry += 2;
+				count -= 2;
+			}
+			body = Util.RLD([ccarry,CARRY,1,WORK,count,WORK,3,MOVE]);
 		}
 		return spawn.enqueue(body, null, {home: home, role:'upgrader'}, priority);
 		//spawn.enqueue(body, null, {role:'upgrader'}, -1, 0, 1);
@@ -292,7 +296,13 @@ module.exports = {
 	},
 	
 	requestClaimer: function(spawn) {
-		return spawn.enqueue([MOVE,MOVE,MOVE,MOVE,CLAIM,MOVE], null, {role: 'claimer'});
+		let body = [CLAIM,MOVE];
+		let cost = Unit.cost(body);
+		while(cost < spawn.room.energyCapacityAvailable && body.length < 6) {
+			body.push(MOVE);
+			cost += BODYPART_COST[MOVE];
+		}
+		return spawn.enqueue(body, null, {role: 'claimer'});
 	},
 	
 	requestScout: function(spawn, memory={role:'scout'}) {
@@ -392,8 +402,9 @@ module.exports = {
 		Unit.requestAttacker(s2);
 	},
 	
-	requestHealer: function(spawn, body = Util.RLD([10,TOUGH,24,MOVE,15,HEAL,1,MOVE])) {
-		return spawn.enqueue(body, null, {role: 'healer'}, 100);
+	requestHealer: function(spawn, priority=5) {
+		let body = Unit.repeat([MOVE,HEAL], spawn.room.energyCapacityAvailable / 2);
+		return spawn.enqueue(body, null, {role: 'healer'}, priority);
 	},
 	
 	// Unit.requestGuard(Game.spawns.Spawn1, 'Guard2', Unit.repeat([MOVE,ATTACK],3000).sort())

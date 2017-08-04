@@ -59,6 +59,7 @@ module.exports = {
 			if ( thing.structureType === STRUCTURE_CONTAINER && thing.store[RESOURCE_ENERGY] > 10 ) return true;
 			if ( thing.structureType === STRUCTURE_STORAGE && (thing.store[RESOURCE_ENERGY] > 0) ) return true;
 			if ( thing.structureType === STRUCTURE_TERMINAL && thing.store[RESOURCE_ENERGY] > min ) return true;
+			if ( thing.structureType === STRUCTURE_SPAWN && _.inRange(thing.room.energyAvailable, SPAWN_ENERGY_START-CARRY_CAPACITY,SPAWN_ENERGY_START+CARRY_CAPACITY-5) && thing.isIdle() ) return true;
 		}
 		return false;
 	},
@@ -109,3 +110,5 @@ module.exports = {
 	
 	
 };
+
+Object.freeze(module.exports);
