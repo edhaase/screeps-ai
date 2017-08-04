@@ -14,7 +14,7 @@ module.exports = {
 			return creep.moveToRoom(room);
 		
 		if(!state)
-			creep.memory.state = 'harvest';
+			creep.memory.state = 'gather';
 		else if(creep.carry.energy === 0 && creep.memory.state !== 'harvest' && creep.memory.state !== 'gather')
 			creep.memory.state = 'gather';
 		else if(creep.carry.energy === creep.carryCapacity)
