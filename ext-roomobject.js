@@ -397,6 +397,13 @@ RoomObject.prototype.lookForNear = function(lookFor, asArray, range=1) {
 }
 
 /**
+ * Return look results for open terrain around object.
+ */
+RoomObject.prototype.getAvailablePositions = function() {
+	return _.filter(this.lookForNear(LOOK_TERRAIN, true, 1), x => x.terrain !== 'wall');
+}
+
+/**
  * Bitwise memory for rooms, creeps, flags and structures
  */
 RoomObject.prototype.enableBit = function(bit) {

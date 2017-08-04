@@ -297,13 +297,17 @@ StructureController.prototype.runCensus = function() {
 	}
 	if(dual !== true) {
 		sources.forEach(function(source) {
+			var pos = _.create(RoomPosition.prototype, source.pos);
+			// let total = _.sum(Game.creeps, c => c.getRole() === 'miner' && pos.isEqualToPlain(c.memory.dest) && c.getBodyParts(WORK) );
+			// console.log(`Assigned to ${pos}: ${total}`);
 			if(!_.findWhere(Game.creeps, {memory: {dest: source.pos, role: 'miner'}})) {
 				prio = 75;
 				if(storedEnergy > 10000)
 					prio = 50;
+				else if(storedEnergy <= 0)
+					prio = 100;
 				if(source.pos.roomName != roomName)
 					prio = 1;
-				var pos = _.create(RoomPosition.prototype, source.pos);
 				// Log.warn(`Requesting miner to ${pos} from ${spawn.pos.roomName} priority ${prio}`);
 				if(energyCapacityAvailable < 600)
 					Mining.requestMiner(assistingSpawn || spawn, pos, prio);
@@ -351,7 +355,8 @@ StructureController.prototype.runCensus = function() {
 	}
 	
 	// let scavNeed = 4;
-	let scavNeed = Math.clamp(2, resDecay, 4);
+	let maxScav = (level < 3)?6:4;
+	let scavNeed = Math.clamp(2, resDecay, maxScav);
 	let scavHave = curr('scav');
 	// @todo: Every tick we can pretty easily get this value. Can we do anything useful with it?
 	if(energyPct < 0.25)
@@ -399,7 +404,8 @@ StructureController.prototype.runCensus = function() {
 	// Static upgraders (enabled at RCL 3?)
 	
 	// if(this.level >= 3) { // static upgrader at RCL 2 is nice, but needs extensions first
-	if((!upgradeBlocked || upgradeBlocked < CREEP_SPAWN_TIME*6) && this.room.energyCapacityAvailable >= 550) { // RCL 2 + Extensions
+	// if((!upgradeBlocked || upgradeBlocked < CREEP_SPAWN_TIME*6) && this.room.energyCapacityAvailable >= 550) { // RCL 2 + Extensions
+	if((!upgradeBlocked || upgradeBlocked < CREEP_SPAWN_TIME*6)) {
 		let goal = 10;
 		if(level >= 8)
 			goal = CONTROLLER_MAX_UPGRADE_PER_TICK / UPGRADE_CONTROLLER_POWER;
