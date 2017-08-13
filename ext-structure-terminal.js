@@ -350,7 +350,7 @@ StructureTerminal.prototype.getOverageAmount = function(res) {
  */
 StructureTerminal.prototype.sell = function(resource, amt=Infinity, limit=TERMINAL_MINIMUM_SELL_PRICE) {
 	let orders = Game.market.getAllOrders({type: ORDER_BUY, resourceType: resource});
-	orders = _.filter(orders, o => o.price >= limit && o.remainingAmount > 0);
+	orders = _.filter(orders, o => o.price >= limit && o.remainingAmount > 1 && o.amount > 1);
 	if(_.isEmpty(orders)) {		
 		Log.info('No orders to fill for ' + resource, 'Terminal');
 		return;
@@ -415,6 +415,7 @@ StructureTerminal.prototype.isFull = function() {
 StructureTerminal.prototype.deal = function(id, amount) {
 	// track score, transaction cost averages
 	let status = Game.market.deal(id, amount, this.pos.roomName);
+	Log.debug(`Terminal ${this.pos.roomName} dealing ${amount} on order ${id}, status ${status}`, 'Terminal');
 	if(status === OK) {
 		// Don't change credits here, we're using transactions to track that.
 		let order = Game.market.getOrderById(id);
