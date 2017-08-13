@@ -195,6 +195,15 @@ Creep.prototype.updateStuck = function() {
 	this.memory.lpos = code;
 }
 
+/**
+ * Move creep in random direction
+ * 
+ * @todo Ensure random direction isn't an exit tile..
+ */
+Creep.prototype.wander = function() {
+	return this.move(_.random(0,8));
+}
+
 Creep.prototype.runRole = function() {
 	var start = Game.cpu.getUsed();
 	var roleName = this.getRole();

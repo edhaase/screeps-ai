@@ -17,6 +17,8 @@ class CreepExtFiller extends Creep
 		
 		let start = Game.cpu.getUsed();
 		
+		if(this.memory.stuck > 15)
+			return this.wander();
 		/* this.transition('I', () => true, STATE_GATHER);
 		state = this.transition(STATE_GATHER, () => this.carryTotal >= this.carryCapacity, STATE_UNLOAD, () => this.clearTarget() );
 		state = this.transition(STATE_UNLOAD, () => this.carryTotal <= 0, STATE_GATHER, () => this.clearTarget() );
