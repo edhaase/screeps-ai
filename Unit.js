@@ -310,8 +310,8 @@ module.exports = {
 	},
 	
 	requestDefender: function(spawn, count=1, roomName, prio=75) {		
-		let body = this.repeat([TOUGH,ATTACK,MOVE,MOVE], spawn.room.energyCapacityAvailable / 2);
-		// let body = this.repeat([RANGED_ATTACK,MOVE], spawn.room.energyCapacityAvailable / 2);
+		// let body = this.repeat([TOUGH,ATTACK,MOVE,MOVE], spawn.room.energyCapacityAvailable / 2);
+		let body = this.repeat([RANGED_ATTACK,MOVE], spawn.room.energyCapacityAvailable / 2);
 		if(_.isEmpty(body))
 			body = [MOVE,ATTACK];
 		return spawn.enqueue(body, null, {home: roomName, role: 'defender'}, prio, 0, count);
