@@ -94,7 +94,7 @@ module.exports = {
 		if(Game.time === RUNTIME_ID)
 			return Log.warn('Reset occured. Skipping remainder of tick');
 		if(Game.cpu.bucket <= Game.cpu.tickLimit)
-			return Log.notify("Bucket empty, skipping tick!", 1);			
+			return Log.notify("Bucket empty, skipping tick!", 60);			
 		if(Game.cpu.getUsed() > Game.cpu.limit)
 			return Log.warn('Garbage collector ate our tick');
 		// console.log('Memory deserialization: ' + Time.measure(x => Memory));
@@ -219,6 +219,11 @@ class Zen
 		Memory.visible = visible;
 	}		
 }
+
+Object.freeze(Array);
+Object.freeze(Object);
+Object.freeze(Array.prototype);
+Object.freeze(Object.prototype);
 
 global.Zen = Zen;
 profiler.registerClass(Zen, 'Zen');
