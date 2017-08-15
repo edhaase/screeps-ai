@@ -45,18 +45,17 @@ global.Time = loadModule('Time');
 // global.Planner = loadModule('Planner');
 global.Player = loadModule('Player');
 global.Mining = loadModule('Mining');
-global.Unit = loadModule('Unit');
+// global.Unit = loadModule('Unit');
 global.Filter = loadModule('Filter');
 global.Route = loadModule('Route');
-global.WorldPosition = loadModule('WorldPosition');
+// global.WorldPosition = loadModule('WorldPosition');
 global.WorldMap = loadModule('WorldMap');
-global.Path = loadModule('Path');
+// global.Path = loadModule('Path');
 global.FSM = loadModule('FSM');
 global.Command = loadModule('Command');
-global.Lzw = loadModule('Lzw');
 global.Segment = require('Segment');
-global.Algo = require('Algo');
-global.LSystem = require('Lind');
+// global.Algo = require('Algo');
+// global.LSystem = require('Lind');
 global.Market = loadModule('Market');
 loadModule('fsm-screeps');
 Object.assign(global, loadModule('astar_tedivm'));
@@ -154,8 +153,6 @@ module.exports = {
 			
 		Memory.stats['bucket100'] = Math.cmAvg(Game.cpu.bucket - (Memory.stats['bucket'] || 10000), Memory.stats['bucket100'], 100);
 		Memory.stats['bucket'] = Game.cpu.bucket;				
-		// if(CPU_LIMITER)
-		//	Log.warn('[Cpu] Exceeded cpu limit');
 	}
 		
 }
@@ -168,8 +165,6 @@ if( false ) {
 	profiler.registerObject(PathFinder.CostMatrix, 'pCostMatrix');
 	profiler.registerClass(Empire,'Empire');
 	profiler.registerObject(Mining, 'Mining');
-	profiler.registerObject(Unit, 	'Unit');	
-	// _.each(loadModule('CostMatrix'), (c,key) => profiler.registerClass(c,key));
 	profiler.registerObject(Filter, 'Filter');
 	// profiler.registerObject(OwnedStructure, 'OwnedStructure');
 	profiler.registerObject(RoomObject, 'RoomObject');

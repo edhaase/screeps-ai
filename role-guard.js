@@ -5,7 +5,6 @@
  *  If equipped with melee, will attack directly. (Or if he cannot kite)
  *  If equipped with a heal, will heal himself during combat.
  *  If equipped with a heal, will heal allies once threats are removed. 
- * Unit.requestGuard(Game.spawns.Spawn1, Game.flags['Poke'])
  */ 
 'use strict';
  

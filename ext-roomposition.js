@@ -313,7 +313,8 @@ RoomPosition.prototype.findClosestByPathFinder = function(goals, itr=_.identity)
 		goal: (Math.abs(goal)!==Infinity)?goal:null,
 		cost: result.cost,
 		ops: result.ops,
-		incomplete: result.incomplete
+		incomplete: result.incomplete,
+		path: result.path
 	}	
 }
 

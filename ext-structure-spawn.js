@@ -100,10 +100,8 @@ StructureSpawn.prototype.processJobs = function () {
 		this.say(job.cost - this.room.energyAvailable);
 		return true;
 	}
-		
-	// var assignedName = (job.name == undefined)?(job.memory.role + Unit.getNextId()):job.name;	
-	var assignedName = job.name || `${job.memory.role}${Unit.getNextId()}`
-	// var assignedName = job.name || `${job.memory.role}_${Unit.getNextId()}`;
+	
+	var assignedName = job.name || `${job.memory.role}${this.getNextId()}`	
 	var name = this.createCreep(job.body, assignedName, job.memory, job.cost);
 	if(typeof name !== 'string') {	
 		Log.error(`${this.pos.roomName}/${this.name} failed to create creep, status: ${name}`, 'Spawn');
@@ -124,6 +122,16 @@ StructureSpawn.prototype.processJobs = function () {
 	this.memory.lastidle = Game.time + job.ticks;
 	this.resetEnergyClock();
 	return true;
+}
+
+/**
+ * Incremental rolling number to prevent creep collisions. Combine with
+ * initial role to further increase potential number of names.
+ */
+StructureSpawn.prototype.getNextId = function() {
+	if(Memory.creepnum == undefined)
+		Memory.creepnum = 0;
+	return Memory.creepnum++ % 1000;
 }
 
 StructureSpawn.prototype.resetEnergyClock = function() {
@@ -198,7 +206,7 @@ StructureSpawn.prototype.submit = function(job) {
 		job.ticks = job.body.length * CREEP_SPAWN_TIME;
 	if(job.cost > this.room.energyCapacityAvailable)
 		throw new Error("Unit cost would exceed room energy capacity");
-	job.body = Unit.tailSort(job.body);
+	job.body = require('Unit').tailSort(job.body);
 	if(!job.score)
 		job.score = this.scoreTask(job);
 	var q = this.getQueue();

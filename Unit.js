@@ -5,6 +5,8 @@
  */
 'use strict';
 
+const Arr = require('Arr');
+
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/from
 // Unit.Body.from([WORK,CARRY,MOVE]).sort() -- confirmed to work
 class Body extends Array
@@ -54,15 +56,7 @@ global.Body = Body;
 
 module.exports = {
 	 Body: Body,
-	 /**
-	  *
-	  */
-	/* request: function(role) {
-		if(_.attempt(require('role-' + role)) instanceof Error) {
-			return "No such role";
-		}
-	} */
-	
+
 	/**
 	 * Bulk role change
 	 */
@@ -117,36 +111,19 @@ module.exports = {
 	},
 	
 	/**
-	 * Calculate build time for a creep
-	 */
-	buildTime: function(body) {
-		if(!body)
-			throw new Error("Empty body");
-		return CREEP_SPAWN_TIME * body.length;
-	},
-	
-	/**
 	 * Repeat a part cost until we hit max cost, or reach 50 parts.
 	 */
 	repeat: function(arr, max) {
-		var n = Math.min(50 / arr.length, Math.floor(max / this.cost(arr)));		
-		return (n <= 0)?[]:arr.cycle(arr.length * n);
-	},
-	
-	// Time.measure( () => Unit.memRepeat([WORK,CARRY],2500) )
-	memRepeat: _.memoize(function(arr, max) {
-		var n = Math.min(50 / arr.length, Math.floor(max / this.cost(arr)));		
-		return (n <= 0)?[]:arr.cycle(arr.length * n);
-	}),
+		console.log('Unit.repeat is deprecated');
+		return Arr.repeat(arr,max);
+	},		
 	
 	/**
 	 * Biggest we can! Limit to 15 work parts
 	 * requestUpgrader(firstSpawn,1,5,49)
-	 * Unit.requestUpgrader(spawn,roomName,25);	
 	 */
 	requestUpgrader: function(spawn, home, priority=3, max=2500) {
 		var body = [];
-		// Unit.requestUpgrader(spawn,roomName,25);	
 		// energy use is  active work * UPGRADE_CONTROLLER_POWER, so 11 work parts is 11 ept, over half a room's normal production
 				
 		if(spawn.room.controller.level <= 2) {
@@ -156,7 +133,7 @@ module.exports = {
 				max = Math.min(BODYPART_COST[WORK]*10, max); // Less than 20 ept.
 			}
 			if(spawn.room.controller.level === 8)
-				max = Unit.cost([MOVE,MOVE,MOVE,CARRY]) + BODYPART_COST[WORK] * CONTROLLER_MAX_UPGRADE_PER_TICK * UPGRADE_CONTROLLER_POWER;
+				max = UNIT_COST([MOVE,MOVE,MOVE,CARRY]) + BODYPART_COST[WORK] * CONTROLLER_MAX_UPGRADE_PER_TICK * UPGRADE_CONTROLLER_POWER;
 			// Ignore top 20% of spawn energy (might be in use by renewels)
 			var avail = Math.clamp(250, spawn.room.energyCapacityAvailable - (SPAWN_ENERGY_CAPACITY * 0.20), max);
 			var count = Math.floor((avail - 300) / BODYPART_COST[WORK]);
@@ -197,7 +174,7 @@ module.exports = {
 		let partLimit = Math.floor(elimit / BUILD_POWER);		
 		let avail = Math.max(SPAWN_ENERGY_START, spawn.room.energyCapacityAvailable);				
 		let pattern = [MOVE,MOVE,MOVE,WORK,WORK,CARRY];
-		let cost = Unit.cost(pattern);		
+		let cost = UNIT_COST(pattern);		
 		let al = Math.min( Math.floor(cost*(partLimit/2)), avail);
 		// console.log(`Pattern cost: ${cost}, avail: ${avail}, limit: ${al}`);
 		if(body == undefined)
@@ -227,7 +204,7 @@ module.exports = {
 			Log.warn('[Controller] Body of creep would be too big to build');
 			return false;
 		}
-		let cost = Unit.cost(body);
+		let cost = UNIT_COST(body);
 		if(spawn.room.energyCapacityAvailable < cost) {
 			Log.warn('[Controller] Body of creep is too expensive for the closest spawn');
 			return false;
@@ -248,7 +225,7 @@ module.exports = {
 	},
 	
 	requestMacroUpgrader: function(spawn, dest) {
-		var body = [WORK,WORK,WORK,WORK,CARRY,MOVE,MOVE,MOVE,MOVE,MOVE].cycle(MAX_CREEP_SIZE);
+		var body = Arr.cycle([WORK,WORK,WORK,WORK,CARRY,MOVE,MOVE,MOVE,MOVE,MOVE], MAX_CREEP_SIZE);
 		return spawn.enqueue(body, null, {role:'sink'}, priority, 0, num, expire);		
 	},
 	
@@ -282,14 +259,14 @@ module.exports = {
 			capacity /= 2; // Smaller scavs in remote rooms.
 		var body, avail = Math.clamp(250, capacity, 1500) - BODYPART_COST[WORK];
 		if(hasRoad)
-			body = Unit.repeat([CARRY,CARRY,MOVE], avail);
+			body = this.repeat([CARRY,CARRY,MOVE], avail);
 		else
-			body = Unit.repeat([CARRY,MOVE], avail);
+			body = this.repeat([CARRY,MOVE], avail);
 		body.unshift(WORK);		
 		if(!body || body.length <= 2) {
 			console.log("Unable to build");
 		} else {
-			// console.log("Scav body: " + JSON.stringify(body) + " ==> " + Unit.cost(body));
+			// console.log("Scav body: " + JSON.stringify(body) + " ==> " + UNIT_COST(body));
 			// enqueue(body, name=null, memory, priority=1, delay=0, count=1, expire=Infinity)			
 			spawn.enqueue(body, null, memory, priority, 0, 1, DEFAULT_SPAWN_JOB_EXPIRE);
 		}
@@ -297,7 +274,7 @@ module.exports = {
 	
 	requestClaimer: function(spawn) {
 		let body = [CLAIM,MOVE];
-		let cost = Unit.cost(body);
+		let cost = UNIT_COST(body);
 		while(cost < spawn.room.energyCapacityAvailable && body.length < 6) {
 			body.push(MOVE);
 			cost += BODYPART_COST[MOVE];
@@ -327,7 +304,7 @@ module.exports = {
 			return;
 		}
 		let avail = spawn.room.energyCapacityAvailable;
-		let body = Unit.repeat([MOVE,CLAIM], Math.min(avail, 6500));
+		let body = this.repeat([MOVE,CLAIM], Math.min(avail, 6500));
 		if(_.isEmpty(body))
 			return ERR_RCL_NOT_ENOUGH;
 		else
@@ -354,11 +331,11 @@ module.exports = {
 			let howMuchCanWeBuild = Math.floor(avail / 100); // this.cost([CARRY,MOVE]);
 			let howMuchDoWeWant = Math.ceil(reqCarry);
 			let howCheapCanWeBe = Math.min(howMuchDoWeWant, howMuchCanWeBuild) * 100;
-			howCheapCanWeBe = Math.max(Unit.cost([WORK,WORK,MOVE,CARRY,MOVE]), howCheapCanWeBe);
+			howCheapCanWeBe = Math.max(UNIT_COST([WORK,WORK,MOVE,CARRY,MOVE]), howCheapCanWeBe);
 			let body = [WORK,WORK,MOVE].concat(this.repeat([CARRY,MOVE], howCheapCanWeBe));
 			let stats = _.countBy(body)
 			Log.info('No road. Hauler parts avail: ' + ex(stats));
-			Log.info('Total cost: ' + Unit.cost(body) + ', build time: ' + 3*body.length);
+			Log.info('Total cost: ' + UNIT_COST(body) + ', build time: ' + 3*body.length);
 			spawn.enqueue(body, null, memory, prio);
 			
 		} else {
@@ -367,12 +344,12 @@ module.exports = {
 			// console.log(reqCarry);
 			let howCheapCanWeBe = Math.min(howMuchDoWeWant, howMuchCanWeBuild) * (150/2);
 			 // console.log('how cheap: ' + howCheapCanWeBe);
-			howCheapCanWeBe = Math.max(Unit.cost([WORK,WORK,MOVE,CARRY,CARRY,MOVE]), howCheapCanWeBe);
+			howCheapCanWeBe = Math.max(UNIT_COST([WORK,WORK,MOVE,CARRY,CARRY,MOVE]), howCheapCanWeBe);
 			howCheapCanWeBe = Math.min(howCheapCanWeBe, 2200); // capped to 48 parts, and room for work/move
 			let body = [WORK,WORK,MOVE].concat(this.repeat([CARRY,CARRY,MOVE], howCheapCanWeBe));
 			let stats = _.countBy(body)
 			// Log.info('Have road. Hauler parts avail: ' + ex(stats));
-			Log.info('Total cost: ' + Unit.cost(body) + ', build time: ' + 3*body.length);
+			Log.info('Total cost: ' + UNIT_COST(body) + ', build time: ' + 3*body.length);
 			spawn.enqueue(body, null, memory, prio);
 		}
 		//
@@ -384,26 +361,26 @@ module.exports = {
 	},
 	
 	requestFireTeam: function(s1,s2) {
-		Unit.requestHealer(s1);
-		Unit.requestHealer(s2);
-		Unit.requestAttacker(s1);
-		Unit.requestAttacker(s2);
-		Unit.requestAttacker(s1);
-		Unit.requestAttacker(s2);
+		this.requestHealer(s1);
+		this.requestHealer(s2);
+		this.requestAttacker(s1);
+		this.requestAttacker(s2);
+		this.requestAttacker(s1);
+		this.requestAttacker(s2);
 	},
 	
 	requestPowerBankTeam: function(s1,s2) {
-		let b1 = Unit.repeat([MOVE,HEAL], s1.room.energyCapacityAvailable);
-		let b2 = Unit.repeat([MOVE,HEAL], s2.room.energyCapacityAvailable);
-		Unit.requestHealer(s1, b1);
-		Unit.requestHealer(s1, b1);
-		Unit.requestHealer(s2, b2);
-		Unit.requestAttacker(s1);
-		Unit.requestAttacker(s2);
+		let b1 = Arr.repeat([MOVE,HEAL], s1.room.energyCapacityAvailable);
+		let b2 = Arr.repeat([MOVE,HEAL], s2.room.energyCapacityAvailable);
+		this.requestHealer(s1, b1);
+		this.requestHealer(s1, b1);
+		this.requestHealer(s2, b2);
+		this.requestAttacker(s1);
+		this.requestAttacker(s2);
 	},
 	
 	requestHealer: function(spawn, priority=5) {
-		let body = Unit.repeat([MOVE,HEAL], spawn.room.energyCapacityAvailable / 2);
+		let body = this.repeat([MOVE,HEAL], spawn.room.energyCapacityAvailable / 2);
 		return spawn.enqueue(body, null, {role: 'healer'}, priority);
 	},
 	
@@ -429,7 +406,7 @@ module.exports = {
 	requestFaceTank: function(spawn, flag) {
 		let avail = spawn.room.energyCapacityAvailable;
 		// let body = this.repeat([MOVE,ATTACK], avail).sort().reverse();
-		let body = [MOVE,ATTACK].cycle(MAX_CREEP_SIZE).sort().reverse();
+		let body = Arr.cycle([MOVE,ATTACK], MAX_CREEP_SIZE);
 		console.log('body: ' + body.length);
 		if(!flag || !(Game.flags[flag] instanceof Flag))
 			return "Must specify flag";
@@ -445,15 +422,6 @@ module.exports = {
 			return "Must specify flag";
 		
 		return spawn.enqueue(body, null, {role: 'guard', site: flag, home: spawn.pos.roomName}, 100);
-	},
-	
-	/**
-	 * Get next number
-	 */
-	getNextId: function() {
-		if(!Memory.creepnum)
-			Memory.creepnum = 0;
-		return Memory.creepnum++ % 1000; // number can keep incrementing, but we'll wrap it.
 	},
 	
 	// works for everything except role# roles.

@@ -4,25 +4,6 @@
  * General purpose extensions, or prototype extensions that don't fit anywhere else.
  */
 'use strict';
-
-Array.prototype.cycle = function(n) {
-	var arr = [];
-	for(var i=0; i<n; i++)
-		arr.push(this[i % this.length]);
-	return arr;
-}
- 
-Array.prototype.sortedInsert = function(item, fn) {
-	var indx = _.sortedIndex(this, item, fn);
-	this.splice(indx, 0, item);
-	return this;
-}
-
-Array.prototype.sortedLastInsert = function(item, fn) {
-	var indx = _.sortedLastIndex(this, item, fn);
-	this.splice(indx, 0, item);
-	return this;
-}
  
 ConstructionSite.prototype.draw = function() {
 	let {room,pos,structureType} = this;
@@ -157,12 +138,6 @@ global.Maths = class {
     }
 };
 
-
-// ~44.44
-global.POWER_BANK_SINGLE_SPAWN = Math.ceil(POWER_BANK_HITS / ATTACK_POWER / CREEP_LIFE_TIME);
-
-// ATTACK_POWER: 30
-// RANGED_ATTACK_POWER: 10
 StructurePowerBank.prototype.getAttackPartsGoal = function() {
 	return Math.ceil(this.hits / ATTACK_POWER / this.ticksToDecay);
 }
@@ -173,48 +148,6 @@ StructurePowerBank.prototype.getRangedAttackPartsGoal = function() {
 
 StructurePowerBank.prototype.getCarryPartsGoal = function() {
 	return Math.ceil(this.power / CARRY_CAPACITY);
-}
-
-/**
- * _.sortBy(Game.constructionSites,  )
- */
-/* Object.defineProperty(ConstructionSite.prototype, "priority", {
-    get: function () {
-        return STRUCTURE_BUILD_PRIORITY[this.structureType] || 1;
-    },	
-	configurable: true,
-	enumerable: true
-}); */
-
-// defineCachedGetter(ConstructionSite.prototype, 'walkable', c => OBSTACLE_OBJECT_TYPES )
-
-/**
- *
- */
-Structure.prototype.getResourceCapacity = function(resourceType) {
-    switch (this.structureType) {
-        case STRUCTURE_CONTAINER:
-        case STRUCTURE_STORAGE:
-        case STRUCTURE_TERMINAL:    
-            return this.storeCapacity;
-        case STRUCTURE_SPAWN:
-        case STRUCTURE_EXTENSION:
-        case STRUCTURE_LINK:
-        case STRUCTURE_TOWER:
-            if (RESOURCE_ENERGY == resourceType) {
-                return(this.energyCapacity);
-            } else {
-                return(-1);
-            }
-        case STRUCTURE_LAB:
-            if (RESOURCE_ENERGY == resourceType) {
-                return(this.energyCapacity);
-            } else {
-                return(this.mineralCapacity);
-            }
-        default: 
-            return(-1);
-    }
 }
 
 /**

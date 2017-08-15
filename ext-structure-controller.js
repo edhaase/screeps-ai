@@ -233,7 +233,7 @@ StructureController.prototype.runCensus = function() {
 		if(!spawn)
 			spawn = this.getClosestSpawn();
 		if(spawn)
-			return Unit.requestPilot(spawn, roomName);
+			return require('Unit').requestPilot(spawn, roomName);
 	}
 	
 	/**
@@ -287,7 +287,7 @@ StructureController.prototype.runCensus = function() {
 				var s2pos = _.create(RoomPosition.prototype, s2.pos);
 				this.cache.steps = s1pos.getStepsTo(s2pos) * 2; // expecting two sources
 			}
-			if(Unit.requestDualMiner(spawn, this.pos.roomName, totalCapacity, this.cache.steps) !== false) {
+			if(require('Unit').requestDualMiner(spawn, this.pos.roomName, totalCapacity, this.cache.steps) !== false) {
 				// Log.warn('Requesting dual miner at ' + roomName + ' from ' + spawn.pos.roomName);
 				dual = true;
 			}
@@ -338,7 +338,7 @@ StructureController.prototype.runCensus = function() {
 		if( builders < score && !useSpawn.hasJob({memory: {role: 'builder', home: roomName}}) ) {
 			prio = Math.min(90, 100 - Math.ceil(100 * (builders / score))); // Can't exceed 90%?
 			var elimit = (storedEnergy > 10000)?Infinity:(10*numSources);
-			Unit.requestBuilder(useSpawn,{elimit,home:roomName,priority:prio} );
+			require('Unit').requestBuilder(useSpawn,{elimit,home:roomName,priority:prio} );
 		}
 			
 		/* && !_.any(useSpawn.getQueue(), j => j.memory.role == 'builder' && j.memory.home == roomName)) {
@@ -346,10 +346,10 @@ StructureController.prototype.runCensus = function() {
 			if(buildRemaining && builders < score) {			
 				// Log.info('Requesting new builder at ' + this.room.name);
 				// if(_.all(sites, s => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL))
-				//	Unit.requestMicroBuilder(assistingSpawn || spawn,roomName);
+				//	require('Unit').requestMicroBuilder(assistingSpawn || spawn,roomName);
 				// else
 				prio = 100 - Math.ceil(100 * (builders / score));
-				Unit.requestBuilder(useSpawn,{home:roomName,priority:prio} );
+				require('Unit').requestBuilder(useSpawn,{home:roomName,priority:prio} );
 			} 
 		} */
 	}
@@ -370,7 +370,7 @@ StructureController.prototype.runCensus = function() {
 		scavNeed = 1;
 	if(scavHave < scavNeed) {
 		if(scavHave === 0 && curr('pilot') <= 0)
-			return Unit.requestPilot(spawn, roomName);
+			return require('Unit').requestPilot(spawn, roomName);
 		// prio = 100 - Math.ceil(100 * (scavHave / scavNeed));
 		prio = Math.clamp(25, 100 - Math.ceil(100 * (scavHave / scavNeed)), 100);
 		if(scavHave <= 0 && assistingSpawn)
@@ -378,7 +378,7 @@ StructureController.prototype.runCensus = function() {
 		// Log.warn("Short on scavengers at " + this.pos.roomName + ' (prio: ' + prio + ')');		
 		// Log.warn(`Requesting scavenger to ${this.pos.roomName} from ${spawn.pos.roomName} priority ${prio}`);
 		// function(spawn, home=null, canRenew=true, priority=50, hasRoad=true)
-		Unit.requestScav(spawn, roomName, (scavNeed <= 3), prio, 
+		require('Unit').requestScav(spawn, roomName, (scavNeed <= 3), prio, 
 		(level > 2 && roomName === spawn.pos.roomName) // Non local or <2 spawn with extra move?
 		); // this is still a test?
 	}
@@ -397,7 +397,7 @@ StructureController.prototype.runCensus = function() {
 		prio = Math.max(75, 100 - Math.ceil(100 * (have / desired)));
 		if(have < desired) {
 			// Log.warn(this.pos.roomName + ' wants ' + (desired-have) + ' defenders!', 'Controller');
-			Unit.requestDefender(spawn,(desired-have),roomName,prio);
+			require('Unit').requestDefender(spawn,(desired-have),roomName,prio);
 		}
 	}
 	
@@ -425,7 +425,7 @@ StructureController.prototype.runCensus = function() {
 		let haps = _.get(census, 'hapgrader',0) + _.get(pending, 'hapgrader',0);
 		if( (have+haps) < desired) {
 			// console.log('Requesting upgrader at ' + this.room.name);
-			 Unit.requestUpgrader(spawn,roomName,25);
+			require('Unit').requestUpgrader(spawn,roomName,25);
 		}
 	} else if(this.upgradeBlocked) {
 		Log.warn(`${this.pos.roomName} upgrade blocked for ${this.upgradeBlocked} ticks`, 'Controller');
@@ -440,9 +440,9 @@ StructureController.prototype.runCensus = function() {
 		let desiredRepair = (this.level >= 4 && (storedEnergy > 200000 || terminalEnergy > 60000))?1:0;	
 		if(haveRepair < desiredRepair) {			
 			// console.log('Requesting repairer at ' + this.room.name);
-			// Unit.requestRepair(spawn, 900); // Make it a small one for now.
-			// Unit.requestRepair(spawn, Math.max(1800, storedEnergy / 400));
-			Unit.requestRepair(spawn,roomName);
+			// require('Unit').requestRepair(spawn, 900); // Make it a small one for now.
+			// require('Unit').requestRepair(spawn, Math.max(1800, storedEnergy / 400));
+			require('Unit').requestRepair(spawn,roomName);
 		} else if(haveRepair > desiredRepair) {
 				// How are we even getting here?
 				let target = _(creeps)

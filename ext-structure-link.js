@@ -64,4 +64,3 @@ StructureLink.prototype.transferEnergy = function(target, amount) {
 	}
 	return status;
 }
-

@@ -200,8 +200,7 @@ Room.prototype.addToBuildQueue = function({x,y},structureType,expire=DEFAULT_BUI
 		var task = {x,y,structureType,expire:Game.time+expire,priority};	
 		var q = this.memory.bq;
 		var indx = _.sortedLastIndex(q,task,({structureType,priority}) => -(((100*priority) << 24) | CONSTRUCTION_COST[structureType]));
-		q.splice(indx, 0, task);	
-		// q.sortedLastInsert(task, ({structureType,priority}) => ((100*priority) << 24) | CONSTRUCTION_COST[structureType]);
+		q.splice(indx, 0, task);
 	} catch(e) {
 		Log.error('Error in addToBuildQueue ' + this.name, 'Room');
 		Log.error(e);

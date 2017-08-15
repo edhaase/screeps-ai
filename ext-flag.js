@@ -144,6 +144,19 @@ Flag.prototype.assignClosestTerminal = function(limit=CREEP_LIFE_TIME) {
 	this.memory.steps = cost;
 }
 
+Flag.prototype.assignNearbySpot = function(limit=CREEP_LIFE_TIME) {
+	let {path,cost} = PathFinder.search(
+		 this.pos,
+		_.map(Game.spawns, s => ({pos: s.pos, range: 7}))
+	 );	
+	if(cost > limit)
+		return Log.warn('cost exceeds limit, no target set', 'Flag');
+	let goal =  _.last(path);
+	Log.info(`${this.name} assigning ${goal} to dropoff`, 'Flag');
+	this.memory.dropoff = goal;
+	this.memory.steps = cost;
+}
+
 /**
  * Checks if we have a creep assigned to this flag. Utilizes cache.
  */
@@ -183,6 +196,8 @@ Flag.prototype.hasPendingUnit = function(job) {
 
 Flag.prototype.runLogic = function ()
 {
+	const Unit = require('Unit');
+	
 	if(this.color === FLAG_MILITARY) {
 		if(this.secondaryColor === STRATEGY_DEFEND) {		
 			let unit = this.getAssignedUnit(c => c.getRole() === 'guard' && c.memory.site === this.name);
@@ -365,9 +380,9 @@ Flag.prototype.runLogic = function ()
 			return this.defer(5000);			
 		}
 		if(!this.memory.dropoff)
-			this.assignClosestTerminal();
+			this.assignNearbySpot();
 		if(this.room && !BUCKET_LIMITER)
-			this.throttle(300,'clk',() => Planner.planRoad(this.pos, {pos: _.create(RoomPosition.prototype,this.memory.dropoff), range: 1}));
+			this.throttle(300,'clk',() => require('Planner').planRoad(this.pos, {pos: _.create(RoomPosition.prototype,this.memory.dropoff), range: 1}));
 		// Mining.requestRemoteScav(Game.spawns.Spawn2, new RoomPosition(5,13,'E57S46'), null, true)				
 		let m = _.matches(this.pos);
 		let creeps = _.filter(Game.creeps, c => c.memory.role === 'hauler' && m(c.memory.site));
@@ -419,7 +434,7 @@ Flag.prototype.runLogic = function ()
 		
 		// if(this.secondaryColor === SITE_LOCAL && _.get(this.room, 'controller.my', false) === false) {			
 		if(this.secondaryColor === SITE_LOCAL && !this.room.my) {
-			Log.warn('[Flag] Local mining flag ' + this.name + ' at ' + this.pos + ' not in local room');
+			Log.warn(`Local mining flag ${this.name} at ${this.pos} not in local room`, 'Flag');
 			// return this.defer(30);
 		}
 		
@@ -457,7 +472,7 @@ Flag.prototype.runLogic = function ()
 								
 			// travel time needs to be based on creep body on path length
 			if( (!miner
-			|| (miner.ticksToLive < (Unit.buildTime(miner.body) + miner.memory.travelTime)))				
+			|| (miner.ticksToLive < (UNIT_BUILD_TIME(miner.body) + miner.memory.travelTime)))				
 			) {					
 				// if(Game.rooms[this.pos.roomName]) {
 					// console.log("[MINING] Requesting miner at site " + this.pos);					
