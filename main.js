@@ -11,8 +11,6 @@
  */
 'use strict'; 
 
-// return; // Uncomment to recover from empty bucket
-
 /** Module profiler -  */
 global.loadModule = function loadModule(name) {
 	var start = Game.cpu.getUsed();
@@ -29,74 +27,74 @@ global.loadModule = function loadModule(name) {
 	}
 }
 
-var start = Game.cpu.getUsed();
-
-console.log('----Start of reset----');
-loadModule('global');
-
-/** Set up global modules - These are reachable from the console */
-global.Util = loadModule('Util');
-global.Log = loadModule('Log');
-global.CostMatrix = loadModule('CostMatrix');
-global.Cache = loadModule('Cache');
-global.Empire = loadModule('Empire');
-global.Scheduler = loadModule('Scheduler');
-global.Time = loadModule('Time');
-// global.Planner = loadModule('Planner');
-global.Player = loadModule('Player');
-global.Mining = loadModule('Mining');
-// global.Unit = loadModule('Unit');
-global.Filter = loadModule('Filter');
-global.Route = loadModule('Route');
-// global.WorldPosition = loadModule('WorldPosition');
-global.WorldMap = loadModule('WorldMap');
-// global.Path = loadModule('Path');
-global.FSM = loadModule('FSM');
-global.Command = loadModule('Command');
-global.Segment = require('Segment');
-// global.Algo = require('Algo');
-// global.LSystem = require('Lind');
-global.Market = loadModule('Market');
-loadModule('fsm-screeps');
-Object.assign(global, loadModule('astar_tedivm'));
-
 /**
- * Set up prototype extensions
- * Warning: Unable to extend PathFinder.CostMatrix prototype directly
+ * Welcome to the ninth level of hell
+ * 
+ * Delay imports and requires if under low bucket.
  */
-loadModule('ext');
-loadModule('ext-roomobject');
-loadModule('ext-roomposition');
-loadModule('ext-flag');
-loadModule('ext-room');
-loadModule('ext-creep');
-loadModule('ext-creep-actor');
-loadModule('ext-creep-actor-rts');
-loadModule('ext-source');
-loadModule('ext-roomvisual');
-loadModule('ext-structure');
-loadModule('ext-structure-spawn');
-loadModule('ext-structure-tower');
-loadModule('ext-structure-link');
-loadModule('ext-structure-observer');
-loadModule('ext-structure-controller');
-loadModule('ext-structure-terminal');
-loadModule('ext-structure-lab');
-loadModule('ext-structure-nuker');
-loadModule('ext-structure-extractor');
-loadModule('ext-structure-rampart');
-loadModule('ext-structure-powerspawn');
+console.log('New runtime: ' + Game.time);
+module.exports.loop = function() {
+	if(Game.cpu.bucket < Game.cpu.tickLimit)
+		return console.log(`Runtime holding: ${Game.cpu.bucket}/${Game.cpu.tickLimit}`);
 
-module.exports = {
-	// not loop. we export a loop function that either does or does wrap the run method.
-	run: function() {	
-		if(Game.time === RUNTIME_ID)
-			return Log.warn('Reset occured. Skipping remainder of tick');
+	var start = Game.cpu.getUsed();
+	
+	loadModule('global');
+	
+	/** Set up global modules - These are reachable from the console */
+	global.Util = loadModule('Util');
+	global.Log = loadModule('Log');
+	global.CostMatrix = loadModule('CostMatrix');
+	global.Cache = loadModule('Cache');
+	global.Empire = loadModule('Empire');
+	global.Scheduler = loadModule('Scheduler');
+	global.Time = loadModule('Time');
+	global.Player = loadModule('Player');
+	global.Mining = loadModule('Mining');
+	global.Filter = loadModule('Filter');
+	global.Route = loadModule('Route');
+	global.WorldMap = loadModule('WorldMap');
+	global.FSM = loadModule('FSM');
+	global.Command = loadModule('Command');
+	global.Segment = require('Segment');
+	global.Market = loadModule('Market');	
+	loadModule('fsm-screeps');
+	Object.assign(global, loadModule('astar_tedivm'));
+	
+	/**
+	 * Set up prototype extensions
+	 * Warning: Unable to extend PathFinder.CostMatrix prototype directly
+	 */
+	loadModule('ext');
+	loadModule('ext-roomobject');
+	loadModule('ext-roomposition');
+	loadModule('ext-flag');
+	loadModule('ext-room');
+	loadModule('ext-creep');
+	loadModule('ext-creep-actor');
+	loadModule('ext-creep-actor-rts');
+	loadModule('ext-source');
+	loadModule('ext-roomvisual');
+	loadModule('ext-structure');
+	loadModule('ext-structure-spawn');
+	loadModule('ext-structure-tower');
+	loadModule('ext-structure-link');
+	loadModule('ext-structure-observer');
+	loadModule('ext-structure-controller');
+	loadModule('ext-structure-terminal');
+	loadModule('ext-structure-lab');
+	loadModule('ext-structure-nuker');
+	loadModule('ext-structure-extractor');
+	loadModule('ext-structure-rampart');
+	loadModule('ext-structure-powerspawn');
+
+
+	// Hot swap the loop when we're loaded
+	module.exports.loop = function() {			
 		if(Game.cpu.bucket <= Game.cpu.tickLimit)
-			return Log.notify("Bucket empty, skipping tick!", 60);			
+			return Log.notify("Bucket empty, skipping tick!", 60);
 		if(Game.cpu.getUsed() > Game.cpu.limit)
 			return Log.warn('Garbage collector ate our tick');
-		// console.log('Memory deserialization: ' + Time.measure(x => Memory));
 		global.Volatile = {};
 		global.RESOURCE_THIS_TICK = RESOURCES_ALL[Game.time % RESOURCES_ALL.length];
 		
@@ -154,74 +152,72 @@ module.exports = {
 		Memory.stats['bucket100'] = Math.cmAvg(Game.cpu.bucket - (Memory.stats['bucket'] || 10000), Memory.stats['bucket100'], 100);
 		Memory.stats['bucket'] = Game.cpu.bucket;				
 	}
+	
+	// Optional profiler
+	if( false ) {
+		const profiler = loadModule('screeps-profiler');
+		profiler.enable();
+		profiler.registerObject(PathFinder.CostMatrix, 'pCostMatrix');
+		profiler.registerClass(Empire,'Empire');
+		profiler.registerObject(Mining, 'Mining');
+		profiler.registerObject(Filter, 'Filter');
+		// profiler.registerObject(OwnedStructure, 'OwnedStructure');
+		profiler.registerObject(RoomObject, 'RoomObject');
+		profiler.registerObject(StructureController, 'Controller');
+		// profiler.registerObject(StructureExtension, 'Extension');
+		// profiler.registerObject(StructureExtractor, 'Extractor');
+		profiler.registerObject(StructureLab, 'Lab');
+		profiler.registerObject(StructureLink, 'Link');
+		profiler.registerObject(StructureNuker, 'Nuker');
+		profiler.registerObject(StructureObserver, 'Observer');
+		// profiler.registerObject(StructurePowerSpawn, 'PowerSpawn');
+		profiler.registerObject(StructureRampart, 'Rampart');
+		// profiler.registerObject(StructureStorage, 'Storage');
+		profiler.registerObject(StructureTerminal, 'Terminal');
+		profiler.registerObject(StructureTower, 'Tower');
+		profiler.registerObject(RoomVisual, 'RoomVisual');
+		profiler.registerObject(Structure, 'Structure');
 		
+		Log.info('Patching loop with profiler');
+		let loop = module.exports.loop;
+		module.exports.loop = () => profiler.wrap( loop );
+	}
+	
+	global.updateCpuAvg = function(key, samples) {
+		Memory.stats[key] = Math.mmAvg(		
+			Game.cpu.getUsed(),
+			Memory.stats[key],
+			samples
+		);
+	}
+
+	class Zen
+	{				
+		/** */
+		static updateVisibility() {
+			let visible = Object.keys(Game.rooms);		
+			let changes = _(visible)
+				.xor(Memory.visible)
+				.partition(r => Game.rooms[r] != undefined)
+				.value();
+			let [gainVisibility, lostVisibility] = changes;
+			if(gainVisibility.length || lostVisibility.length) {			
+				console.log('Visibility change: ' + JSON.stringify(changes));
+			}
+			Memory.visible = visible;
+		}		
+	}
+	
+	Object.freeze(Array);
+	Object.freeze(Object);
+	Object.freeze(Array.prototype);
+	Object.freeze(Object.prototype);
+	
+	global.Zen = Zen;
+	
+	
+	var used = Game.cpu.getUsed() - start;
+	console.log('Delayed global reset (used ' + used + ' cpu)');
+	
 }
 
-/** (Optionally) Wire up the profiler. */
-const profiler = loadModule('screeps-profiler');
-
-if( false ) {
-	profiler.enable();
-	profiler.registerObject(PathFinder.CostMatrix, 'pCostMatrix');
-	profiler.registerClass(Empire,'Empire');
-	profiler.registerObject(Mining, 'Mining');
-	profiler.registerObject(Filter, 'Filter');
-	// profiler.registerObject(OwnedStructure, 'OwnedStructure');
-	profiler.registerObject(RoomObject, 'RoomObject');
-	profiler.registerObject(StructureController, 'Controller');
-	// profiler.registerObject(StructureExtension, 'Extension');
-	// profiler.registerObject(StructureExtractor, 'Extractor');
-	profiler.registerObject(StructureLab, 'Lab');
-	profiler.registerObject(StructureLink, 'Link');
-	profiler.registerObject(StructureNuker, 'Nuker');
-	profiler.registerObject(StructureObserver, 'Observer');
-	// profiler.registerObject(StructurePowerSpawn, 'PowerSpawn');
-	profiler.registerObject(StructureRampart, 'Rampart');
-	// profiler.registerObject(StructureStorage, 'Storage');
-	profiler.registerObject(StructureTerminal, 'Terminal');
-	profiler.registerObject(StructureTower, 'Tower');
-	profiler.registerObject(RoomVisual, 'RoomVisual');
-	profiler.registerObject(Structure, 'Structure');
-	Log.info('Registering profiler wrapped loop');
-	module.exports.loop = () => profiler.wrap( () => module.exports.run() );
-} else {
-	// module.exports.loop = () => module.exports.run();
-	Log.info('Registering unwrapped loop');
-	module.exports.loop = module.exports.run;
-}
-
-global.updateCpuAvg = function(key, samples) {
-	Memory.stats[key] = Math.mmAvg(		
-		Game.cpu.getUsed(),
-		Memory.stats[key],
-		samples
-	);
-}
-
-class Zen
-{				
-	/** */
-	static updateVisibility() {
-		let visible = Object.keys(Game.rooms);		
-		let changes = _(visible)
-			.xor(Memory.visible)
-			.partition(r => Game.rooms[r] != undefined)
-			.value();
-		let [gainVisibility, lostVisibility] = changes;
-		if(gainVisibility.length || lostVisibility.length) {			
-			console.log('Visibility change: ' + JSON.stringify(changes));
-		}
-		Memory.visible = visible;
-	}		
-}
-
-Object.freeze(Array);
-Object.freeze(Object);
-Object.freeze(Array.prototype);
-Object.freeze(Object.prototype);
-
-global.Zen = Zen;
-profiler.registerClass(Zen, 'Zen');
-
-var used = Game.cpu.getUsed() - start;
-console.log('Global reset (used ' + used + ' cpu)');
