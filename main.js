@@ -191,33 +191,12 @@ module.exports.loop = function() {
 		);
 	}
 
-	class Zen
-	{				
-		/** */
-		static updateVisibility() {
-			let visible = Object.keys(Game.rooms);		
-			let changes = _(visible)
-				.xor(Memory.visible)
-				.partition(r => Game.rooms[r] != undefined)
-				.value();
-			let [gainVisibility, lostVisibility] = changes;
-			if(gainVisibility.length || lostVisibility.length) {			
-				console.log('Visibility change: ' + JSON.stringify(changes));
-			}
-			Memory.visible = visible;
-		}		
-	}
-	
 	Object.freeze(Array);
 	Object.freeze(Object);
 	Object.freeze(Array.prototype);
 	Object.freeze(Object.prototype);
 	
-	global.Zen = Zen;
-	
-	
 	var used = Game.cpu.getUsed() - start;
 	console.log('Delayed global reset (used ' + used + ' cpu)');
-	
 }
 
