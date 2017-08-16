@@ -129,29 +129,40 @@ StructureTower.prototype.runAttack = function() {
 // 2016-10-15: Higher limit is applied only if we have the energy to spare.
 // @todo: hits / hitsMax < pct && hits < TOWER_REPAIR  * CONTROLLER[8][TOWER]
 StructureTower.prototype.runRepair = function() {
-	if(true) {
-		// if(this.room.energyAvailable / this.room.energyCapacityAvailable < 0.50)
-		//	return;		
-		if(this.room.storage && this.room.storage.store.energy > 200000)
-			var weak = this.room.findWeakestStructure(REPAIR_LIMIT[this.room.controller.level]);
-		else
-			var weak = this.room.findWeakestStructure(20000 * this.room.controller.level);		
-		if(weak)
-			return this.repair(weak) === OK;
-	} else {
-		// Currently burning a lot of cpu as first caller to .structures,
-		// and possibly taking a single pass whether or not any valid candidates.
-		var target = this.getTarget(
-			({room}) => room.structures,
-			// (s) => s.hits < 60000 && s.hits + TOWER_REPAIR_EFFECT[this.pos.getRangeTo(s)] <= s.hitsMax,
-			(s) => s.hits < s.hitsMax && s.hits < 60000,
-			(candidates) => _.min(candidates, 'hits'),
-			'rid'
-		);
-		if(target)
-			return this.repair(target) === OK;
-	}	
+	if(Game.time < this.getNextRepairTick())
+		return false;	
+	var weak = this.getRepairTarget();		
+	if(weak)
+		return this.repair(weak) === OK;
+	else
+		this.delayNextRepair();	
 	return false;
+}
+
+/**
+ * 
+ */
+StructureTower.prototype.getNextRepairTick = function() {
+	if(!this.memory.repairTick)
+		this.memory.repairTick = Game.time;
+	return this.memory.repairTick;
+}
+
+const MAX_REPAIR_DELAY = 80;
+StructureTower.prototype.delayNextRepair = function() {
+	if(!this.memory.repairDelay)
+		this.memory.repairDelay = 1;	
+	this.memory.repairTick = Game.time + this.memory.repairDelay;
+	this.memory.repairDelay = Math.min(this.memory.repairDelay*2, MAX_REPAIR_DELAY);	
+	Log.debug(`Tower ${this.id} delaying for ${this.memory.repairDelay} ticks`, 'Tower');
+	return this.memory.repairDelay;
+}
+
+StructureTower.prototype.getRepairTarget = function() {
+	if(this.room.storage && this.room.storage.store.energy > 200000)
+		return this.room.findWeakestStructure(REPAIR_LIMIT[this.room.controller.level]);
+	else
+		return this.room.findWeakestStructure(20000 * this.room.controller.level);		
 }
 
 StructureTower.prototype.runHeal = function() {
@@ -203,8 +214,13 @@ StructureTower.prototype.attack = function(target) {
 let repair = StructureTower.prototype.repair;
 StructureTower.prototype.repair = function(target) {
 	let status = repair.call(this,target);
-	if(status === OK)
+	if(status === OK) {
 		this.isBusy = true;
+		this.memory.repairDelay = 1; // reset backoff
+		if(this.memory.lastRepair)
+			Log.debug(`Time since last repair: ${(Game.time-this.memory.lastRepair)} ticks for ${this.id}`, 'Tower');
+		this.memory.lastRepair = Game.time;
+	}
 	return status;
 }
 
