@@ -11,9 +11,6 @@ global.RUNTIME_ID = Game.time;
 global.MAX_ROOM_LEVEL = 8;							// Because this should really be a constant.
 global.MAX_OWNED_ROOMS = Infinity;					// Lower this if we can't afford more.
 
-global.MAINTAIN_MINIMUM_BUCKET = 4000;				// If our CPU bucket drops below this, shutdown 'non-important' operations.
-global.TICK_DURATION_SAMPLES = 100;					// How many samples should we average the tick duration over?
-
 global.CONST_COST = 0.2;
 global.HARD_UNIT_CAP = Game.cpu.limit / CONST_COST;			// Anything above this value is guaranteed to eat bucket.
 global.SOFT_UNIT_CAP = 60;									// Arbritary limit, as we're already eating bucket.
@@ -95,8 +92,8 @@ global.NUKE_EFFECT_RANGE = 2;
 
 global.BUCKET_MAX = 10000;
 global.BUCKET_LIMITER = true; // Default to enabled during resets.
-global.BUCKET_LIMITER_LOWER = 6000;
-global.BUCKET_LIMITER_UPPER = 8000;
+global.BUCKET_LIMITER_LOWER = 4000;
+global.BUCKET_LIMITER_UPPER = 6000;
 
 global.CONTROLLER_STRUCTURES_LEVEL_FIRST = [];
 for(var i=0; i<=8; i++)
