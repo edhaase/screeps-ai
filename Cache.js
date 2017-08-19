@@ -8,7 +8,7 @@ let Cache = {};
 Object.defineProperty(Room.prototype, "cache", {
 	get: function() {
 		if(this == undefined || this === Room.prototype)
-			return;
+			return null;
 		if(!Cache.rooms)
 			Cache.rooms = {};
 		if(!Cache.rooms[this.name])
@@ -31,7 +31,7 @@ Object.defineProperty(Room.prototype, "cache", {
 Object.defineProperty(RoomObject.prototype, "cache", {
 	get: function() {
 		if(this == undefined || !(this instanceof RoomObject))
-			return;
+			return null;
 		if(this.id === undefined)
 			throw new Error("This object doesn't have an id");
 		if(!Cache.obj)
@@ -59,7 +59,7 @@ RoomObject.prototype.clearCache = function() {
 Object.defineProperty(Flag.prototype, "cache", {
 	get: function() {
 		if(this == undefined || this === Flag.prototype)
-			return;
+			return null;
 		if(!Cache.flags)
 			Cache.flags = {};
 		if(!Cache.flags[this.name])
@@ -75,67 +75,5 @@ Object.defineProperty(Flag.prototype, "cache", {
 	configurable: true,
 	enumerable: false
 });
-
-
-/* Object.defineProperty(Creep.prototype, "cache", {
-	get: function() {	
-		if(this == undefined || this === Creep.prototype)
-			return;	
-		if(!Cache.creeps)
-			Cache.creeps = {};
-		if(!Cache.creeps[this.name])
-			Cache.creeps[this.name] = {};
-		return Cache.creeps[this.name];
-		
-	},
-	set: function(value) {
-		if(!Cache.creeps[this.name])
-			Cache.creeps[this.name] = {};			
-		Cache.creeps[this.name] = value;
-	},
-	configurable: true,
-	enumerable: false
-});
-
-Object.defineProperty(Structure.prototype, "cache", {
-	get: function() {
-		if(this == undefined || this === Structure.prototype)
-			return;
-		if(!Cache.structures)
-			Cache.structures = {};
-		if(!Cache.structures[this.id])
-			Cache.structures[this.id] = {};
-		return Cache.structures[this.id];
-		
-	},
-	set: function(value) {
-		if(!Cache.structures)
-			Cache.structures = {};			
-		Cache.structures[this.id] = value;
-	},
-	configurable: true,
-	enumerable: false
-});
-
-Object.defineProperty(Source.prototype, "cache", {
-	get: function() {
-		if(this == undefined || this === Source.prototype)
-			return;
-		if(!Cache.sources)
-			Cache.sources = {};
-		if(!Cache.sources[this.id])
-			Cache.sources[this.id] = {};
-		return Cache.sources[this.id];
-		
-	},
-	set: function(value) {
-		if(!Cache.sources)
-			Cache.sources = {};			
-		Cache.sources[this.id] = value;
-	},
-	configurable: true,
-	enumerable: false
-});
-*/
 
 module.exports = Cache;
