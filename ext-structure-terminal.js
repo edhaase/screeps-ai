@@ -34,6 +34,8 @@ global.TERMINAL_RESOURCE_LIMIT = 75000; 			// Above this we stop spawning minera
 global.TERMINAL_MAX_AUTOSELL = 5000;				// Maximum amount we can sell in a single action.
 global.TERMINAL_MINIMUM_SELL_PRICE = 0.01;
 global.TERMINAL_MAXIMUM_BUY_PRICE = 20.00;
+global.TERMINAL_MAINTAIN_RESERVE = 500;
+global.TERMINAL_PURCHASE_MARGIN = 10;
 global.BIT_TERMINAL_SELL_ALL = (1 << 1);
 
 StructureTerminal.prototype.NUMBER_FORMATTER = new Intl.NumberFormat();
@@ -303,9 +305,7 @@ StructureTerminal.prototype.runAutoSell = function() {
  * Auto purchase compounds we're missing.
  */
 StructureTerminal.prototype.runAutoBuy = function() {
-	// if( (Game.time/5)%50 )
-	//	return;
-	if(this.credits <= 0 || this.store[RESOURCE_ENERGY] < 1000)
+	if(this.credits <= 0 || this.store[RESOURCE_ENERGY] < TERMINAL_MIN_ENERGY)
 		return;
 	if(RESOURCE_THIS_TICK.length <= 1 && RESOURCE_THIS_TICK !== 'G')
 		return;
@@ -313,9 +313,9 @@ StructureTerminal.prototype.runAutoBuy = function() {
 		return;
 	if(RESOURCE_THIS_TICK === RESOURCE_POWER && this.room.controller.level < 8)
 		return;
-	// var orders = _.reject(Game.market.getAllOrders({type:ORDER_SELL, resourceType: resource}), o => Game.rooms[o.roomName] && Game.rooms[o.roomName].my)
-	// Log.warn('Auto purchase: ' + RESOURCE_THIS_TICK + ' on tick ' + Game.time);
-	return this.buyUpTo(RESOURCE_THIS_TICK, 500);
+	if(TERMINAL_MAINTAIN_RESERVE - this.store[RESOURCE_THIS_TICK] <= TERMINAL_PURCHASE_MARGIN)
+		return;
+	return this.buyUpTo(RESOURCE_THIS_TICK, TERMINAL_MAINTAIN_RESERVE);
 }
 
 StructureTerminal.prototype.getMaxResourceAmount = function(res) {
@@ -380,13 +380,12 @@ StructureTerminal.prototype.sell = function(resource, amt=Infinity, limit=TERMIN
  * @todo: Avoid rooms in cache by opponent.
  */
 StructureTerminal.prototype.buy = function(res, amt=Infinity, maxRange=Infinity) { // , test=true) {	
-	// var orders = Game.market.getAllOrders({type: ORDER_SELL, resourceType: res});
-	var orders = _.reject(Game.market.getAllOrders({type: ORDER_SELL, resourceType: res}), o => Game.rooms[o.roomName] && Game.rooms[o.roomName].my && o.price > TERMINAL_MAXIMUM_BUY_PRICE);
-	if(res === RESOURCE_ENERGY || maxRange !== Infinity) {
-		if(maxRange === Infinity)
-			maxRange = 12; // Actually 15, but if we're buying we want to actually get some of it home
+	var orders = Game.market.getAllOrders({type: ORDER_SELL, resourceType: res});
+	orders = _.reject(orders, o => (Game.rooms[o.roomName] && Game.rooms[o.roomName].my) || o.price > TERMINAL_MAXIMUM_BUY_PRICE || o.amount <= 1);
+	if(maxRange !== Infinity)
 		orders = _.filter(orders, o => Game.map.getRoomLinearDistance(o.roomName, this.pos.roomName, true) < maxRange);
-	}	
+	if(res === RESOURCE_ENERGY)
+		orders = _.filter(orders, o => Game.market.calcTransactionCost(amt, this.pos.roomName, o.roomName) < amt);
 	let order = _.min(orders, o => o.price * Game.market.calcTransactionCost(Math.min(amt,o.amount), this.pos.roomName, o.roomName));	
 	if(!order || Math.abs(order) === Infinity)
 		return ERR_NOT_FOUND;	
@@ -464,6 +463,14 @@ StructureTerminal.prototype.getPayloadWeCanAfford = function(dest) {
 StructureTerminal.prototype.getFee = function(dest) {
 	let dist = Game.map.getRoomLinearDistance(this.room.name, dest, true);
 	return 1 - Math.exp(-dist / 30);
+}
+
+/**
+ * If you want to ensure energy cost remains lower than fee,
+ * the following function will you the maximum room you can send too.
+ */
+StructureTerminal.prototype.getDistanceByFee = function(fee) {
+	return -30 * Math.log(-fee+1);
 }
 
 StructureTerminal.prototype.getCost = function(amt, dest) {
