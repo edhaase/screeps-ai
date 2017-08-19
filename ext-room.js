@@ -84,8 +84,6 @@ defineCachedGetter(Room.prototype, 'hostiles', function(room) {
  */
  // Resolve threat tracking (likely to controller) and we can enable observer sweeps
 Room.prototype.run = function updateRoom() {	
-	// this.memory.tick = Game.time;
-	// if(Game.time & 3 === 0)
 	if(!(Game.time & 3))
 		this.updateThreats();
 	
@@ -456,7 +454,9 @@ Room.prototype.onHighAlertEnter = function(threatsByOwner){
 	Log.warn(msg);				
 	// _.invoke(Game.creeps, 'say', 'HOO-WAH', true);
 	
-	if(threatsByOwner['Invader']) {
+	// Leaks memory when coupled with observers. 
+	// Isn't strictly needed, anyways.
+	/* if(threatsByOwner['Invader']) {
 		if(this.memory.lastMined) {
 			let diff = this.memory.mined - this.memory.lastMined;
 			if(diff > 10000)
@@ -464,7 +464,7 @@ Room.prototype.onHighAlertEnter = function(threatsByOwner){
 		}
 		this.memory.lastRaid = Game.time;
 		this.memory.lastMined = this.memory.mined;
-	}
+	} */
 }
 
 Room.prototype.getTicksSinceLastRaid = function() {
