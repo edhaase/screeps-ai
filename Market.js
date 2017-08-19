@@ -49,7 +49,7 @@ module.exports = {
 			var distance = Game.map.getRoomLinearDistance(from,to,true);
 			if(order && order.price) {
 				var total = amount * order.price;
-				Game.rooms[from].terminal.credits += total;
+				Game.rooms[from].terminal.credits += (total * (1.0 - TERMINAL_TAX));
 				Log.info(`Outbound transaction from ${from} to ${to} (dist: ${distance}): ${amount} ${resourceType} at ${order.price} for ${total} total`, 'Market');				
 			} else {
 				Log.info(`Outbound transaction from ${from} to ${to} (dist: ${distance}): ${amount} ${resourceType}`, 'Market')
