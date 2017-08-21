@@ -29,9 +29,14 @@ StructurePowerSpawn.prototype.runReload = function() {
 	let storedPower = _.get(this.room, ['terminal', 'store', RESOURCE_POWER], 0);
 	if(storedEnergy > 10000 && storedPower > 0) {
 		let spawn = this.getClosestSpawn();
-		// spawn.enqueue([CARRY,MOVE], null, {role: 'filler', src: terminal.id, dest: this.id, res: RESOURCE_POWER, amt: storedPower});
-		spawn.enqueue([CARRY,CARRY,MOVE], null, {role: 'filler', src: terminal.id, dest: this.id, res: RESOURCE_POWER, amt: Math.min(storedPower,2*CARRY_CAPACITY)});
-		Log.info('Power spawn requesting filler at ' + this.pos.roomName, 'PowerSpawn');
+		let amt = Math.min(storedPower, this.powerCapacity - this.power);
+		let carry = Math.ceil(amt / CARRY_CAPACITY);
+		let move = carry / 2;
+		spawn.enqueue( Util.RLD([
+			carry,CARRY,
+			move,MOVE
+		]), null, {role: 'filler', src: terminal.id, dest: this.id, res: RESOURCE_POWER, amt: amt});
+		Log.info(`Power spawn requesting filler with ${carry} carry and ${move} move at ${this.pos.roomName}`, 'PowerSpawn');
 	}
 }
 

@@ -295,7 +295,10 @@ module.exports = {
 	},
 	
 	requestPilot: function(spawn, roomName, count=1) {
-		return spawn.enqueue([WORK,CARRY,MOVE,MOVE], null, {role: 'pilot', home: roomName || spawn.pos.roomName}, 100, 0, count);		
+		const MAX_PILOT_ENERGY = 750;
+		const amt = Math.clamp(SPAWN_ENERGY_START, spawn.room.energyAvailable, MAX_PILOT_ENERGY);
+		let body = Arr.repeat([WORK,CARRY,MOVE,MOVE], amt);
+		return spawn.enqueue(body, null, {role: 'pilot', home: roomName || spawn.pos.roomName}, 100, 0, count);
 	},
 	
 	requestReserver: function(spawn,site,prio=50) {

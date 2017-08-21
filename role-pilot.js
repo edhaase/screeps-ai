@@ -34,25 +34,12 @@ module.exports = {
 				creep.harvestOrMove(source);
 				break;
 			case 'unload':
-				if(creep.room.controller < 500) {
+				let controller = creep.room.controller;
+				if(controller.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || controller.isEmergencyModeActive()) {
 					if(creep.upgradeLocalController() === ERR_NOT_IN_RANGE)
 						creep.moveTo(creep.room.controller, {range: CREEP_UPGRADE_RANGE});
 				} else {
-					// First goal is filling structures
-					/* let goal = creep.pos.findClosestByRange(FIND_MY_STRUCTURES, {filter: function(structure) {
-						if ( structure.structureType === STRUCTURE_SPAWN && structure.energyPct < 0.95 ) return true;
-						if ( structure.structureType === STRUCTURE_EXTENSION && structure.energy < structure.energyCapacity ) return true;		
-						if ( structure.structureType === STRUCTURE_CONTROLLER && structure.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD) return true;
-						if ( structure.structureType === STRUCTURE_TOWER && structure.energy < TOWER_ENERGY_COST ) return true;
-						return false;
-					}});			 */
-								
-					let controller = creep.room.controller;
-					let goal = null;
-					if(controller.isEmergencyModeActive())
-						goal = controller;
-					else {
-						goal = this.getTarget(
+					let goal = this.getTarget(
 							({room}) => room.find(FIND_MY_STRUCTURES),
 							function(structure) {
 								if ( structure.structureType === STRUCTURE_SPAWN && structure.energyPct < 0.95 ) return true;
@@ -62,10 +49,8 @@ module.exports = {
 							},
 							(candidates) => this.pos.findClosestByPath(candidates)
 						);
-					}			
 					if(!goal)
 						goal = controller;
-					
 					creep.transferOrMove(goal, RESOURCE_ENERGY);
 				}
 				break;
