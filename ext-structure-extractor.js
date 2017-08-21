@@ -32,10 +32,10 @@ StructureExtractor.prototype.run = function() {
 	}
 				
 	// If exhausted, defer	
-	if(mineral && mineral.mineralAmount === 0) {
+	if(mineral && mineral.mineralAmount === 0 && mineral.ticksToRegeneration > MAX_CREEP_SPAWN_TIME) {
 		Log.info(`Mineral site at ${this.pos} empty. Going to sleep for ${mineral.ticksToRegeneration} ticks`, 'Extractor');			
 		// this.memory.defer = Game.time + mineral.ticksToRegeneration;
-		return this.defer(mineral.ticksToRegeneration);
+		return this.defer(mineral.ticksToRegeneration - MAX_CREEP_SPAWN_TIME);
 	} 		
 	
 	// Do we have a miner?

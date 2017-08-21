@@ -35,6 +35,8 @@ module.exports = function(creep) {
 		case ERR_NOT_ENOUGH_RESOURCES:
 			if(mineral.ticksToRegeneration > creep.ticksToLive) {				
 				creep.memory.role = 'recycle';
+			} else {
+				this.defer(mineral.ticksToRegeneration);
 			}
 			break;
 	}
