@@ -190,12 +190,7 @@ module.exports.loop = function () {
 			samples
 		);
 	};
-
-	Object.freeze(Array);
-	Object.freeze(Object);
-	Object.freeze(Array.prototype);
-	Object.freeze(Object.prototype);
-
+		
 	var used = Game.cpu.getUsed() - start;
 	console.log('Delayed global reset (used ' + used + ' cpu)');
 };
