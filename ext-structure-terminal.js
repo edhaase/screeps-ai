@@ -281,9 +281,7 @@ StructureTerminal.prototype.runAutoSell = function() {
 			let lowest = _.min(orders, 'price');
 			price = lowest.price;
 		}
-		let amount = Math.max(0, this.store[resource] - (TERMINAL_AUTOSELL_THRESHOLD * 1.10)); // Sell a little excess
-		amount = 100 * Math.floor(amount / 100);
-		// let status = Game.market.createOrder(ORDER_SELL, resource, price, amount, this.pos.roomName);
+		let amount = Math.clamp(0, 100*Math.floor(1.10*over/100), this.store[resource]);
 		let status = this.createOrder(ORDER_SELL, resource, price, amount);
 		Log.notify(`Creating sell order at ${roomName} for ${amount} ${resource} at ${price}, status: ${status}`);
 		if(status === OK)
