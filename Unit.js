@@ -55,7 +55,7 @@ class Body extends Array
 global.Body = Body;
 
 module.exports = {
-	 Body: Body,
+	Body: Body,
 
 	/**
 	 * Bulk role change
@@ -87,27 +87,27 @@ module.exports = {
 	/**
      * Sums up the part cost to build a thing
      */
-    cost: _.memoize( function cost(parts) {
+	cost: _.memoize( function cost(parts) {
 		return _.sum(parts, part => BODYPART_COST[part]);
-    }),
+	}),
 	
 	livingCost: c => _.sum(c.body, part => BODYPART_COST[part.type]),
 	
 	sort: body => _.sortBy(body, p => _.indexOf([TOUGH,MOVE,WORK,CARRY,ATTACK,RANGED_ATTACK,HEAL,CLAIM],p)),
 	
-	shuffle: function(body) {
-		if(body == undefined)
+	shuffle: function (body) {
+		if (body == undefined)
 			return undefined;
 		return _(body)
-				.sortBy(function(part) {
-					if(part === TOUGH)
-						return 0;
-					else if(part === HEAL)
-						return BODYPARTS_ALL.length;
-					else
-						return _.random(1,BODYPARTS_ALL.length-1);
-				})
-				.value();
+			.sortBy(function (part) {
+				if (part === TOUGH)
+					return 0;
+				else if (part === HEAL)
+					return BODYPARTS_ALL.length;
+				else
+					return _.random(1, BODYPARTS_ALL.length - 1);
+			})
+			.value();
 	},
 	
 	/**
@@ -224,20 +224,14 @@ module.exports = {
 		return spawn.enqueue(body, null, {home: home, role:'repair'}, prio);
 	},
 	
-	requestMacroUpgrader: function(spawn, dest) {
-		var body = Arr.cycle([WORK,WORK,WORK,WORK,CARRY,MOVE,MOVE,MOVE,MOVE,MOVE], MAX_CREEP_SIZE);
-		return spawn.enqueue(body, null, {role:'sink'}, priority, 0, num, expire);		
-	},
-	
 	requestHapgrader: function(spawn, site, expire=DEFAULT_SPAWN_JOB_EXPIRE) {
 		return spawn.enqueue(
 			[WORK,WORK,WORK,WORK,WORK,WORK,WORK,WORK,WORK,WORK,CARRY,MOVE],
 			null, {role: 'hapgrader', site: site}, 10, 0, 1, expire
-		)
+		);
 	},
 	
-	requestScav: function(spawn, home=null, canRenew=true, priority=50, hasRoad=true) { // , memory={role:'scav', type: 'ext-filler'}, priority=10, reqCarry=Infinity) {
-		var reqCarry = Infinity;
+	requestScav: function(spawn, home=null, canRenew=true, priority=50, hasRoad=true) {
 		var memory = {
 			role: 'scav',
 			type: 'ext-filler',			
@@ -246,10 +240,6 @@ module.exports = {
 		if(canRenew==false)
 			memory.bits = BIT_CREEP_DISABLE_RENEW;
 		
-		/* if(!home)
-			memory.home = spawn.pos.roomName;
-		else
-			memory.home = home; */
 		memory.home = home || spawn.pos.roomName;
 		
 		// let capacity = spawn.room.energyCapacityAvailable;
@@ -257,14 +247,16 @@ module.exports = {
 		let capacity = Math.ceil(spawn.room.energyCapacityAvailable * 0.75);
 		if(home !== spawn.pos.roomName)
 			capacity /= 2; // Smaller scavs in remote rooms.
-		var body, avail = Math.clamp(250, capacity, 1500) - BODYPART_COST[WORK];
+		// var body, avail = Math.clamp(250, capacity, 1500) - BODYPART_COST[WORK];
+		var body, avail = Math.clamp(250, capacity, 1500) - UNIT_COST([WORK,MOVE]);
 		if(hasRoad)
 			body = this.repeat([CARRY,CARRY,MOVE], avail);
 		else
 			body = this.repeat([CARRY,MOVE], avail);
-		body.unshift(WORK);		
-		if(!body || body.length <= 2) {
-			console.log("Unable to build");
+		body.unshift(WORK);
+		body.unshift(MOVE);
+		if(!body || body.length <= 3) {
+			console.log("Unable to build scav");
 		} else {
 			// console.log("Scav body: " + JSON.stringify(body) + " ==> " + UNIT_COST(body));
 			// enqueue(body, name=null, memory, priority=1, delay=0, count=1, expire=Infinity)			
@@ -303,7 +295,7 @@ module.exports = {
 	
 	requestReserver: function(spawn,site,prio=50) {
 		if(!site) {
-			Log.error("requestReserver expects site!")
+			Log.error("requestReserver expects site!");
 			return;
 		}
 		let avail = spawn.room.energyCapacityAvailable;
@@ -322,7 +314,7 @@ module.exports = {
 			let howCheapCanWeBe = Math.min(howMuchDoWeWant, howMuchCanWeBuild) * 100;
 			howCheapCanWeBe = Math.max(UNIT_COST([WORK,WORK,MOVE,CARRY,MOVE]), howCheapCanWeBe);
 			let body = [WORK,WORK,MOVE].concat(this.repeat([CARRY,MOVE], howCheapCanWeBe));
-			let stats = _.countBy(body)
+			let stats = _.countBy(body);
 			Log.info('No road. Hauler parts avail: ' + ex(stats));
 			Log.info('Total cost: ' + UNIT_COST(body) + ', build time: ' + 3*body.length);
 			spawn.enqueue(body, null, memory, prio);
@@ -332,11 +324,10 @@ module.exports = {
 			let howMuchDoWeWant = Math.ceil(reqCarry);
 			// console.log(reqCarry);
 			let howCheapCanWeBe = Math.min(howMuchDoWeWant, howMuchCanWeBuild) * (150/2);
-			 // console.log('how cheap: ' + howCheapCanWeBe);
 			howCheapCanWeBe = Math.max(UNIT_COST([WORK,WORK,MOVE,CARRY,CARRY,MOVE]), howCheapCanWeBe);
 			howCheapCanWeBe = Math.min(howCheapCanWeBe, 2200); // capped to 48 parts, and room for work/move
 			let body = [WORK,WORK,MOVE].concat(this.repeat([CARRY,CARRY,MOVE], howCheapCanWeBe));
-			let stats = _.countBy(body)
+			// let stats = _.countBy(body);
 			// Log.info('Have road. Hauler parts avail: ' + ex(stats));
 			Log.info('Total cost: ' + UNIT_COST(body) + ', build time: ' + 3*body.length);
 			spawn.enqueue(body, null, memory, prio);
@@ -382,9 +373,9 @@ module.exports = {
 	// Unit.requestGuard(Game.spawns.Spawn1, 'Test', [MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,ATTACK,MOVE,ATTACK])
 	// Unit.requestGuard(Game.spawns.Spawn4, 'Guard2', [TOUGH,TOUGH,MOVE,MOVE,RANGED_ATTACK,RANGED_ATTACK,MOVE,MOVE,HEAL,HEAL,HEAL])
 	// Unit.requestGuard(Game.spawns.Spawn4, 'Guard2', [MOVE,ATTACK,MOVE,ATTACK,MOVE,ATTACK,MOVE,ATTACK,MOVE,ATTACK,MOVE,ATTACK,MOVE,ATTACK])
-	 // Unit.requestGuard(Game.spawns.Spawn2, 'Flag31', Util.RLD([10,TOUGH,20,MOVE,10,ATTACK]))
-	 // Unit.requestGuard(Game.spawns.Spawn8, 'Flag38', Util.RLD([5,TOUGH,10,MOVE,6,ATTACK]))
-	 // Unit.requestGuard(Game.spawns.Spawn4, 'Guard2', Util.RLD([5,TOUGH,20,MOVE,5,RANGED_ATTACK,2,HEAL]))
+	// Unit.requestGuard(Game.spawns.Spawn2, 'Flag31', Util.RLD([10,TOUGH,20,MOVE,10,ATTACK]))
+	// Unit.requestGuard(Game.spawns.Spawn8, 'Flag38', Util.RLD([5,TOUGH,10,MOVE,6,ATTACK]))
+	// Unit.requestGuard(Game.spawns.Spawn4, 'Guard2', Util.RLD([5,TOUGH,20,MOVE,5,RANGED_ATTACK,2,HEAL]))
 	// requestGuard: function(spawn, flag, body=[MOVE,MOVE,RANGED_ATTACK,HEAL]) {
 	requestGuard: function(spawn, flag, body=[TOUGH,TOUGH,MOVE,MOVE,MOVE,ATTACK,MOVE,ATTACK,MOVE,ATTACK]) {
 		if(!flag || !(Game.flags[flag] instanceof Flag))
@@ -417,5 +408,5 @@ module.exports = {
 	recovery: function() {
 		_.each(Game.creeps, c => c.memory.role = c.name.replace(/[0-9]/g, ''));
 	}
-	 
- }
+
+};
