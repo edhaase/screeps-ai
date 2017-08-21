@@ -7,6 +7,15 @@
  */
 'use strict';
  
+StructureExtractor.prototype.onWake = function() {
+	var mineral = this.mineral;
+	// if mineral density changed, notify
+	if(mineral.density && mineral.density !== this.memory.density) {
+		Log.info('Mineral density in ' + this.pos.roomName + ' changed to ' + mineral.density, 'Extractor');
+		this.memory.density = mineral.density;
+	}
+}
+
 StructureExtractor.prototype.run = function() {
 	if(this.isDeferred())
 		return;
@@ -21,14 +30,7 @@ StructureExtractor.prototype.run = function() {
 		Log.warn(`No terminal in ${this.pos.roomName}, operations disabled.`, 'Extractor');		
 		return this.defer(500);
 	}
-	
-	var mineral = this.mineral;
-	// if mineral density changed, notify
-	if(mineral.density && mineral.density !== this.memory.density) {
-		Log.info('Mineral density in ' + this.pos.roomName + ' changed to ' + mineral.density, 'Extractor');
-		this.memory.density = mineral.density;
-	}
-		
+				
 	// If exhausted, defer	
 	if(mineral && mineral.mineralAmount === 0) {
 		Log.info(`Mineral site at ${this.pos} empty. Going to sleep for ${mineral.ticksToRegeneration} ticks`, 'Extractor');			
@@ -78,11 +80,3 @@ StructureExtractor.prototype.isActive = function() {
 }
 
 defineCachedGetter(StructureExtractor.prototype, 'mineral', s => _.first(s.pos.lookFor(LOOK_MINERALS)));
-
-/* Object.defineProperty(StructureExtractor.prototype, "mineral", {
-    get: function () {
-		return this.room.mineral;		
-    },	
-	configurable: true,
-	enumerable: false
-}); */
