@@ -312,20 +312,6 @@ module.exports = {
 			return ERR_RCL_NOT_ENOUGH;
 		else
 			return spawn.enqueue(body, null, {role: 'reserver', site: site}, prio,0,1,DEFAULT_SPAWN_JOB_EXPIRE);
-		/* if(avail < 650)
-			return ERR_RCL_NOT_ENOUGH;
-		if(avail < 1300)
-			return spawn.enqueue([MOVE,CLAIM], null, {role: 'reserver', site: site}); // 650
-		if(avail < 1950)
-			return spawn.enqueue([MOVE,MOVE,CLAIM,CLAIM], null, {role: 'reserver', site: site}); // 1300
-		if(avail < 2600)
-			return spawn.enqueue([MOVE,MOVE,MOVE,CLAIM,CLAIM,CLAIM], null, {role: 'reserver', site: site}); // 1950
-		if(avail < 3250)
-			return spawn.enqueue([MOVE,MOVE,MOVE,MOVE,CLAIM,CLAIM,CLAIM,CLAIM], null, {role: 'reserver', site: site}); // 2600
-		if(avail < 3900)
-			return spawn.enqueue([MOVE,MOVE,MOVE,MOVE,MOVE,CLAIM,CLAIM,CLAIM,CLAIM,CLAIM], null, {role: 'reserver', site: site}); // 3250
-		else
-			return spawn.enqueue([MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,CLAIM,CLAIM,CLAIM,CLAIM,CLAIM,CLAIM], null, {role: 'reserver', site: site}); // 3900 */		
 	},
 	
 	requestHauler: function(spawn, memory, hasRoad=false, reqCarry=Infinity, prio=10) {
