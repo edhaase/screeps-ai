@@ -30,8 +30,9 @@ StructureExtractor.prototype.run = function() {
 		Log.warn(`No terminal in ${this.pos.roomName}, operations disabled.`, 'Extractor');		
 		return this.defer(500);
 	}
-				
+
 	// If exhausted, defer	
+	var mineral = this.mineral;
 	if(mineral && mineral.mineralAmount === 0 && mineral.ticksToRegeneration > MAX_CREEP_SPAWN_TIME) {
 		Log.info(`Mineral site at ${this.pos} empty. Going to sleep for ${mineral.ticksToRegeneration} ticks`, 'Extractor');			
 		// this.memory.defer = Game.time + mineral.ticksToRegeneration;
