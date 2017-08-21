@@ -1,7 +1,7 @@
 /**
  * Drop miner. Moves to worksite and mines until he's dead.
  */
-'use strict';
+"use strict";
 
 /*
 module.exports = function(creep) {

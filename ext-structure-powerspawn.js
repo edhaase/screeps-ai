@@ -7,49 +7,49 @@
  * 
  * Bucket limiter check disabled, no real logic to run in it's test, the intent cpu isn't my biggest problem.
  */
-'use strict';
+"use strict";
 
-StructurePowerSpawn.prototype.run = function() {
+StructurePowerSpawn.prototype.run = function () {
 	// if(BUCKET_LIMITER)
 	//	return;
-	if(Game.time % (CREEP_LIFE_TIME+200) == 0 && !this.power)
+	if (Game.time % (CREEP_LIFE_TIME + 200) == 0 && !this.power)
 		this.runReload();
 	// Not needed, this meets the special case of `checkStructureAgainstController`.
 	// if(this.power === 0 || this.energy < POWER_SPAWN_ENERGY_RATIO)
 	//	return;
-	if((Game.time & 3) === 0)
-		this.processPower();	
-}
+	if ((Game.time & 3) === 0)
+		this.processPower();
+};
 
 // @todo: Size to power spawn available capacity.
-StructurePowerSpawn.prototype.runReload = function() {
-	let storedEnergy = _.get(this.room, 'storage.store.energy',0);
+StructurePowerSpawn.prototype.runReload = function () {
+	let storedEnergy = _.get(this.room, 'storage.store.energy', 0);
 	let terminal = this.room.terminal;
 	// let storedPower =_.get(this.room, ['terminal.store', RESOURCE_POWER], 0);
 	let storedPower = _.get(this.room, ['terminal', 'store', RESOURCE_POWER], 0);
-	if(storedEnergy > 10000 && storedPower > 0) {
+	if (storedEnergy > 10000 && storedPower > 0) {
 		let spawn = this.getClosestSpawn();
 		let amt = Math.min(storedPower, this.powerCapacity - this.power);
 		let carry = Math.ceil(amt / CARRY_CAPACITY);
 		let move = carry / 2;
-		spawn.enqueue( Util.RLD([
-			carry,CARRY,
-			move,MOVE
-		]), null, {role: 'filler', src: terminal.id, dest: this.id, res: RESOURCE_POWER, amt: amt});
+		spawn.enqueue(Util.RLD([
+			carry, CARRY,
+			move, MOVE
+		]), null, { role: 'filler', src: terminal.id, dest: this.id, res: RESOURCE_POWER, amt: amt });
 		Log.info(`Power spawn requesting filler with ${carry} carry and ${move} move at ${this.pos.roomName}`, 'PowerSpawn');
 	}
-}
+};
 
 /**
  * Track amount of power processed per powerspawn.
  */
 let processPower = StructurePowerSpawn.prototype.processPower;
-StructurePowerSpawn.prototype.processPower = function() {
+StructurePowerSpawn.prototype.processPower = function () {
 	let status = processPower.apply(this, arguments);
-	if(status === OK) {
-		if(!this.memory.power)
+	if (status === OK) {
+		if (!this.memory.power)
 			this.memory.power = 0;
 		this.memory.power += 1;
 	}
 	return status;
-}
+};

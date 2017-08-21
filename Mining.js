@@ -15,162 +15,127 @@
  *   200 ticks at 5 work to fill container (10 energy/tick)
  *   300 ticks at 5 work to mine source (10 energy/tick)
  */
-'use strict';
+"use strict";
 
-const MinerBody = Util.RLD([Math.ceil(SOURCE_HARVEST_PARTS),1,MOVE])
- 
 global.MINING_BODIES = [
 	// [WORK,WORK,WORK,WORK,WORK,WORK,CARRY,MOVE,MOVE,MOVE],
-	[WORK,WORK,WORK,WORK,WORK,CARRY,MOVE,MOVE,MOVE],
-	[WORK,WORK,WORK,WORK,WORK,CARRY,MOVE,MOVE],
-	[WORK,WORK,WORK,WORK,WORK,MOVE],
-	[WORK,WORK,WORK,WORK,MOVE],
-	[WORK,WORK,WORK,MOVE],
-	[WORK,WORK,MOVE]	
+	[WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE],
+	[WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE],
+	[WORK, WORK, WORK, WORK, WORK, MOVE],
+	[WORK, WORK, WORK, WORK, MOVE],
+	[WORK, WORK, WORK, MOVE],
+	[WORK, WORK, MOVE]
 ];
 
 global.REMOTE_MINING_BODIES = [
 	// [WORK,WORK,WORK,WORK,WORK,WORK,WORK,CARRY,MOVE,MOVE,MOVE],
-	[WORK,WORK,WORK,WORK,WORK,WORK,CARRY,MOVE,MOVE,MOVE],
-	[WORK,WORK,WORK,WORK,WORK,MOVE,MOVE]
+	[WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE],
+	[WORK, WORK, WORK, WORK, WORK, MOVE, MOVE]
 ];
 
 global.MAX_MINING_BODY = (amt) => _.find(MINING_BODIES, b => UNIT_COST(b) <= amt);
 
-module.exports = {		
+module.exports = {
 	/**
 	 * Request miner
 	 */
-	requestRemoteMiner: function(spawn, pos, expire=DEFAULT_SPAWN_JOB_EXPIRE) {
+	requestRemoteMiner: function (spawn, pos, expire = DEFAULT_SPAWN_JOB_EXPIRE) {
 		let body = _.find(REMOTE_MINING_BODIES, b => UNIT_COST(b) <= spawn.room.energyCapacityAvailable);
-		spawn.enqueue(body, null, {role:'miner', dest: pos, travelTime: 0}, 10, 0, 1, expire);
+		spawn.enqueue(body, null, { role: 'miner', dest: pos, travelTime: 0 }, 10, 0, 1, expire);
 	},
-	
+
 	/**
 	 * Request miner
 	 */
-	requestMiner: function(spawn, dest, prio=8) {
+	requestMiner: function (spawn, dest, prio = 8) {
 		let body = _.find(MINING_BODIES, b => UNIT_COST(b) <= spawn.room.energyCapacityAvailable);
-		spawn.enqueue(body, null, {role:'miner', dest: dest, home: dest.roomName, travelTime: 0}, prio, 0, 1, DEFAULT_SPAWN_JOB_EXPIRE);
+		spawn.enqueue(body, null, { role: 'miner', dest: dest, home: dest.roomName, travelTime: 0 }, prio, 0, 1, DEFAULT_SPAWN_JOB_EXPIRE);
+	},
+
+	requestMineralHarvester(spawn, site, cid, expire) {
+		var body = require('Arr').repeat([WORK, WORK, MOVE], spawn.room.energyCapacityAvailable);
+		spawn.enqueue(body, null, { role: 'harvester', site: site, cid: cid }, 10, 0, 1, expire);
 	},
 	
-	requestMineralHarvester(spawn, site, cid, expire) {		
-		var body = require('Arr').repeat([WORK,WORK,MOVE], spawn.room.energyCapacityAvailable);
-		spawn.enqueue(body, null, {role: 'harvester', site: site, cid: cid}, 10, 0, 1, expire);
-	},
-	
-	/**
-	 * Request hauler
-	 */
-	requestHauler: function(spawn, flagName, hasRoad=false, role='hauler') {
-		// Half as many move parts needed if we have road.
-		var avail = spawn.room.energyAvailable;
-		console.log("Available: " + avail);
-		var body = [WORK,MOVE];
-		// avail -= BODYPART_COST[WORK];
-		while(UNIT_COST(body) < avail) {
-			body.push(MOVE);
-			body.push(CARRY);
-			if(hasRoad)
-				body.push(CARRY);
-		}
-		console.log("Hauler body: " + JSON.stringify(body) + " ==> " + UNIT_COST(body));
-		spawn.enqueue(body, "H" + flagName, {role:'scav'});
-	},
-			
-	flagSource: function(source) {
-		 // var name = "M_" + source.id + "_" + tiles.length;
+	flagSource: function (source) {
+		// var name = "M_" + source.id + "_" + tiles.length;
 		var name = "M_" + source.id;
-		 
+
 		// console.log('Source ' + source.id + ' in room ' + source.room.name);
 		var mine = _.get(source.room, 'controller.my', false);
-		var status = (mine)?SITE_LOCAL:SITE_IDLE;
-					
-		if(source.room.controller && source.pos.inRangeTo(source.room.controller, 2))
+		var status = (mine) ? SITE_LOCAL : SITE_IDLE;
+
+		if (source.room.controller && source.pos.inRangeTo(source.room.controller, 2))
 			status = SITE_NEAR_RC;
-		
-		if(!Game.flags[name]) {
+
+		if (!Game.flags[name]) {
 			console.log("New flag: " + name + " ==> " + source.pos);
 			source.room.createFlag(source.pos, name, FLAG_MINING, status);
-		} 
+		}
 	},
-	
+
 	/**
 	 * Flag new sites (optional assigned state)
 	 */
-	flagSites: function(roomName) {
+	flagSites: function (roomName) {
 		// Flag new sources
-		if(roomName) {
+		if (roomName) {
 			_.each(Game.rooms[roomName].find(FIND_SOURCES), s => this.flagSource(s));
 		} else {
 			_(Game.rooms)
-			.invoke('find', FIND_SOURCES)
-			.flatten()
-			.each(function(source) {
-				this.flagSource(source);
-			}).commit();
+				.invoke('find', FIND_SOURCES)
+				.flatten()
+				.each(function (source) {
+					this.flagSource(source);
+				}).commit();
 		}
 	},
-	
+
 	/**
 	 * Remove existing sites
 	 */
-	clearSites: function(confirm=false) {
-		if(!confirm) {
+	clearSites: function (confirm = false) {
+		if (!confirm) {
 			console.log("Clear sites requires confirmation");
 			throw "This function requires confirmation";
 		}
 		return _(Game.flags)
-				.filter({color: FLAG_MINING})
-				.invoke('remove');
+			.filter({ color: FLAG_MINING })
+			.invoke('remove');
 	},
-	
+
 	/**
 	 *
 	 */
-	clearSitesInRoom: function(roomName, confirm=false) {
-		if(!confirm)
+	clearSitesInRoom: function (roomName, confirm = false) {
+		if (!confirm)
 			throw "This function requires confirmation";
 		/* return _.filter(Game.flags, function(flag) {
 			return flag.color == FLAG_MINING && flag.pos.roomName == roomName;
 		}).invoke('remove'); */
 		return this.getMiningFlagsInRoom(roomName).invoke('remove').commit();
 	},
-	 
-	 disable: function() {
-		Memory.mining.enabled = false; 
-	 },
-	 
-	 enableRemotes: function() {
+
+	disable: function () {
+		Memory.mining.enabled = false;
+	},
+
+	enableRemotes: function () {
 		_.set(Memory, 'mining.remotes', true);
-	 },
-	 
-	 enable: function() {
-		_.set(Memory, 'mining.enabled', true);
-		_.set(Memory, 'mining.marker', Game.time);
-		// Memory.mining.enabled = true; 
-		// Memory.mining.marker = Game.time;
-	 },
-	 
-	 isRemoteEnabled: function() {
-		return _.get(Memory, 'mining.remotes', false);	    
-	 },
-	 
-	 isEnabled: function() {
-	    if(!Memory.mining || Memory.mining.enabled == false)
-	        return false;
-        return true;
-	 },
-	 
-	 reset: function(confirm=false) {
-		if(!confirm)
+	},
+
+	isRemoteEnabled: function () {
+		return _.get(Memory, 'mining.remotes', false);
+	},
+
+	reset: function (confirm = false) {
+		if (!confirm)
 			return "This function requires confirmation";
 		this.clearSites(confirm);
 		Memory.mining = {
 			enabled: false,
 		};
 		this.flagSites();
-	 }
-	 
-}
- 
+	}
+
+};

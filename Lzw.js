@@ -2,23 +2,22 @@
  * Lzw.js
  * Courtesy of @proximo
  */
-'use strict';
- 
-class Lzw
-{
+"use strict";
+
+class Lzw {
 	/**
 	 * @param string
 	 * @returns string
 	 */
 	static encode(s) {
-		var dict = {};
+		var i,dict = {};
 		var data = (s + "").split("");
 		var out = [];
 		var currChar;
 		var phrase = data[0];
 		var code = 256;
-		for(var i=1; i<data.length; i++) {
-			currChar=data[i];
+		for (i = 1; i < data.length; i++) {
+			currChar = data[i];
 			if (dict[phrase + currChar] != null) {
 				phrase += currChar;
 			}
@@ -26,11 +25,11 @@ class Lzw
 				out.push(phrase.length > 1 ? dict[phrase] : phrase.charCodeAt(0));
 				dict[phrase + currChar] = code;
 				code++;
-				phrase=currChar;
+				phrase = currChar;
 			}
 		}
 		out.push(phrase.length > 1 ? dict[phrase] : phrase.charCodeAt(0));
-		for (var i=0; i<out.length; i++) {
+		for (i = 0; i < out.length; i++) {
 			out[i] = String.fromCharCode(out[i]);
 		}
 		return out.join("");
@@ -47,7 +46,7 @@ class Lzw
 		var out = [currChar];
 		var code = 256;
 		var phrase;
-		for (var i=1; i<data.length; i++) {
+		for (var i = 1; i < data.length; i++) {
 			var currCode = data[i].charCodeAt(0);
 			if (currCode < 256) {
 				phrase = data[i];
@@ -64,5 +63,5 @@ class Lzw
 		return out.join("");
 	}
 }
- 
+
 module.exports = Lzw;

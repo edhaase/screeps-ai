@@ -4,7 +4,8 @@
  * Chance of invasion goes up with amount mined. Roughly around 73k is the lowest it goes.
  * Around 73k to 120k we should consider defense creeps.
  */
-'use strict';
+"use strict";
+/* global defineCachedGetter Player Filter */
 
 global.BIT_LOW_POWER = (1 << 1);
 global.BIT_DISABLE_CONSTRUCTION = (1 << 2);
@@ -82,7 +83,6 @@ defineCachedGetter(Room.prototype, 'hostiles', function(room) {
 /**
  * Each room has a 'state' we want to maintain.
  */
- // Resolve threat tracking (likely to controller) and we can enable observer sweeps
 Room.prototype.run = function updateRoom() {	
 	if(!(Game.time & 3))
 		this.updateThreats();
@@ -107,7 +107,7 @@ Room.prototype.drawVisuals = function() {
 	var {level,progress,progressTotal} = this.controller;
 	if(level < 8)
 		drawPie(this.visual, progress, progressTotal, 'RCL', 'green', 3);
-}
+};
 
 /**
  * Inspired by the command processor, this allows
@@ -134,7 +134,7 @@ Room.prototype.execPendingCommands = function() {
 	} catch(e) {
 		Log.error('Broken command');
 	}
-}
+};
 
 /**
  * Push a command to a room to be ran when we have visibility.
@@ -153,7 +153,7 @@ global.pushCommandToRoom = function(roomName, cmd) {
 	if(typeof cmd === 'function')
 		cmd = cmd.toString();
 	Memory.rooms[roomName].cmd.push(cmd);
-}
+};
 
 /***********************************************************************
  * Screeps build queue functionality
@@ -167,15 +167,15 @@ Room.prototype.getBuildQueue = function() {
 	if(!this.memory.bq)
 		this.memory.bq = [];
 	return this.memory.bq;
-} 
+};
 
 Room.prototype.clearBuildQueue = function() {
 	delete this.memory.bq;
-}
+};
 
 Room.prototype.isBuildQueueEmpty = function() {
 	return (!Memory.rooms[this.name] || !Memory.rooms[this.name].bq || this.memory.bq.length <= 0);
-}
+};
 
 /**
  * @param RoomPosition pos
@@ -205,7 +205,7 @@ Room.prototype.addToBuildQueue = function({x,y},structureType,expire=DEFAULT_BUI
 		Log.error(e.stack);
 	}
 	return OK;
-}
+};
 
 /**
  * Only clears the queue when all sites finish or vanish. Time full build plan?
@@ -236,20 +236,19 @@ Room.prototype.updateBuild = function() {
 	let {x,y,structureType} = job;
 	var pos = this.getPositionAt(x,y);
 	let status = pos.createConstructionSite(structureType);
-	switch(status) {
-		case OK:
-			break;
-		case ERR_INVALID_TARGET:
-			_.remove(this.memory.bq, _.matches(job));
-			break;
-		case ERR_RCL_NOT_ENOUGH:
-			_.remove(this.memory.bq, j => j.structureType == structureType);
-			break;
-		default:
-			Log.error(`Placing ${structureType} site at ${pos} status ${status}`, 'Room');
-			// Log.warn(`Placing ${structureType} site at ${pos} status ${status} (${MSG_ERR[status]})`);			
+	switch (status) {
+	case OK:
+		break;
+	case ERR_INVALID_TARGET:
+		_.remove(this.memory.bq, _.matches(job));
+		break;
+	case ERR_RCL_NOT_ENOUGH:
+		_.remove(this.memory.bq, j => j.structureType == structureType);
+		break;
+	default:
+		Log.error(`Placing ${structureType} site at ${pos} status ${status}`, 'Room');		
 	}
-} 
+};
 
 /***********************************************************************
  * Screeps build plan functionality
@@ -272,14 +271,14 @@ Room.prototype.checkAgainstBuildPlan = function() {
 	var missing = _.reject(plan, ({x,y,structureType}) => this.getPositionAt(x,y).hasStructure(structureType));
 	var canBuild = CONTROLLER_STRUCTURES_LEVEL_FIRST[this.controller.level];
 	return missing;
-}
+};
 
 Room.prototype.getBuildPlan = function() {
 	if(!SEGMENTS || !SEGMENTS[SEGMENT_BUILD])
 		throw new Error("Build plan segment not loaded");
 	var segment = SEGMENTS[SEGMENT_BUILD];
 	return segment.data[this.name] || [];
-}
+};
 
 Room.prototype.addToBuildPlan = function(x,y,structureType) {
 	if(!SEGMENTS || !SEGMENTS[SEGMENT_BUILD])
@@ -292,13 +291,13 @@ Room.prototype.addToBuildPlan = function(x,y,structureType) {
 	segment.ts = Game.time; // Save changes
 	// console.log(ex(segment));
 	return OK;
-}
+};
 
 Room.prototype.addCurrentStructuresToBuildPlan = function() {
 	this
 		.find(FIND_STRUCTURES, {filter: s => CONTROLLER_STRUCTURES[s.structureType] != undefined})
 		.forEach(s => this.addToBuildPlan(s.pos.x, s.pos.y, s.structureType));	
-}
+};
  
 Room.prototype.drawBuildPlan = function() {
 	var plan = this.getBuildPlan();
@@ -306,7 +305,7 @@ Room.prototype.drawBuildPlan = function() {
 	_.each(a, ({x,y,structureType}) => this.visual.structure(x,y,structureType, {opacity: 1.0}));
 	this.visual.connectRoads();
 	_.each(b, ({x,y,structureType}) => this.visual.structure(x,y,structureType, {opacity: 1.0}));
-}
+};
 
 
 Room.deserializePath = _.memoize(Room.deserializePath);
@@ -316,83 +315,76 @@ Room.deserializePath = _.memoize(Room.deserializePath);
  */
 Room.prototype.registerForMining = function() {
 	let sources = this.find(FIND_SOURCES);
-	let flags = this.find(FIND_FLAGS);
-	let controller = this.controller;
-	// controller.pos.createFlag(FLAG_MILTARY, STRATEGY_RESERVE);
 	_.each(sources, s => {
 		s.pos.createFlag(null, FLAG_MINING, SITE_REMOTE);
 		s.pos.createFlag(null, FLAG_MINING, SITE_PICKUP);
 	});
 	
-}
+};
  
 /**
  * Bitwise operators for room.
  */
-Room.prototype.enableBit = function(bit) {    
-    if(this.memory !== undefined)
-        return (this.memory.bits |= bit);
-    return 0;
-}
+Room.prototype.enableBit = function (bit) {
+	if (this.memory !== undefined)
+		return (this.memory.bits |= bit);
+	return 0;
+};
 
-Room.prototype.disableBit = function(bit) {
-    if(this.memory !== undefined)
-        return (this.memory.bits &= ~bit);
-    return 0;
-}
+Room.prototype.disableBit = function (bit) {
+	if (this.memory !== undefined)
+		return (this.memory.bits &= ~bit);
+	return 0;
+};
 
-Room.prototype.checkBit = function(bit) {
-    if(this.memory !== undefined)
-        return ((this.memory.bits || 0) & bit) != 0;
-    return false;
-}
+Room.prototype.checkBit = function (bit) {
+	if (this.memory !== undefined)
+		return ((this.memory.bits || 0) & bit) != 0;
+	return false;
+};
 
-Room.prototype.clearBits = function() {
-    if(this.memory !== undefined)
-        delete this.memory.bits;
-}
+Room.prototype.clearBits = function () {
+	if (this.memory !== undefined)
+		delete this.memory.bits;
+};
 
 /**
  * Get type of room from it's name.
  *
  * @author engineeryo
  */
-Room.getType = function(roomName) {
-	let res = /[EW](\d+)[NS](\d+)/.exec(roomName)
-    let EW = res[1];
-    let NS = res[2];
-    
-    if (EW % 10 == 0 || NS % 10 == 0) {
-        return 'Highway'
-    } else if (EW % 10 == 5 && NS % 10 == 5) {
-        return 'Center'
-    } else if (
-      (EW % 10 == 6 && NS % 10 == 4)
-      || (EW % 10 == 6 && NS % 10 == 5)
-      || (EW % 10 == 6 && NS % 10 == 6)
-      || (EW % 10 == 5 && NS % 10 == 4)
-      || (EW % 10 == 5 && NS % 10 == 6)
-      || (EW % 10 == 4 && NS % 10 == 4)
-      || (EW % 10 == 4 && NS % 10 == 5)
-      || (EW % 10 == 4 && NS % 10 == 6)) {
-        return 'SourceKeeper'
-    } else {
-        return 'Room'
-    }
-}
+Room.getType = function (roomName) {
+	let res = /[EW](\d+)[NS](\d+)/.exec(roomName);
+	let EW = res[1];
+	let NS = res[2];
 
-defineCachedGetter(Room.prototype, 'isSourceKeeperRoom', function(room) {
-	return !_.isEmpty(this.find(FIND_HOSTILE_STRUCTURES, {filter: s => s.structureType === STRUCTURE_KEEPER_LAIR}));
-});
+	if (EW % 10 == 0 || NS % 10 == 0) {
+		return 'Highway';
+	} else if (EW % 10 == 5 && NS % 10 == 5) {
+		return 'Center';
+	} else if (
+		(EW % 10 == 6 && NS % 10 == 4)
+		|| (EW % 10 == 6 && NS % 10 == 5)
+		|| (EW % 10 == 6 && NS % 10 == 6)
+		|| (EW % 10 == 5 && NS % 10 == 4)
+		|| (EW % 10 == 5 && NS % 10 == 6)
+		|| (EW % 10 == 4 && NS % 10 == 4)
+		|| (EW % 10 == 4 && NS % 10 == 5)
+		|| (EW % 10 == 4 && NS % 10 == 6)) {
+		return 'SourceKeeper';
+	} else {
+		return 'Room';
+	}
+};
 
 Room.prototype.getMyCreeps = function(filter=_.identity) {
 	return _(this.find(FIND_MY_CREEPS)).filter(filter);
-}
+};
 
 Room.prototype.findPath = _.memoize(Room.prototype.findPath, function() { return JSON.stringify(arguments); });
 
 // Fuckkk this part
-defineCachedGetter(Room.prototype, 'stored', function(room) {
+defineCachedGetter(Room.prototype, 'stored', function() {
 	let stored = _.filter(this.containers, c => c.pos.getRangeTo(c.room.controller) > 3 || c.store.energy > 500);
 	if (this.storage
 	&& ((this.energyAvailable / this.energyCapacityAvailable) < 0.5
@@ -413,7 +405,7 @@ Room.prototype.getLowChargeStructures = function() {
 	if(this._lowcharge === undefined) // || !_.isEmpty(this._lowcharge))
 		this._lowcharge = this.find(FIND_MY_STRUCTURES, {filter: Filter.lowEnergyStructures});
 	return this._lowcharge;
-}
+};
 
 Room.prototype.updateThreats = function() {	
 	if(this.controller && this.controller.safeMode) // Safe mode active, we don't need to sweat threats.
@@ -441,13 +433,13 @@ Room.prototype.updateThreats = function() {
 		}
 	}
 	return threats.length;
-}
+};
 
 // _.map(Game.rooms, r => r.isOnHighAlert() )
 Room.prototype.isOnHighAlert = function() {
 	// return (this.memory.threatDecay || Game.time) > Game.time;
 	return (this.cache.threatDecay || Game.time) > Game.time;
-}
+};
 
 Room.prototype.onHighAlertEnter = function(threatsByOwner){
 	var msg = "Room " + this.name + " entering high alert at " + Game.time + "!";
@@ -465,11 +457,11 @@ Room.prototype.onHighAlertEnter = function(threatsByOwner){
 		this.memory.lastRaid = Game.time;
 		this.memory.lastMined = this.memory.mined;
 	} */
-}
+};
 
 Room.prototype.getTicksSinceLastRaid = function() {
 	return Game.time - this.memory.lastRaid;
-}
+};
 
 Room.prototype.onHighAlertExit = function() {
 	delete this.memory.threatDecay;
@@ -477,42 +469,14 @@ Room.prototype.onHighAlertExit = function() {
 	delete this.cache.threatDecay;
 	delete this.cache.estActiveThreats;
 	// Log.notify("Room " + this.name + " back to normal");
-}
+};
 
 /**
  * @return [String] - array of room names
  */
 Room.prototype.getAdjacentRooms = function() {
-	 return _.values(Game.map.describeExits(this.name));
-}
-
-/* let find = Room.prototype.find;
-Room.prototype.find = function(c, opt) {
-	if(_.isArray(c)) {
-		return _(c)
-				.map(x => find.call(this,x,opt))
-				.flatten()
-				.value();
-	} else
-		return find.apply(this, arguments);
-} */
-
-// Probably faster, but doesn't handle new containers until a global reset.
-// @todo: compact or ignore containers that don't exist anymore.
-/* Object.defineProperty(Room.prototype, "containers", {
-    get: function () {
-		if(this == undefined || this.name == undefined)
-			return;
-		if(this.cache.containers === undefined) {
-			let containers = _.filter(this.structures, s => s.structureType === STRUCTURE_CONTAINER);
-			this.cache.containers = _.map(containers, 'id');
-		}
-		if(this.cache.containers)
-			return _.map(this.cache.containers, cid => Game.getObjectById(cid));		        
-		return [];
-    },
-	configurable: true
-}); */
+	return _.values(Game.map.describeExits(this.name));
+};
 
 Object.defineProperty(Room.prototype, 'observer', {
 	get: function() {
@@ -529,22 +493,22 @@ Object.defineProperty(Room.prototype, 'observer', {
 	configurable: true
 });
 
-
 Room.prototype.disable = function(ticks=CREEP_LIFE_TIME) {
 	_.invoke(this.find(FIND_MY_CREEPS), 'setRole', 'recycle');
 	_.invoke(this.find(FIND_FLAGS), 'defer', ticks);
-}
+};
 
 Room.prototype.getUpkeep = function() {
 	let s = this.structuresByType;
 	return (_.get(s, STRUCTURE_ROAD + '.length', 0) * ROAD_UPKEEP)
 		+  (_.get(s, STRUCTURE_CONTAINER + '.length', 0)* (_.get(this, 'controller.my', false)?CONTAINER_UPKEEP:REMOTE_CONTAINER_UPKEEP))
 		+  (_.get(s, STRUCTURE_RAMPART + '.length', 0) * RAMPART_UPKEEP)
-}
+	;
+};
 
 Room.prototype.stats = function() {
 	return JSON.stringify(_.countBy(this.find(FIND_STRUCTURES), 'structureType'), null, 2);
-}
+};
 
 // 2016-10-14: switched to flat minimum hits, as roads were being ignored and decaying when the limit increased.
 Room.prototype.findWeakestStructure = function(limit = 5000) {
@@ -562,4 +526,4 @@ Room.prototype.findWeakestStructure = function(limit = 5000) {
 		}		
 	}
 	return this._weakest[limit];
-}
+};

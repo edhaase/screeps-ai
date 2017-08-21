@@ -1,9 +1,9 @@
 // Game.spawns.Spawn7.enqueue([MOVE], null, {role: 'noop'})
-'use strict';
+"use strict";
 
 module.exports = {
-	
-	run: function() {
+
+	run: function () {
 		// does nothing
 	}
 };

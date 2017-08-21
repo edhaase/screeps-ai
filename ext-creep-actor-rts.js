@@ -3,7 +3,7 @@
  *
  * RTS-like abilities for creeps
  */
-'use strict';
+"use strict";
 
 global.MODE_HOLD_GROUND = 0;
 

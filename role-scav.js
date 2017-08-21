@@ -5,7 +5,7 @@
  * On pickup: Find dropped, structures, and nearby creeps. Prioritize dropped and distance. Maybe math out a score?
  * On dropoff: Prioritize tower, spawn, extensions. Attempt to solve all idle scavengers at once with hungarian algo.	
  */
-'use strict';
+"use strict";
 var ignoreCreeps = true;
 
 module.exports = function(creep) {

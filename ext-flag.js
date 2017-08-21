@@ -3,7 +3,7 @@
  *
  * @todo: Squad flags? Doubles as memory and flag goals for most stuff.
  */
-'use strict';
+"use strict";
 
 if(!Memory.flags)
 	Memory.flags = {};
@@ -33,7 +33,7 @@ Flag.prototype.run = function () {
 		Log.error(`Error on ${this.name} at ${this.pos}`, 'Flag');
 		Log.error(e.stack, 'Flag');
 	}
-}
+};
 
 /**
  * If we're going to automate flag placement, we're going to need more than
@@ -49,17 +49,17 @@ Room.prototype.createLogicFlagAtXY = function(x,y,name,color,secondaryColor,memo
 		return result;
 	Game.flags[result].memory = memory; // Apparently if the call succeeds, we get a flag immediately.
 	return result;
-}
+};
 
 Room.prototype.createLogicFlagAtPos = function(pos,name,color,secondaryColor,memory) {
 	return this.createLogicFlagAtXY(pos.x,pos.y,name,color,secondaryColor,memory);
-}
+};
 
 RoomPosition.prototype.createLogicFlag = function(name,color,secondaryColor,memory) {
 	if(!Game.rooms[this.roomName])
 		throw new Error("No room visibility");
 	return Game.rooms[this.roomName].createLogicFlagAtPos(this,name,color,secondaryColor,memory);
-}
+};
 
 /**
  * Puts a flag to sleep for given number of ticks.
@@ -73,7 +73,7 @@ Flag.prototype.defer = function(ticks) {
 		Log.notify('Flag ' + this.name + ' at ' + this.pos + ' deferring for unusually high ticks', 'Flag');
 	this.memory.defer = Math.ceil(Game.time + ticks);
 	return this.memory.defer;
-}
+};
 
 /**
  * Check if the flag is set to sleep, and clean up the memory if need be.
@@ -85,11 +85,11 @@ Flag.prototype.isDeferred = function() {
 	else if(memory !== undefined && memory.defer)
 		delete Memory.flags[this.name].defer;
 	return false;	
-}
+};
 
 Flag.prototype.setSecondaryColor = function(secondaryColor) {
 	return this.setColor(this.color, secondaryColor);
-}
+};
 
 /**
  * Allows a flag to expire and remove itself.
@@ -100,7 +100,7 @@ Flag.prototype.expire = function(until) {
 	else
 		this.memory.expire = until;
 	return this.memory.expire;
-}
+};
 
 /**
  * Check if a flag has expired. Unlike isDeferred, does not clean up the memory.
@@ -114,7 +114,7 @@ Flag.prototype.isExpired = function() {
 	if(_.isString(expire))
 		return eval(expire);
 	return false;
-}
+};
 
 /**
  * Patch to clean up memory when removed
@@ -127,45 +127,30 @@ Flag.prototype.remove = function() {
 		delete Memory.flags[this.name];
 	}
 	return status;
-}
+};
 
-/**
- *
- */
-Flag.prototype.assignClosestTerminal = function(limit=CREEP_LIFE_TIME) {
-	let {goal, cost} = this.pos.findClosestByPathFinder(
-		_.filter(Game.structures, 'structureType', STRUCTURE_TERMINAL),
-		(c) => ({pos: c.pos, range: 1}));
-	let steps = this.pos.getStepsTo(goal);
-	if(cost > limit)
+Flag.prototype.assignNearbySpot = function (limit = CREEP_LIFE_TIME) {
+	let { path, cost } = PathFinder.search(
+		this.pos,
+		_.map(Game.spawns, s => ({ pos: s.pos, range: 7 }))
+	);
+	if (cost > limit)
 		return Log.warn('cost exceeds limit, no target set', 'Flag');
-	Log.info('[Flag] ' + this.name + ' assigning ' + goal + ' at ' + goal.pos + ' to goal');
-	this.memory.dropoff = goal.pos;
-	this.memory.steps = cost;
-}
-
-Flag.prototype.assignNearbySpot = function(limit=CREEP_LIFE_TIME) {
-	let {path,cost} = PathFinder.search(
-		 this.pos,
-		_.map(Game.spawns, s => ({pos: s.pos, range: 7}))
-	 );	
-	if(cost > limit)
-		return Log.warn('cost exceeds limit, no target set', 'Flag');
-	let goal =  _.last(path);
+	let goal = _.last(path);
 	Log.info(`${this.name} assigning ${goal} to dropoff`, 'Flag');
 	this.memory.dropoff = goal;
 	this.memory.steps = cost;
-}
+};
 
 /**
  * Checks if we have a creep assigned to this flag. Utilizes cache.
  */
-Flag.prototype.getAssignedUnit = function(fn) {
+Flag.prototype.getAssignedUnit = function (fn) {
 	// if(!_.isFunction(fn))
 	//	throw new Exception('Expected function')
 	let name = this.cache.creep;
 	let creep = Game.creeps[name];
-	if(creep && fn(creep)) {
+	if (creep && fn(creep)) {
 		// console.log('[Flag] cache hit on ' + this.name);
 		Log.debug('Cache hit on ' + this.name, 'Flag:cache');
 		return creep;
@@ -174,25 +159,24 @@ Flag.prototype.getAssignedUnit = function(fn) {
 		Log.debug('Cache miss on ' + this.name, 'Flag:cache');
 		creep = _.find(Game.creeps, fn);
 		// console.log('result of find: ' + creep);
-		if(creep != undefined)
+		if (creep != undefined)
 			this.cache.creep = creep.name;
 		return creep;
 	}
-}
+};
 
 Flag.prototype.clearAssignedUnit = function() {
 	this.cache['creep'] = undefined;
-}
+};
 
 Flag.prototype.hasAssignedUnit = function(fn) {	
 	return this.getAssignedUnit(fn) != null;
-}
+};
 
 Flag.prototype.hasPendingUnit = function(job) {
 	let spawn = this.getClosestSpawn();
 	return spawn.hasJob(job);
-}
-
+};
 
 Flag.prototype.runLogic = function ()
 {
@@ -265,7 +249,7 @@ Flag.prototype.runLogic = function ()
 		
 		/** maintain scout */
 		if(this.secondaryColor === STRATEGY_SCOUT) {				
-			let scout = this.getAssignedUnit(c => c.getRole() === 'scout' && c.memory.flag == this.name);
+			let unit = this.getAssignedUnit(c => c.getRole() === 'scout' && c.memory.flag == this.name);
 			if(unit)
 				return;
 			let spawn = this.getClosestSpawn();
@@ -340,7 +324,7 @@ Flag.prototype.runLogic = function ()
 	} */
 	
 	// Replaced by StructureExtractor run behavior. Might want this back for remote minerals.
-	/* if(false && this.color == FLAG_MINING && Mining.isEnabled() && this.secondaryColor == SITE_MINERAL) {				
+	/* if(false && this.color == FLAG_MINING && this.secondaryColor == SITE_MINERAL) {				
 		if(!Game.rooms[this.pos.roomName])
 			return;
 		// if(_.get(Game.rooms[this.pos.roomName], 'controller.my')) // if rcl is too low, defer flag.
@@ -401,7 +385,7 @@ Flag.prototype.runLogic = function ()
 		if(!creeps || remaining > 2) {			
 			/** high cpu - run sparingly */
 			// move out of if, cache steps, reqCarry - sum of carry parts assigned
-			Log.info('New hauler: step count: ' + steps + ', estCarry: ' + estCarry + ', reqCarry: ' + reqCarry);;
+			Log.info('New hauler: step count: ' + steps + ', estCarry: ' + estCarry + ', reqCarry: ' + reqCarry);
 			// let spawn = this.pos.findClosestSpawn();
 			let spawn = this.getClosestSpawn();
 			Log.success("Requesting new hauler to site: " + this.pos + ' from spawn ' + spawn);				
@@ -474,14 +458,12 @@ Flag.prototype.runLogic = function ()
 			if( (!miner
 			|| (miner.ticksToLive < (UNIT_BUILD_TIME(miner.body) + miner.memory.travelTime)))				
 			) {					
-				// if(Game.rooms[this.pos.roomName]) {
-					// console.log("[MINING] Requesting miner at site " + this.pos);					
-					var spawn = this.getClosestSpawn();
-					if(this.secondaryColor === SITE_REMOTE)
-						Mining.requestRemoteMiner(spawn, this.pos, 50);
-					else
-						Mining.requestMiner(spawn, this.pos, 50);
-					this.defer(Time.secondsToTicks(60 * 7));
+				var spawn = this.getClosestSpawn();
+				if(this.secondaryColor === SITE_REMOTE)
+					Mining.requestRemoteMiner(spawn, this.pos, 50);
+				else
+					Mining.requestMiner(spawn, this.pos, 50);
+				this.defer(Time.secondsToTicks(60 * 7));
 				// } else {
 				//	console.log("No visibility in " + this.pos.roomName)
 				// }		
@@ -491,4 +473,4 @@ Flag.prototype.runLogic = function ()
 		}
 	}		
 
- }
+};

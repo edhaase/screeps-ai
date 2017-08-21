@@ -3,7 +3,7 @@
  * 2016-11-30: Now sets max hits based on purpose
  * 2017-01-08: Raised period of time between updates, since repair operations are a slow business.
  */
-'use strict';
+"use strict";
 
 /**
  * Fix for a missing rampart is public check.
@@ -13,7 +13,7 @@ StructureRampart.prototype.setPublic = function(status) {
 	if(status != this.isPublic)
 		return setPublic.call(this, status);
 	return OK;
-}
+};
 
 // Insane cpu sink below. Works but doesn't really accomplish anything.
  

@@ -4,18 +4,17 @@
  *
  * Game.spawns.Spawn7.enqueue([MOVE], null, {type: 'noop'})
  */
-'use strict';
+"use strict";
 
-class CreepNoop extends Creep
-{
+class CreepNoop extends Creep {
 	/**
 	 * Entry point of logic for this creep.
 	 */
 	runRole() {
-		
+
 	}
-	
-	toString() {		
+
+	toString() {
 		return `[creep noop ${this.name}]`;
 	}
 }

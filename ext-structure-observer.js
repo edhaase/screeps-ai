@@ -6,7 +6,7 @@
  * That way we can also use scouts if an observer is not available.
  * (Also, that keeps this code _much_ simpler)
  */
-'use strict';
+"use strict";
 
 global.getRoomNameFromCoord = function(wx,wy) {
 	var result = "";

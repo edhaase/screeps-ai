@@ -5,7 +5,7 @@
  * @todo - if we only have one access point, auto-build the container
  * 2016-11-06: Thanks to NPC buy order nerf, we need another check for full terminals
  */
-'use strict';
+"use strict";
  
 StructureExtractor.prototype.onWake = function() {
 	var mineral = this.mineral;
@@ -14,7 +14,7 @@ StructureExtractor.prototype.onWake = function() {
 		Log.info('Mineral density in ' + this.pos.roomName + ' changed to ' + mineral.density, 'Extractor');
 		this.memory.density = mineral.density;
 	}
-}
+};
 
 StructureExtractor.prototype.run = function() {
 	if(this.isDeferred())
@@ -64,7 +64,7 @@ StructureExtractor.prototype.run = function() {
 		Mining.requestMineralHarvester(spawn, mineral.id, container.id, (MAX_CREEP_SPAWN_TIME*2)-1);
 	}
 	this.defer(MAX_CREEP_SPAWN_TIME * 2); // margin of error
-}
+};
 
 StructureExtractor.prototype.rampartContainer = function() {
 	let container = this.getAdjacentContainer();
@@ -74,10 +74,10 @@ StructureExtractor.prototype.rampartContainer = function() {
 		return status;
 	}
 	return ERR_INVALID_TARGET;
-}
+};
 
 StructureExtractor.prototype.isActive = function() {
 	return (!this.room.controller || this.room.controller.level >= 6);
-}
+};
 
 defineCachedGetter(StructureExtractor.prototype, 'mineral', s => _.first(s.pos.lookFor(LOOK_MINERALS)));

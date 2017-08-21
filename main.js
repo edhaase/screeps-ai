@@ -9,23 +9,23 @@
  * Game.profiler.stream(ticks, [functionFilter]);
  * Game.profiler.email(ticks, [functionFilter]);
  */
-'use strict'; 
+"use strict";
 
 /** Module profiler -  */
 global.loadModule = function loadModule(name) {
 	var start = Game.cpu.getUsed();
 	try {
 		var mod = require(name);
-		var used = _.round(Game.cpu.getUsed() - start,3);
-		if(used > 10)
+		var used = _.round(Game.cpu.getUsed() - start, 3);
+		if (used > 10)
 			console.log(`Module ${name} loaded in ${used}`);
 		return mod;
-	} catch(e) {
+	} catch (e) {
 		console.log(e);
 		console.log(e.stack);
 		throw e;
 	}
-}
+};
 
 /**
  * Welcome to the ninth level of hell
@@ -33,14 +33,14 @@ global.loadModule = function loadModule(name) {
  * Delay imports and requires if under low bucket.
  */
 console.log('New runtime: ' + Game.time);
-module.exports.loop = function() {
-	if(Game.cpu.bucket < Game.cpu.tickLimit)
+module.exports.loop = function () {
+	if (Game.cpu.bucket < Game.cpu.tickLimit)
 		return console.log(`Runtime holding: ${Game.cpu.bucket}/${Game.cpu.tickLimit}`);
 
 	var start = Game.cpu.getUsed();
-	
+
 	loadModule('global');
-	
+
 	/** Set up global modules - These are reachable from the console */
 	global.Util = loadModule('Util');
 	global.Log = loadModule('Log');
@@ -57,10 +57,10 @@ module.exports.loop = function() {
 	global.FSM = loadModule('FSM');
 	global.Command = loadModule('Command');
 	global.Segment = require('Segment');
-	global.Market = loadModule('Market');	
+	global.Market = loadModule('Market');
 	loadModule('fsm-screeps');
 	Object.assign(global, loadModule('astar_tedivm'));
-	
+
 	/**
 	 * Set up prototype extensions
 	 * Warning: Unable to extend PathFinder.CostMatrix prototype directly
@@ -90,75 +90,75 @@ module.exports.loop = function() {
 
 
 	// Hot swap the loop when we're loaded
-	module.exports.loop = function() {			
-		if(Game.cpu.bucket <= Game.cpu.tickLimit)
+	module.exports.loop = function () {
+		if (Game.cpu.bucket <= Game.cpu.tickLimit)
 			return Log.notify("Bucket empty, skipping tick!", 60);
-		if(Game.cpu.getUsed() > Game.cpu.limit)
+		if (Game.cpu.getUsed() > Game.cpu.limit)
 			return Log.warn('Garbage collector ate our tick');
 		global.Volatile = {};
 		global.RESOURCE_THIS_TICK = RESOURCES_ALL[Game.time % RESOURCES_ALL.length];
-		
-		if(Game.cpu.bucket < BUCKET_LIMITER_LOWER && !BUCKET_LIMITER) {
+
+		if (Game.cpu.bucket < BUCKET_LIMITER_LOWER && !BUCKET_LIMITER) {
 			BUCKET_LIMITER = true;
 			Log.notify('[WARNING] Bucket limiter engaged!');
-		} else if(Game.cpu.bucket > BUCKET_LIMITER_UPPER && BUCKET_LIMITER) {
+		} else if (Game.cpu.bucket > BUCKET_LIMITER_UPPER && BUCKET_LIMITER) {
 			// Log.warn('Bucket limiter disengaged!', 'Cpu');
 			BUCKET_LIMITER = false;
 		}
-				
+
 		// var dTGC = Time.measure( () => GC() );
 		// console.log('GC took: ' + dTGC);
 		GC(); // Down to about 0. - 0.23 per tick
-				
+
 		try {
 			// processMessages();
 			Segment.update();
-			var dTR = Time.measure( () => _.invoke(Game.rooms, 'run') );			
-			var dTC = Time.measure( () => _.invoke(Game.creeps, 'run') ); // Run MUST have try-catch				
-			var dTS = Time.measure( () => _.invoke(Game.structures, 'logic') );
-			var dTF = Time.measure( () => _.invoke(Game.flags, 'run') );
-			var dEM = Time.measure( () => Empire.tick() );
+			var dTR = Time.measure(() => _.invoke(Game.rooms, 'run'));
+			var dTC = Time.measure(() => _.invoke(Game.creeps, 'run')); // Run MUST have try-catch				
+			var dTS = Time.measure(() => _.invoke(Game.structures, 'logic'));
+			var dTF = Time.measure(() => _.invoke(Game.flags, 'run'));
+			var dEM = Time.measure(() => Empire.tick());
 			// var dPL = Time.measure( () => Planner.tick() );
-			var dCS = Time.measure( () => Command.tick() );			
-			var dCM = Time.measure( () => Scheduler.staggerKeys(Game.rooms, r => _.set(global, 'logisticsMatrix.' + r.name, new CostMatrix.LogisticsMatrix(r.name))) );
-			var dMS = Time.measure( () => _.invoke(SEGMENTS, 'commit') );
-			if(!Memory.stats)
+			var dCS = Time.measure(() => Command.tick());
+			var dCM = Time.measure(() => Scheduler.staggerKeys(Game.rooms, r => _.set(global, 'logisticsMatrix.' + r.name, new CostMatrix.LogisticsMatrix(r.name))));
+			var dMS = Time.measure(() => _.invoke(SEGMENTS, 'commit'));
+			if (!Memory.stats)
 				Memory.stats = {};
-			Memory.stats.runner = {dTR, dTS, dTC, dTF, dCS, dCM, dMS}; // , dTCS};
-		} catch(e) {
+			Memory.stats.runner = { dTR, dTS, dTC, dTF, dCS, dCM, dMS }; // , dTCS};
+		} catch (e) {
 			Log.error('Error in main loop: ' + e);
 			Log.error(e.stack);
-		}			
-			
-		if(!(Game.time&255)) {
+		}
+
+		if (!(Game.time & 255)) {
 			Log.success('Updating room builds', 'Planner');
 			require('Planner').pushRoomUpdates();
 			_(Game.market.orders).filter(o => o.remainingAmount <= 1).each(o => Game.market.cancelOrder(o.id)).commit();
 			Time.updateTickLength(256);
-		}		
-		
-		if((Game.time & 15) === 0) {
+		}
+
+		if ((Game.time & 15) === 0) {
 			Market.updateMarket(16); // Roughly .43  - .71 cpu??			
-		}		
-								
-				
-		if(!Memory.stats)
+		}
+
+
+		if (!Memory.stats)
 			Memory.stats = {};
 		updateCpuAvg('cpu10', 10);
 		updateCpuAvg('cpu100', 100);
 		updateCpuAvg('cpu1000', 1000);
 		updateCpuAvg('cpu10000', 10000);
-			
+
 		Memory.stats['bucket100'] = Math.cmAvg(Game.cpu.bucket - (Memory.stats['bucket'] || 10000), Memory.stats['bucket100'], 100);
-		Memory.stats['bucket'] = Game.cpu.bucket;				
-	}
-	
+		Memory.stats['bucket'] = Game.cpu.bucket;
+	};
+
 	// Optional profiler
-	if( false ) {
+	if (false) {
 		const profiler = loadModule('screeps-profiler');
 		profiler.enable();
 		profiler.registerObject(PathFinder.CostMatrix, 'pCostMatrix');
-		profiler.registerClass(Empire,'Empire');
+		profiler.registerClass(Empire, 'Empire');
 		profiler.registerObject(Mining, 'Mining');
 		profiler.registerObject(Filter, 'Filter');
 		// profiler.registerObject(OwnedStructure, 'OwnedStructure');
@@ -177,26 +177,26 @@ module.exports.loop = function() {
 		profiler.registerObject(StructureTower, 'Tower');
 		profiler.registerObject(RoomVisual, 'RoomVisual');
 		profiler.registerObject(Structure, 'Structure');
-		
+
 		Log.info('Patching loop with profiler');
 		let loop = module.exports.loop;
-		module.exports.loop = () => profiler.wrap( loop );
+		module.exports.loop = () => profiler.wrap(loop);
 	}
-	
-	global.updateCpuAvg = function(key, samples) {
-		Memory.stats[key] = Math.mmAvg(		
+
+	global.updateCpuAvg = function (key, samples) {
+		Memory.stats[key] = Math.mmAvg(
 			Math.ceil(Game.cpu.getUsed()),
 			Memory.stats[key],
 			samples
 		);
-	}
+	};
 
 	Object.freeze(Array);
 	Object.freeze(Object);
 	Object.freeze(Array.prototype);
 	Object.freeze(Object.prototype);
-	
+
 	var used = Game.cpu.getUsed() - start;
 	console.log('Delayed global reset (used ' + used + ' cpu)');
-}
+};
 

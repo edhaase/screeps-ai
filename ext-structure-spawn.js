@@ -34,7 +34,7 @@
  *
  *
  */
-'use strict';
+"use strict";
 
 // _.map(Memory.rooms['W2N7'].sq, 'memory.role')
 // _.map(Memory.rooms['W2N7'].sq, 'score')
@@ -50,8 +50,8 @@
 // Without opp renewels: (.312 avg) 0.53,0.183,0.527,0.259,0.328,0.333,0.094,0.247,0.29,0.383
 // (0.226) 0.127,0.167,0.257,0.266,0.358,0.288,0.343,0.198,0.087,0.183
 // (0.092) 0.054,0.071,0.151,0.097,0.286,0.11,0.03,0.029,0.044,0.046 
- 
- 
+
+
 global.DEFAULT_SPAWN_JOB_EXPIRE = 60;
 global.MAX_CREEP_SPAWN_TIME = MAX_CREEP_SIZE * CREEP_SPAWN_TIME;
 global.MAX_PARTS_PER_GENERATION = CREEP_LIFE_TIME / CREEP_SPAWN_TIME;
@@ -66,99 +66,99 @@ global.MAX_PARTS_PER_GENERATION = CREEP_LIFE_TIME / CREEP_SPAWN_TIME;
 /**
  *
  */
-StructureSpawn.prototype.run = function() {
-	this.memory.u = Math.cmAvg((this.spawning?1:0), this.memory.u, CREEP_LIFE_TIME);
-	
+StructureSpawn.prototype.run = function () {
+	this.memory.u = Math.cmAvg((this.spawning ? 1 : 0), this.memory.u, CREEP_LIFE_TIME);
+
 	// this.say('U: ' + _.round(this.memory.u,2), this.pos, {color: 'yellow'});	
 	//if(this.spawning && !(Game.time&2))
 	//	this.say(this.spawning.name);
-    if((Game.time & 15) === 0)
+	if ((Game.time & 15) === 0)
 		this.removeExpiredJobs();
-	if(this.spawning || this.isDeferred())
-		return;	
-	if(this.processJobs() !== true && this.isRenewActive())
-		this.renewAdjacent();				
-}
+	if (this.spawning || this.isDeferred())
+		return;
+	if (this.processJobs() !== true && this.isRenewActive())
+		this.renewAdjacent();
+};
 
 StructureSpawn.prototype.processJobs = function () {
-	var job, q=this.getQueue();	
-	if(!(job = q[0])) {
+	var job, q = this.getQueue();
+	if (!(job = q[0])) {
 		// No job, can't be waiting on energy.
-		if(this.memory.e)
+		if (this.memory.e)
 			this.resetEnergyClock();
-		return false;    
+		return false;
 	}
-	
-	if(job.expire && Game.time > job.expire) {
+
+	if (job.expire && Game.time > job.expire) {
 		q.shift();
 		return this.processJobs(); // Recursively try again.
 	}
-	
-	if(job.cost > this.room.energyAvailable) {
+
+	if (job.cost > this.room.energyAvailable) {
 		// Log.warn('Should ignore spawn job, not enough energy!')
 		this.memory.e = (this.memory.e || 0) + 1;
 		this.say(job.cost - this.room.energyAvailable);
 		return true;
 	}
-	
-	var assignedName = job.name || `${job.memory.role}${this.getNextId()}`	
+
+	var assignedName = job.name || `${job.memory.role}${this.getNextId()}`;
 	var name = this.createCreep(job.body, assignedName, job.memory, job.cost);
-	if(typeof name !== 'string') {	
+	if (typeof name !== 'string') {
 		Log.error(`${this.pos.roomName}/${this.name} failed to create creep, status: ${name}`, 'Spawn');
-		if(name === ERR_RCL_NOT_ENOUGH)
+		if (name === ERR_RCL_NOT_ENOUGH)
 			this.defer(50);
 		return false;
-	}	
+	}
 
 	Memory.creeps[name].born = Game.time + job.ticks;
 	var idle = Game.time - (this.memory.lastidle || Game.time);
 	Log.info(`${this.pos.roomName}/${this.name}: New ${job.memory.role} unit: ${name}, cost: ${job.cost}, ticks: ${job.ticks}, priority: ${job.priority}, idle: ${idle}`, 'Spawn');
 	// Log.info(`${this.pos.roomName}/${this.name}: New ${job.memory.role} unit: ${name}, cost ${job.cost}, ticks ${job.ticks}, priority ${job.priority}, idle ${idle}`, 'Spawn');
-	if(job.notify === true)
+	if (job.notify === true)
 		Game.notify(`Tick ${Game.time}: ${this.pos.roomName}/${this.name}: New ${job.memory.role} unit: ${name}, cost: ${job.cost}, ticks: ${job.ticks}, priority: ${job.priority}, idle: ${idle}`);
-	if(job.memory && job.memory.role)
-		_.attempt( () => require('role-' + job.memory.role).init(Game.creeps[name]) );
+	if (job.memory && job.memory.role)
+		_.attempt(() => require('role-' + job.memory.role).init(Game.creeps[name]));
 	q.shift();
 	this.memory.lastidle = Game.time + job.ticks;
 	this.resetEnergyClock();
 	return true;
-}
+};
 
 /**
  * Incremental rolling number to prevent creep collisions. Combine with
  * initial role to further increase potential number of names.
  */
-StructureSpawn.prototype.getNextId = function() {
-	if(Memory.creepnum == undefined)
+StructureSpawn.prototype.getNextId = function () {
+	if (Memory.creepnum == undefined)
 		Memory.creepnum = 0;
 	return Memory.creepnum++ % 1000;
-}
+};
 
-StructureSpawn.prototype.resetEnergyClock = function() {
-	if(this.memory.e > 3)
-		Log.debug(`Energy clock reset after ${this.memory.e} ticks` ,'Spawn');
+StructureSpawn.prototype.resetEnergyClock = function () {
+	if (this.memory.e > 3)
+		Log.debug(`Energy clock reset after ${this.memory.e} ticks`, 'Spawn');
 	// this.memory.edelay = Math.cmAvg(this.memory.e || 0, this.memory.edelay || 0, 25);
 	var test = this.memory.edelay;
 	this.memory.edelay = Math.mmAvg(this.memory.e || 0, this.memory.edelay, 25);
-	Log.debug(`edelay mmAvg (${this.memory.e||0}) ${test} --> ${this.memory.edelay}`, 'Spawn');
+	Log.debug(`edelay mmAvg (${this.memory.e || 0}) ${test} --> ${this.memory.edelay}`, 'Spawn');
 	delete this.memory.e;
 	return this;
-}
+};
 
-StructureSpawn.prototype.getQueue = function() {
-    if(!this.room.memory.sq)
-        this.room.memory.sq = [];
-    return this.room.memory.sq;
-}
+StructureSpawn.prototype.getQueue = function () {
+	if (!this.room.memory.sq)
+		this.room.memory.sq = [];
+	return this.room.memory.sq;
+};
 
-StructureSpawn.prototype.clearQueue = function() {
-    var q = this.getQueue();
-    return q.splice(0, q.length);
-}
+StructureSpawn.prototype.clearQueue = function () {
+	var q = this.getQueue();
+	return q.splice(0, q.length);
+};
 
-StructureSpawn.prototype.isIdle = function() {
-    return (this.getQueue().length <= 0);
-}
+StructureSpawn.prototype.isIdle = function () {
+	return (this.getQueue().length <= 0);
+};
 
 /**
  * enqueue - Push work order for later
@@ -167,54 +167,54 @@ StructureSpawn.prototype.isIdle = function() {
  *
  * example: Game.spawns.Spawn1.enqueue([CARRY,CARRY,MOVE], null, {role: 'scav'}, 0, 0, 5)
  */
-StructureSpawn.prototype.enqueue = function enqueue(body, name=null, memory={}, priority=1, delay=0, count=1, expire=DEFAULT_SPAWN_JOB_EXPIRE) {  
-    if(_.isObject(name))
+StructureSpawn.prototype.enqueue = function enqueue(body, name = null, memory = {}, priority = 1, delay = 0, count = 1, expire = DEFAULT_SPAWN_JOB_EXPIRE) {
+	if (_.isObject(name))
 		throw new TypeError("Did you forget an explicit null for name?");
 	// Score once and add ticks once.
-    var job = {
-        body: body,
-        name: name,
-        memory: _.assign({}, memory),
-        priority: priority,
-		expire: (expire)?(Game.time+expire):Infinity
-    };
-	if(delay > 1)
+	var job = {
+		body: body,
+		name: name,
+		memory: _.assign({}, memory),
+		priority: priority,
+		expire: (expire) ? (Game.time + expire) : Infinity
+	};
+	if (delay > 1)
 		Log.warn("Delay is not implemented");
-	if(count < 1) {
+	if (count < 1) {
 		Log.warn(`Count must be one or greater, ${count} provided`);
 		count = 1;
 		// throw new Error(`Count must be one or greater, ${count} provided`);
 	}
-	while(count-- > 0)
+	while (count-- > 0)
 		this.submit(job);
 	return job.ticks;
-}
+};
 
 /**
  * Similar to enqueue but takes a fully built job object
  */
-StructureSpawn.prototype.submit = function(job) {		
-	if(!_.isArray(job.body) || job.body.length === 0)
-        throw new Error("Enqueue failed, bad body: " + job.body.toString());
-	if(job.body.length > MAX_CREEP_SIZE)
+StructureSpawn.prototype.submit = function (job) {
+	if (!_.isArray(job.body) || job.body.length === 0)
+		throw new Error("Enqueue failed, bad body: " + job.body.toString());
+	if (job.body.length > MAX_CREEP_SIZE)
 		throw new Error("Body part may not exceed " + MAX_CREEP_SIZE + " parts");
-	if(!job.expire || job.expire == Infinity)
-		Log.warn('No expiration set on ' + job.memory.role, 'Spawn');    
-	if(!job.cost)
+	if (!job.expire || job.expire == Infinity)
+		Log.warn('No expiration set on ' + job.memory.role, 'Spawn');
+	if (!job.cost)
 		job.cost = _.sum(job.body, part => BODYPART_COST[part]);
-	if(!job.ticks)
+	if (!job.ticks)
 		job.ticks = job.body.length * CREEP_SPAWN_TIME;
-	if(job.cost > this.room.energyCapacityAvailable)
+	if (job.cost > this.room.energyCapacityAvailable)
 		throw new Error("Unit cost would exceed room energy capacity");
 	job.body = require('Unit').tailSort(job.body);
-	if(!job.score)
+	if (!job.score)
 		job.score = this.scoreTask(job);
 	var q = this.getQueue();
-	var i = _.sortedLastIndex(q, job, 'score');	
+	var i = _.sortedLastIndex(q, job, 'score');
 	q.splice(i, 0, job);
-	Log.debug(`${this.pos.roomName}: Requesting new ${job.memory.role}, cost: ${job.cost}, ticks: ${job.ticks}, priority ${job.priority}, expiration: ${job.expire-Game.time} (${job.expire})`, 'Spawn');
+	Log.debug(`${this.pos.roomName}: Requesting new ${job.memory.role}, cost: ${job.cost}, ticks: ${job.ticks}, priority ${job.priority}, expiration: ${job.expire - Game.time} (${job.expire})`, 'Spawn');
 	return job.ticks;
-}
+};
 
 /**
  * Assign a score to the job so we can maintain the priority queue.
@@ -224,55 +224,55 @@ StructureSpawn.prototype.submit = function(job) {
  *
  * Note: If two tasks are the same priority, go by cost rather than ticks so pilots can take priority.
  */
-StructureSpawn.prototype.scoreTask = function(task) {
+StructureSpawn.prototype.scoreTask = function (task) {
 	var home = _.get(task, 'memory.home', this.pos.roomName);
 	var dist = 0;
-	if(home != this.pos.roomName)
-		dist = Game.map.findRoute(this.pos.roomName, home).length || 1;	
-	return (dist << 24) | ((100-task.priority) << 16) | task.cost;
-}
+	if (home != this.pos.roomName)
+		dist = Game.map.findRoute(this.pos.roomName, home).length || 1;
+	return (dist << 24) | ((100 - task.priority) << 16) | task.cost;
+};
 
 // 2017-04-14: Back to just expiration. Bad jobs should never make it into the queue.
 // 2016-11-7: Now removes bad bodies when run.
-StructureSpawn.prototype.removeExpiredJobs = function() {
+StructureSpawn.prototype.removeExpiredJobs = function () {
 	// var removed = _.remove(this.getQueue(), j => (j.expire && Game.time > j.expire) || _.isEmpty(j.body) || this.canCreateCreep(j.body) === ERR_INVALID_ARGS);
 	var removed = _.remove(this.getQueue(), j => (j.expire && Game.time > j.expire));
-	if(removed && removed.length > 0) {
+	if (removed && removed.length > 0) {
 		let roles = _.map(removed, 'memory.role');
 		Log.warn(`${this.pos.roomName}: Purging ${removed.length} jobs: ${roles}`, 'Spawn');
 		// Log.warn(roles, 'Spawn');
 	}
-}
+};
 
 /**
  * Monkey patch createCreep so multiple spawns can operate in the same tick.
  */
 let cc = StructureSpawn.prototype.createCreep;
-StructureSpawn.prototype.createCreep = function(body, name, memory, cost) {
+StructureSpawn.prototype.createCreep = function (body, name, memory, cost) {
 	let result = cc.apply(this, arguments);
-	if(typeof result === 'string')
+	if (typeof result === 'string')
 		this.room.energyAvailable -= (cost || _.sum(body, part => BODYPART_COST[part]));
 	return result;
-}
+};
 
 /**
  * Monkey patch renew creep so multiple spawns have the correct information.
  */
 let rc = StructureSpawn.prototype.renewCreep;
-StructureSpawn.prototype.renewCreep = function(creep) {	
+StructureSpawn.prototype.renewCreep = function (creep) {
 	let status = rc.call(this, creep);
-	if(status === OK) {
+	if (status === OK) {
 		let bonus = Math.floor(SPAWN_RENEW_RATIO * CREEP_LIFE_TIME / CREEP_SPAWN_TIME / creep.body.length);
 		let ticksToLive = Math.min(CREEP_LIFE_TIME, creep.ticksToLive + bonus);
-		let cost = Math.ceil(SPAWN_RENEW_RATIO * creep.cost / CREEP_SPAWN_TIME / creep.body.length);		
+		let cost = Math.ceil(SPAWN_RENEW_RATIO * creep.cost / CREEP_SPAWN_TIME / creep.body.length);
 		this.room.energyAvailable -= cost;
-		Object.defineProperty(creep, 'ticksToLive', {value: ticksToLive, configurable: true});
+		Object.defineProperty(creep, 'ticksToLive', { value: ticksToLive, configurable: true });
 		// console.log(`Renewing ${creep.name} (${creep.pos}) for ${bonus} ticks at ${cost} energy`);
 	}
 	return status;
-}
+};
 
-StructureSpawn.prototype.renewAdjacent = function() {
+StructureSpawn.prototype.renewAdjacent = function () {
 	/* var creep = this.getTargetDeep(
 		() => _.map(this.lookForNear(LOOK_CREEPS, true), LOOK_CREEPS),
 		(c) => this.pos.isNearTo(c) && c.canRenew(),
@@ -281,50 +281,50 @@ StructureSpawn.prototype.renewAdjacent = function() {
 	) */
 	let adj = _.map(this.lookForNear(LOOK_CREEPS, true), LOOK_CREEPS);
 	let creep = _.find(adj, c => c.canRenew());
-	if(!creep)
+	if (!creep)
 		return;
 	// console.log('Spawn ' + this.name + ' renewing ' + creep.name + ' at ' + creep.pos);
 	creep.say('\u2615', true);
 	this.renewCreep(creep);
-}
+};
 
 /**
  * Enable or disable spawn renew
- */ 
-StructureSpawn.prototype.setRenewActive = function(state) {
+ */
+StructureSpawn.prototype.setRenewActive = function (state) {
 	this.memory.renew = state;
-}
+};
 
 /**
  * Boolean true/false for whether this spawn is willing to renew.
  * Does not guarantee renews.
  */
-StructureSpawn.prototype.isRenewActive = function() {
-	if(this.isDefunct() || !this.isIdle())
+StructureSpawn.prototype.isRenewActive = function () {
+	if (this.isDefunct() || !this.isIdle())
 		return false;
 	//if(this.room.controller.level < 3)
 	//	return (this.spawning == undefined && !BUCKET_LIMITER && this.getQueue().length <= 0);
 	return (this.spawning == undefined && !BUCKET_LIMITER);
-}
+};
 
 /**
  * Check for a pending job matching what we want.
  */
-StructureSpawn.prototype.hasJob = function(job) {	
+StructureSpawn.prototype.hasJob = function (job) {
 	// Log.info('test where ' + this.name + ' has ' + JSON.stringify(job) + ': ' +  _.findWhere(this.getQueue(), job));
 	return _.findWhere(this.getQueue(), job);
-}
+};
 
 /**
  *
  */
-global.DEFUNCT_SPAWN_TICKS = 300; 
-StructureSpawn.prototype.isDefunct = function() {
-	if(this.room.energyAvailable >= this.room.energyCapacityAvailable)
+global.DEFUNCT_SPAWN_TICKS = 300;
+StructureSpawn.prototype.isDefunct = function () {
+	if (this.room.energyAvailable >= this.room.energyCapacityAvailable)
 		return false;
-	return Boolean(Math.ceil(1+this.memory.edelay) >= DEFAULT_SPAWN_JOB_EXPIRE);
+	return Boolean(Math.ceil(1 + this.memory.edelay) >= DEFAULT_SPAWN_JOB_EXPIRE);
 	// return Boolean(this.memory.e && this.memory.e > DEFUNCT_SPAWN_TICKS);
 	// var jobs = this.getAvailJobs();	
 	// this.room.energyAvailable < 50	
 	// return (this.getQueue().length > 0 && this.memory.lastidle != undefined && ((Game.time - this.memory.lastidle) > defunctTimer));
-}
+};

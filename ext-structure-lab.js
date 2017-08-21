@@ -26,7 +26,7 @@
  *
  * Game.getObjectById('57a197da07fd0503184b439e').getAvailReaction()
  */
-'use strict'; 
+"use strict"; 
 
 global.LAB_REACTION_RANGE = 2;
 
@@ -52,7 +52,7 @@ StructureLab.prototype.run = function() {
 	lab2 = Game.getObjectById(lab2);
 	if(lab1 && lab2 && lab1.mineralAmount >= LAB_REACTION_AMOUNT && lab2.mineralAmount >= LAB_REACTION_AMOUNT)
 		this.runReaction(lab1, lab2); */
-}
+};
 
 /**
  * Define boost as a persistent property on labs. Determines what mineral
