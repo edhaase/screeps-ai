@@ -28,30 +28,30 @@
  */
 'use strict'; 
 
-// Boosting, reacting, slave?
+global.LAB_REACTION_RANGE = 2;
 
 /**
  * let [resA,resB] = RECIPES[compound];
  */
-global.RECIPES = {};
+/* global.RECIPES = {};
 for(var a in REACTIONS){
 	for(var b in REACTIONS[a]){
 		RECIPES[REACTIONS[a][b]] = [a,b];
 	}
-}
+} */
  
 /**
  * Core logic for the lab structure. How does this lab structure
  * want to act to help the whole.
  */
 StructureLab.prototype.run = function() {	
-	if(this.cooldown > 0 || CPU_LIMITER)
+	/* if(this.cooldown > 0 || CPU_LIMITER)
 		return;
 	let {lab1, lab2} = Memory.structures[this.id] || {}; // this.memory;
 	lab1 = Game.getObjectById(lab1);
 	lab2 = Game.getObjectById(lab2);
 	if(lab1 && lab2 && lab1.mineralAmount >= LAB_REACTION_AMOUNT && lab2.mineralAmount >= LAB_REACTION_AMOUNT)
-		this.runReaction(lab1, lab2);
+		this.runReaction(lab1, lab2); */
 }
 
 /**
@@ -62,7 +62,7 @@ StructureLab.prototype.run = function() {
  * Note: This is more of a "demand" thing. Creeps will use the currently
  * loaded resource and amount.
  */
-Object.defineProperty(StructureLab.prototype, 'boost', {
+/* Object.defineProperty(StructureLab.prototype, 'boost', {
 	set: function(value) {
 		if(!(typeof value === 'string'))
 			throw new Error('Expected string, got ' + value);
@@ -77,86 +77,4 @@ Object.defineProperty(StructureLab.prototype, 'boost', {
 	},
 	configurable: true,
 	enumerable: false
-});
-
-/** ------------ Old stuff ------------- */
-
-StructureLab.prototype.runReactions = function() {
-	
-}
-
-/**
- * Maximum number of parts we can boost at once. Currently this is 100,
- * or maximally two full creeps. As long it's >=1 I don't need logic for
- * waiting around.
- */
-StructureLab.prototype.getMaxBoostPartCount = function() {
-	return this.energyCapacity / LAB_BOOST_ENERGY;
-}
-
-const ROLE_UPGRADER = 'upgrader'; 
- 
-global.ROLE_BOOSTS = {
-	[RESOURCE_GHODIUM_HYDRIDE]: [ROLE_UPGRADER],
-	[RESOURCE_GHODIUM_ACID]: [ROLE_UPGRADER],
-	[RESOURCE_CATALYZED_GHODIUM_ACID]: [ROLE_UPGRADER],	
-}; 
-
-StructureLab.prototype.boostAdjacent = function() {
-	let roles = ROLE_BOOSTS[this.mineralType] || [];
-	if(_.isEmpty(roles))
-		return;
-	let adj = _.map(this.lookForNear(LOOK_CREEPS, true), LOOK_CREEPS);
-	let creep = _.find(adj, c => c.spawning == false
-							&& c.ticksToLive > 500							
-							&& roles.indexOf(c.memory.role) != -1
-							&& !c.hasActiveBodypart(CLAIM)
-							);
-	if(!creep)
-		return;	
-	if(this.boostCreep(creep) === OK) {
-		creep.say('\u265B', true);
-		Log.info('[LAB] Boosting creep ' + creep.name + ' at ' + this.pos);
-	}
-}
-
-global.LAB_REACTION_RANGE = 2;
-StructureLab.prototype.highlightInRange = function() {
-	let labs = this.pos.findInRange(FIND_MY_STRUCTURES, LAB_REACTION_RANGE, {filter: s => s.structureType === STRUCTURE_LAB && s.id != this.id});
-	labs.forEach(l => this.room.visual.circle(l.pos, {fill: 'red', opacity: 1}));
-	return labs;
-}
-
-StructureLab.prototype.findAdjacentLabs = function() {
-	return _.filter(this.room.structuresByType[STRUCTURE_LAB], l => l.id != this.id && this.pos.inRangeTo(l.pos, 1));
-}
-
-// _.invoke(Game.rooms['E57S47'].structuresByType[STRUCTURE_LAB], 'storeAdjacentLabs')
-StructureLab.prototype.storeAdjacentLabs = function() {
-	let [lab1, lab2] = this.findAdjacentLabs();
-	this.memory.lab1 = lab1.id;
-	this.memory.lab2 = lab2.id;
-}
-
-/* StructureStorage.prototype.getAvailReaction = function() {
-	let minerals = _.omit(this.store, 'energy');
-	// _.each(REACTIONS, (i,keyA) => _.each(i, (j,keyB) => console.log(keyA+ " + "  + keyB)  ) );
-} */
-
-StructureLab.prototype.getAvailReaction = function() {
-	// labs 1 and 2
-	// findInRange(1-2)
-}
-
-/* let boostCreep = StructureLab.prototype.boostCreep;
-StructureLab.prototype.boostCreep = function(c,b) {
-	if(!c.my || Player.status(c.owner.username) == PLAYER_ALLY)
-		return ERR_INVALID_TARGET;
-	return boostCreep(c,b);
-} */
-
-/* let runReaction = StructureLab.prototype.runReaction;
-StructureLab.prototype.runReaction = function(lab1, lab2) {
-	return runReaction(lab1, lab2);
-} */
-
+}); */
