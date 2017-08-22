@@ -331,8 +331,7 @@ class CreepExtFiller extends Creep {
 	 * Override moveTo With new custom properties
 	 */
 	moveTo(goal, opts = { range: 1, reusePath: 7, maxRooms: 1, ignoreCreeps: true }) {
-		// if(this.carryTotal <= (this.carryCapacity / 2))
-		// opts.ignoreRoads = true;
+		opts.ignoreRoads = (this.carryTotal <= (this.carryCapacity / 2));
 		// opts.maxCost = this.ticksToLive;
 		if (this.memory.stuck > 3)
 			opts.ignoreCreeps = false;

@@ -13,7 +13,7 @@ var ignoreCreeps = false;
 module.exports = {
 	// Called once on new creep.
 	init: function (creep) {
-
+		this.memory.ignoreRoads = (creep.plainSpeed === creep.roadSpeed);
 	},
 	// Called to calculate body
 	body: function (energyCapacity, energyAvailable, room, spawn) {
@@ -44,7 +44,7 @@ module.exports = {
 				if ((status = creep.build(site)) === ERR_NOT_IN_RANGE)
 					creep.moveTo(site, {
 						reusePath: 5,
-						// ignoreRoads: true,
+						ignoreRoads: this.memory.ignoreRoads || true,
 						ignoreCreeps: ((creep.memory.stuck < 3) ? ignoreCreeps : false),
 						range: CREEP_BUILD_RANGE,
 						maxRooms: 1
@@ -62,5 +62,3 @@ module.exports = {
 	}
 
 };
-
-
