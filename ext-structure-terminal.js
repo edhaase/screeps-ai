@@ -257,8 +257,7 @@ StructureTerminal.prototype.consolidate = function (res, limit = Infinity) {
  * Sells off resources over a threshold
  * 2016-11-6: Increase per-sale limit, and stop randomly skipping orders. Due to reduced NPC buyers.
  */
-StructureTerminal.prototype.runAutoSell = function () {
-	let resource = RESOURCE_THIS_TICK;
+StructureTerminal.prototype.runAutoSell = function (resource = RESOURCE_THIS_TICK) {
 	if (resource === RESOURCE_ENERGY || resource === RESOURCE_POWER)
 		return;
 	// Always going to find the same overage until it's resolved.
@@ -270,6 +269,8 @@ StructureTerminal.prototype.runAutoSell = function () {
 	let over = this.getOverageAmount(resource);
 	if (over < TERMINAL_MIN_SEND)
 		return false;
+	if (Math.random() > (over / TERMINAL_MAX_AUTOSELL))
+		return Log.info(`${this.pos.roomName} Skipping sell operation on ${over} ${resource}`, 'Terminal');
 
 	// On first overage sell, place a sell order
 	if (this.credits > 0 && !_.any(this.orders, o => o.type === ORDER_SELL && o.resourceType === resource)) {
