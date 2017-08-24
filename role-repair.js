@@ -46,13 +46,13 @@ module.exports = {
 					if (!creep.room.controller)
 						this.setRole('recycle');
 					creep.say('search!');
-					let maxHits = RAMPART_HITS_MAX[creep.room.controller.level];
-					let center = creep.room.getPositionAt(25, 25);
+					const maxHits = RAMPART_HITS_MAX[creep.room.controller.level];
+					const center = creep.room.getPositionAt(25, 25);
 					return _.min(weak, w => (w.hitsEffective / Math.min(maxHits, w.hitsMax)) / w.pos.getRangeTo(center));
 				}
 			);
 			if (!target) {
-				Log.notify("No repair target at " + this.pos + ' age: ' + (Game.time - this.memory.born) + ' ttl: ' + this.ticksToLive);
+				Log.notify(`No repair target at ${this.pos}, age: ${(Game.time - this.memory.born)}, ttl: ${this.ticksToLive}`);
 				return this.setRole('recycle');
 			}
 

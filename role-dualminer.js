@@ -20,7 +20,7 @@ module.exports = {
 		}
 
 		// If we're not in the room, move to the room.
-		if (creep.pos.roomName != site)
+		if (creep.pos.roomName !== site)
 			return creep.moveToRoom(site);
 
 		// Otherwise find ourselves a target.
@@ -39,8 +39,8 @@ module.exports = {
 		if (!target)
 			return this.defer(5);
 
-		let goal = target.container || target;
-		let range = (goal instanceof StructureContainer) ? 0 : 1;
+		const goal = target.container || target;
+		const range = (goal instanceof StructureContainer) ? 0 : 1;
 		if (!creep.pos.inRangeTo(goal, range))
 			creep.moveTo(goal, {
 				ignoreCreeps: (creep.memory.stuck || 0) < 3,
@@ -52,7 +52,7 @@ module.exports = {
 			return creep.defer(target.ticksToRegeneration);
 		}
 		// Harvest the target.
-		let status = creep.harvest(target);
+		const status = creep.harvest(target);
 		switch (status) {
 		case ERR_NOT_ENOUGH_RESOURCES: // On return trip
 		case ERR_NOT_IN_RANGE:
@@ -82,7 +82,7 @@ module.exports = {
 		if ((goal instanceof StructureContainer) && ((goal.hitsMax - goal.hits) > this.memory.repairPower))
 			return creep.repair(goal);
 
-		let transferTarget = creep.getTarget(
+		const transferTarget = creep.getTarget(
 			() => _.map(creep.lookForNear(LOOK_STRUCTURES, true, 1), 'structure'),
 			({ energy, energyCapacity }) => energyCapacity - energy >= 25,
 			(candidates) => _.min(candidates, 'energy'),

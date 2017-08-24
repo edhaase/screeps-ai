@@ -57,7 +57,7 @@ StructureTower.prototype.run = function () {
 	this.defer(_.random(7, 16));
 };
 
-let defer = StructureTower.prototype.defer;
+const {defer} = StructureTower.prototype;
 StructureTower.prototype.defer = function (ticks) {
 	return defer.call(this, Math.min(50, ticks));
 };
@@ -66,7 +66,7 @@ StructureTower.prototype.distributedAttack = function () {
 	var target = _.min(this.room.hostiles, c => c.damage || 0);
 	if (target === Infinity)
 		return ERR_NOT_FOUND;
-	let status = this.attack(target);
+	const status = this.attack(target);
 	if (status === OK) {
 		var range = this.pos.getRangeTo(target);
 		target.damage = (target.damage || 0) + TOWER_DAMAGE_EFFECT[range];
@@ -189,31 +189,29 @@ StructureTower.prototype.runHeal = function () {
 /**
  * Adjust creep hit points on the same tick for intelligent decision making.
  */
-let heal = StructureTower.prototype.heal;
+const {heal,attack,repair} = StructureTower.prototype;
 StructureTower.prototype.heal = function (target) {
-	let status = heal.call(this, target);
+	const status = heal.call(this, target);
 	if (status === OK) {
 		this.isBusy = true;
 		// let hits = target.hits + this.getHealCalc(target);
-		let hits = target.hits + TOWER_HEAL_EFFECT[this.pos.getRangeTo(target)];
-		let val = Math.min(target.hitsMax, hits);
+		const hits = target.hits + TOWER_HEAL_EFFECT[this.pos.getRangeTo(target)];
+		const val = Math.min(target.hitsMax, hits);
 		Object.defineProperty(target, 'hits', { value: val, configurable: true });
 		// console.log('[Tower] Tower ' + this.pos + ' Assigning new value ' + val + ' to creep ' + target + ' hits at tick ' + Game.time);
 	}
 	return status;
 };
 
-let attack = StructureTower.prototype.attack;
 StructureTower.prototype.attack = function (target) {
-	let status = attack.call(this, target);
+	const status = attack.call(this, target);
 	if (status === OK)
 		this.isBusy = true;
 	return status;
 };
 
-let repair = StructureTower.prototype.repair;
 StructureTower.prototype.repair = function (target) {
-	let status = repair.call(this, target);
+	const status = repair.call(this, target);
 	if (status === OK) {
 		this.isBusy = true;
 		this.memory.repairDelay = 1; // reset backoff

@@ -3,11 +3,11 @@
  */
 "use strict";
 
-let Cache = {};
+const Cache = {};
 
 Object.defineProperty(Room.prototype, "cache", {
 	get: function () {
-		if (this == undefined || this === Room.prototype)
+		if (this == null || this === Room.prototype)
 			return null;
 		if (!Cache.rooms)
 			Cache.rooms = {};
@@ -30,7 +30,7 @@ Object.defineProperty(Room.prototype, "cache", {
  */
 Object.defineProperty(RoomObject.prototype, "cache", {
 	get: function () {
-		if (this == undefined || !(this instanceof RoomObject))
+		if (this == null || !(this instanceof RoomObject))
 			return null;
 		if (this.id === undefined)
 			throw new Error("This object doesn't have an id");
@@ -58,7 +58,7 @@ RoomObject.prototype.clearCache = function () {
 
 Object.defineProperty(Flag.prototype, "cache", {
 	get: function () {
-		if (this == undefined || this === Flag.prototype)
+		if (this == null || this === Flag.prototype)
 			return null;
 		if (!Cache.flags)
 			Cache.flags = {};

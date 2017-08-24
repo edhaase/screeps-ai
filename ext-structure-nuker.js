@@ -13,10 +13,10 @@ StructureNuker.prototype.run = function () {
 		return;
 
 	if (this.cooldown === 500)
-		Log.notify('Silo in ' + this.pos.roomName + ' will be operational in 500 ticks');
+		Log.notify(`Silo in ${this.pos.roomName} will be operational in 500 ticks`);
 
 	if (this.cooldown === 1)
-		Log.notify('Silo ' + this.pos.roomName + ', cooldown complete');
+		Log.notify(`Silo ${this.pos.roomName} cooldown complete`);
 
 	// Reload logic
 	if (this.ghodium < this.ghodiumCapacity
@@ -25,13 +25,14 @@ StructureNuker.prototype.run = function () {
 		&& _.findWhere(Game.creeps, { memory: { role: 'filler', dest: this.id } }) == null) {
 		// Log.info('[Nuker] Requesting filler unit at ' + this.pos.roomName);
 		this.runReload();
-		return this.defer(MAX_CREEP_SPAWN_TIME * 2);
+		this.defer(MAX_CREEP_SPAWN_TIME * 2);
+		return;
 	}
 
 	// Skip remaining logic
-	if (this.ghodium < this.ghodiumCapacity
+	/* if (this.ghodium < this.ghodiumCapacity
 		|| this.energy < this.energyCapacity)
-		return;
+		return; */
 	// if we're under threat and we're loaded, fire on pre-programmed target!
 
 };
@@ -48,20 +49,21 @@ defineCachedGetter(StructureNuker.prototype, 'ready', s => s.armed && s.cooldown
 StructureNuker.prototype.runReload = function () {
 	if (this.ghodium >= this.ghodiumCapacity)
 		return ERR_FULL;
-	let spawn = this.getClosestSpawn();
-	let terminal = this.room.terminal;
+	const spawn = this.getClosestSpawn();
+	const {terminal} = this.room;
 	spawn.enqueue(Util.RLD([4, CARRY, 4, MOVE]), null, { role: 'filler', src: terminal.id, dest: this.id, res: RESOURCE_GHODIUM, amt: this.ghodiumCapacity - this.ghodium });
+	return OK;
 };
 
 /**
  * Monkey patch nuker to prevent friendly targets
  */
-let launchNuke = StructureNuker.prototype.launchNuke;
+const {launchNuke} = StructureNuker.prototype;
 StructureNuker.prototype.launchNuke = function (pos) {
 	if (Game.rooms[pos.roomName] && Game.rooms[pos.roomName].my)
 		throw new Error("Unable to nuke friendly rooms");
-	let status = launchNuke.apply(this, arguments);
+	const status = launchNuke.apply(this, arguments);
 	if (status === OK)
-		Log.notify("Nuclear launch detected! " + this.pos.roomName + ' to ' + pos);
+		Log.notify(`Nuclear launch detected! ${this.pos.roomName} to ${pos}`);
 	return status;
 };

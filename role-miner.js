@@ -73,7 +73,7 @@ module.exports = {
 			structs = _.map(structs, lid => Game.getObjectById(lid));
 			structs = _.compact(structs);
 			if (structs && !_.isEmpty(structs)) {
-				let struct = _.find(structs, l => l.energy < l.energyCapacity);
+				const struct = _.find(structs, l => l.energy < l.energyCapacity);
 				creep.transfer(struct, RESOURCE_ENERGY);
 			}
 		}
@@ -89,7 +89,7 @@ module.exports = {
 
 				// Look for containers.
 				if (!creep.memory.container) {
-					if (source.container != undefined)
+					if (source.container != null)
 						creep.memory.container = source.container.id;
 				}
 
@@ -98,7 +98,7 @@ module.exports = {
 					structs = _(creep
 						.lookForNear(LOOK_STRUCTURES, true))
 						.map(LOOK_STRUCTURES)
-						.filter(s => s.energy != undefined)
+						.filter(s => s.energy != null)
 						.value();
 					if (structs && !_.isEmpty(structs)) {
 						creep.memory.structs = _.map(structs, 'id');
@@ -111,10 +111,10 @@ module.exports = {
 			break;
 		case ERR_NOT_ENOUGH_RESOURCES:
 			if (source.ticksToRegeneration < creep.ticksToLive) {
-				Log.info('[Mining] ' + creep.name + ' at ' + creep.pos + ' reporting site empty for ' + source.ticksToRegeneration + ' ticks!');
+				Log.info(`[Mining] ${creep.name} at ${creep.pos} reporting site empty for ${source.ticksToRegeneration} ticks!`);
 				creep.defer(source.ticksToRegeneration);
-			} else {
-				creep.memory.role = 'recycle';
+			} else {				
+				creep.setRole('recycle');
 			}
 			break;
 		}

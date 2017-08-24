@@ -11,13 +11,16 @@
  */
 "use strict";
 
+const EMPIRE_EXPANSION_FREQUENCY = 8191; // Power of 2, minus 1
+const GCL_MOVING_AVG_DURATION = 1000;
+
 class Empire {
 	static tick() {
 		Empire.updateGCL();
 		// var used = Time.measure( () => this.drawVisuals() );
 		// console.log('used: ' + used);
 
-		if (Game.time & 8191)
+		if (Game.time & EMPIRE_EXPANSION_FREQUENCY)
 			return;
 
 		if (Memory.empire && Memory.empire.autoExpand && this.ownedRoomCount() < Game.gcl.level) {
@@ -30,9 +33,9 @@ class Empire {
 
 	static updateGCL() {
 		if (Memory.gclLastTick == null)
-			return (Memory.gclLastTick = Game.gcl.progress);
+			Memory.gclLastTick = Game.gcl.progress;
 		var diff = Game.gcl.progress - Memory.gclLastTick;
-		Memory.gclAverageTick = Math.cmAvg(diff, Memory.gclAverageTick, 1000);
+		Memory.gclAverageTick = Math.cmAvg(diff, Memory.gclAverageTick, GCL_MOVING_AVG_DURATION);
 		Memory.gclLastTick = Game.gcl.progress;
 	}
 
@@ -62,13 +65,14 @@ class Empire {
 	 */
 	static expand() {
 		Log.notify("Expansion in progress!");
-		let candidates = this.getAllCandidateRooms();
-		Log.warn("Candidate rooms: " + candidates, "Empire");
-		let spawns = _.reject(Game.spawns, r => r.isDefunct());
-		let spawn = _.sample(spawns);
+		const candidates = this.getAllCandidateRooms();
+		Log.warn(`Candidate rooms: ${candidates}`, "Empire");
+		const spawns = _.reject(Game.spawns, r => r.isDefunct());
+		const spawn = _.sample(spawns);
 		if (!spawn)
-			return Log.error("No available spawn for expansion", "Empire");
-		spawn.enqueue([MOVE, CLAIM], null, { role: "pioneer", rooms: candidates });
+			Log.error("No available spawn for expansion", "Empire");
+		else
+			spawn.enqueue([MOVE, CLAIM], null, { role: "pioneer", rooms: candidates });
 		// Pick a room!
 		// Verify it isn't owned or reserved. Continue picking.
 		// Launch claimer!
@@ -105,7 +109,7 @@ class Empire {
 			_.each(rooms, r => set.add(r));
 		});
 		return _.reject([...set], r => (Game.rooms[r] && Game.rooms[r].my)
-			|| Room.getType(r) != "Room"
+			|| Room.getType(r) !== "Room"
 			|| !Game.map.isRoomAvailable(r)
 			// || Game.map.getRoomLinearDistance(start, r) <= 1
 			|| !_.inRange(Game.map.findRoute(start, r).length, 1, 3));
@@ -123,6 +127,7 @@ class Empire {
 		var claimRooms = []; // Get this from memory?
 		if (!claimRooms.includes(roomName))
 			claimRooms.push(roomName);
+		return OK;
 	}
 
 	/**

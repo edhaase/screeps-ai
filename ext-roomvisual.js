@@ -3,6 +3,16 @@
  */
 "use strict";
 
+RoomObject.prototype.drawRangeRect = function (range = 3) {
+	range += 0.5;
+	this.room.visual.rect(
+		this.pos.x - range,
+		this.pos.y - range,
+		range * 2,
+		range * 2);
+};
+
+
 /**
  * @author mtib
  */
@@ -98,7 +108,7 @@ const colors = {
 	power: 'red',
 };
 
-const dirs = [
+/* const dirs = [
 	[],
 	[0, -1],
 	[1, -1],
@@ -108,19 +118,27 @@ const dirs = [
 	[-1, 1],
 	[-1, 0],
 	[-1, -1]
-];
+]; */
+
+function relPoly(x, y, poly) {
+	return poly.map(p => {
+		p[0] += x;
+		p[1] += y;
+		return p;
+	});
+}
 
 // Also ags131
 RoomVisual.prototype.connectRoads = function (opts = {}) {
-	let color = opts.color || colors.road || 'white';
+	const color = opts.color || colors.road || 'white';
 	if (!this.roads) return;
 	// this.text(this.roads.map(r=>r.join(',')).join(' '),25,23)  
 	this.roads.forEach(r => {
 		// this.text(`${r[0]},${r[1]}`,r[0],r[1],{ size: 0.2 })
 		for (let i = 1; i <= 4; i++) {
-			let d = dirs[i];
-			let c = [r[0] + d[0], r[1] + d[1]];
-			let rd = _.some(this.roads, r => r[0] == c[0] && r[1] == c[1]);
+			const d = DIR_TABLE[i];
+			const c = [r[0] + d[0], r[1] + d[1]];
+			const rd = _.some(this.roads, r => r[0] === c[0] && r[1] === c[1]);
 			// this.text(`${c[0]},${c[1]}`,c[0],c[1],{ size: 0.2, color: rd?'green':'red' })
 			if (rd) {
 				this.line(r[0], r[1], c[0], c[1], {
@@ -431,24 +449,4 @@ RoomVisual.prototype.structure = function (x, y, type, opts = {}) {
 		});
 		break;
 	}
-};
-
-function relPoly(x, y, poly) {
-	return poly.map(p => {
-		p[0] += x;
-		p[1] += y;
-		return p;
-	});
-}
-
-RoomVisual.prototype.test = function test() {
-	let demopos = [8, 8];
-	this.clear();
-	this.structure(demopos[0] + 0, demopos[1] + 0, STRUCTURE_LAB);
-	this.structure(demopos[0] + 1, demopos[1] + 1, STRUCTURE_TOWER);
-	this.structure(demopos[0] + 2, demopos[1] + 0, STRUCTURE_LINK);
-	this.structure(demopos[0] + 3, demopos[1] + 1, STRUCTURE_TERMINAL);
-	this.structure(demopos[0] + 4, demopos[1] + 0, STRUCTURE_EXTENSION);
-	this.structure(demopos[0] + 5, demopos[1] + 1, STRUCTURE_SPAWN);
-	this.text(this.getSize() + 'B', 10, 11);
 };

@@ -12,7 +12,7 @@ class Util {
 	}
 
 	static fromUnicode(character) {
-		let integer = character.charCodeAt(0);
+		const integer = character.charCodeAt(0);
 		return [(integer >> 8) - 127, (integer & 255) - 127];
 	}
 
@@ -51,7 +51,7 @@ class Util {
 	static firstThingNotInOtherArray(array, secondArray) {
 		var result;
 		for (var i = 0, l = array.length; i < l; i++) {
-			if (secondArray.indexOf(array[i]) == -1) { result = array[i]; break; }
+			if (secondArray.indexOf(array[i]) === -1) { result = array[i]; break; }
 		}
 		return result;
 	}
@@ -102,7 +102,7 @@ class Util {
 		var c = 1;
 
 		for (var i = 1; i < arr.length; i++) {
-			if (arr[i] == arr[i - 1])
+			if (arr[i] === arr[i - 1])
 				c++;
 			else {
 				r[m++] = c;

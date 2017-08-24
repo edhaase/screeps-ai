@@ -117,7 +117,7 @@ StructureSpawn.prototype.processJobs = function () {
 	if (job.notify === true)
 		Game.notify(`Tick ${Game.time}: ${this.pos.roomName}/${this.name}: New ${job.memory.role} unit: ${name}, cost: ${job.cost}, ticks: ${job.ticks}, priority: ${job.priority}, idle: ${idle}`);
 	if (job.memory && job.memory.role)
-		_.attempt(() => require('role-' + job.memory.role).init(Game.creeps[name]));
+		_.attempt(() => require(`role-${job.memory.role}`).init(Game.creeps[name]));
 	q.shift();
 	this.memory.lastidle = Game.time + job.ticks;
 	this.resetEnergyClock();
@@ -128,10 +128,11 @@ StructureSpawn.prototype.processJobs = function () {
  * Incremental rolling number to prevent creep collisions. Combine with
  * initial role to further increase potential number of names.
  */
+const CREEP_ID_ROLLOVER = 1000;
 StructureSpawn.prototype.getNextId = function () {
-	if (Memory.creepnum == undefined)
+	if (Memory.creepnum == null)
 		Memory.creepnum = 0;
-	return Memory.creepnum++ % 1000;
+	return Memory.creepnum++ % CREEP_ID_ROLLOVER;
 };
 
 StructureSpawn.prototype.resetEnergyClock = function () {
@@ -181,11 +182,10 @@ StructureSpawn.prototype.enqueue = function enqueue(body, name = null, memory = 
 	if (delay > 1)
 		Log.warn("Delay is not implemented");
 	if (count < 1) {
-		Log.warn(`Count must be one or greater, ${count} provided`);
-		count = 1;
-		// throw new Error(`Count must be one or greater, ${count} provided`);
+		Log.notify(`Count must be one or greater, ${count} provided`);
+		throw new Error(`Count must be one or greater, ${count} provided`);
 	}
-	while (count-- > 0)
+	for (var i = 0; i < count; i++)
 		this.submit(job);
 	return job.ticks;
 };
@@ -195,11 +195,11 @@ StructureSpawn.prototype.enqueue = function enqueue(body, name = null, memory = 
  */
 StructureSpawn.prototype.submit = function (job) {
 	if (!_.isArray(job.body) || job.body.length === 0)
-		throw new Error("Enqueue failed, bad body: " + job.body.toString());
+		throw new Error(`Enqueue failed, bad body: ${job.body}`);
 	if (job.body.length > MAX_CREEP_SIZE)
-		throw new Error("Body part may not exceed " + MAX_CREEP_SIZE + " parts");
-	if (!job.expire || job.expire == Infinity)
-		Log.warn('No expiration set on ' + job.memory.role, 'Spawn');
+		throw new Error(`Body part may not exceed ${MAX_CREEP_SIZE} parts`);
+	if (!job.expire || job.expire === Infinity)
+		Log.warn(`No expiration set on ${job.memory.role}`, 'Spawn');
 	if (!job.cost)
 		job.cost = _.sum(job.body, part => BODYPART_COST[part]);
 	if (!job.ticks)
@@ -227,7 +227,7 @@ StructureSpawn.prototype.submit = function (job) {
 StructureSpawn.prototype.scoreTask = function (task) {
 	var home = _.get(task, 'memory.home', this.pos.roomName);
 	var dist = 0;
-	if (home != this.pos.roomName)
+	if (home !== this.pos.roomName)
 		dist = Game.map.findRoute(this.pos.roomName, home).length || 1;
 	return (dist << 24) | ((100 - task.priority) << 16) | task.cost;
 };
@@ -238,7 +238,7 @@ StructureSpawn.prototype.removeExpiredJobs = function () {
 	// var removed = _.remove(this.getQueue(), j => (j.expire && Game.time > j.expire) || _.isEmpty(j.body) || this.canCreateCreep(j.body) === ERR_INVALID_ARGS);
 	var removed = _.remove(this.getQueue(), j => (j.expire && Game.time > j.expire));
 	if (removed && removed.length > 0) {
-		let roles = _.map(removed, 'memory.role');
+		const roles = _.map(removed, 'memory.role');
 		Log.warn(`${this.pos.roomName}: Purging ${removed.length} jobs: ${roles}`, 'Spawn');
 		// Log.warn(roles, 'Spawn');
 	}
@@ -247,9 +247,9 @@ StructureSpawn.prototype.removeExpiredJobs = function () {
 /**
  * Monkey patch createCreep so multiple spawns can operate in the same tick.
  */
-let cc = StructureSpawn.prototype.createCreep;
+const { createCreep } = StructureSpawn.prototype;
 StructureSpawn.prototype.createCreep = function (body, name, memory, cost) {
-	let result = cc.apply(this, arguments);
+	const result = createCreep.apply(this, arguments);
 	if (typeof result === 'string')
 		this.room.energyAvailable -= (cost || _.sum(body, part => BODYPART_COST[part]));
 	return result;
@@ -258,13 +258,13 @@ StructureSpawn.prototype.createCreep = function (body, name, memory, cost) {
 /**
  * Monkey patch renew creep so multiple spawns have the correct information.
  */
-let rc = StructureSpawn.prototype.renewCreep;
+const { renewCreep } = StructureSpawn.prototype;
 StructureSpawn.prototype.renewCreep = function (creep) {
-	let status = rc.call(this, creep);
+	const status = renewCreep.call(this, creep);
 	if (status === OK) {
-		let bonus = Math.floor(SPAWN_RENEW_RATIO * CREEP_LIFE_TIME / CREEP_SPAWN_TIME / creep.body.length);
-		let ticksToLive = Math.min(CREEP_LIFE_TIME, creep.ticksToLive + bonus);
-		let cost = Math.ceil(SPAWN_RENEW_RATIO * creep.cost / CREEP_SPAWN_TIME / creep.body.length);
+		const bonus = Math.floor(SPAWN_RENEW_RATIO * CREEP_LIFE_TIME / CREEP_SPAWN_TIME / creep.body.length);
+		const ticksToLive = Math.min(CREEP_LIFE_TIME, creep.ticksToLive + bonus);
+		const cost = Math.ceil(SPAWN_RENEW_RATIO * creep.cost / CREEP_SPAWN_TIME / creep.body.length);
 		this.room.energyAvailable -= cost;
 		Object.defineProperty(creep, 'ticksToLive', { value: ticksToLive, configurable: true });
 		// console.log(`Renewing ${creep.name} (${creep.pos}) for ${bonus} ticks at ${cost} energy`);
@@ -279,8 +279,8 @@ StructureSpawn.prototype.renewAdjacent = function () {
 		_.first,
 		'cache.cid'
 	) */
-	let adj = _.map(this.lookForNear(LOOK_CREEPS, true), LOOK_CREEPS);
-	let creep = _.find(adj, c => c.canRenew());
+	const adj = _.map(this.lookForNear(LOOK_CREEPS, true), LOOK_CREEPS);
+	const creep = _.find(adj, c => c.canRenew());
 	if (!creep)
 		return;
 	// console.log('Spawn ' + this.name + ' renewing ' + creep.name + ' at ' + creep.pos);
@@ -304,7 +304,7 @@ StructureSpawn.prototype.isRenewActive = function () {
 		return false;
 	//if(this.room.controller.level < 3)
 	//	return (this.spawning == undefined && !BUCKET_LIMITER && this.getQueue().length <= 0);
-	return (this.spawning == undefined && !BUCKET_LIMITER);
+	return (this.spawning == null && !BUCKET_LIMITER);
 };
 
 /**

@@ -21,7 +21,7 @@ global.serializePath = function(arr) {
 			list += dir;
 	}
 	return list;
-}	
+};
 
 /**
  * Find the optimal path for this creep to reach it's goal.
@@ -47,18 +47,14 @@ Creep.prototype.getPathTo = function(pos,range=1,opts={}) {
 			// roomCallback: (roomName) => ((opts.avoid || []).includes(roomName))?false:this.getCostMatrix(roomName)
 		});
 		
-		var {path, ops, cost, incomplete} = result;
+		var {ops, cost, incomplete} = result;
 	} catch(e) {
 		Log.error(`Unable to find path to ${pos}: ${e}`, 'Creep');
 		throw e;
 	}
 	Log.debug(`New path for ${this.name}: ops ${ops} cost ${cost} incomplete ${incomplete}`, 'Creep');
-	/* 
-	if(incomplete)
-		Log.debug(JSON.stringify(path),'Creep'); */
-		// (new RoomVisual()).poly(path);
 	return result;
-}
+};
 
 /**
  * Pure cache based movement - No serialization
@@ -69,7 +65,7 @@ Creep.prototype.getPathTo = function(pos,range=1,opts={}) {
  */
 Creep.prototype.walkTo = function(goal,opts) {
 	var {dest,walk} = this.cache;
-	if(this.fatigue > 0)
+	if(this.fatigue)
 		return ERR_TIRED;
 	if(goal.range === undefined)
 		goal.range = 1;
@@ -91,7 +87,7 @@ Creep.prototype.walkTo = function(goal,opts) {
 		this.cache.dest = goal;
 		this.memory.stuck = 0;
 	}
-	let result = this.walkByPath(walk.path);
+	const result = this.walkByPath(walk.path);
 	if(result === ERR_NO_PATH) {
 		// console.log('No path');
 		delete this.cache.walk;
@@ -99,7 +95,7 @@ Creep.prototype.walkTo = function(goal,opts) {
 		this.say(UNICODE_ARROWS.ARROW_BARS);
 	}
 	return result;
-}
+};
 
 /**
  * Because the built in _.findIndex usage is terrible.
@@ -137,15 +133,13 @@ Object.assign(Creep.prototype, {
 	 * Auto move - Set a position and range and forget about it.
 	 */	
 	runMoveToGoal() {
-		if(this.fatigue > 0)
+		if(this.fatigue)
 			return;
-		var memory = this.memory;	
+		// var memory = this.memory;	
 		var goal = this.getMoveGoal();
 		if(!goal)
 			return;
-		if(this.pos.inRangeTo(goal.pos, goal.range || 1))
-			return;
-		else {
+		if(!this.pos.inRangeTo(goal.pos, goal.range || 1)) {
 			var pos = _.create(RoomPosition.prototype, goal.pos);
 			this.moveTo(pos, {range: goal.range || 1});
 		}
@@ -181,12 +175,12 @@ Object.assign(Creep.prototype, {
 	 * Creep patrol logic 
 	 */
 	runPatrol() {
-		var patrol = this.memory.patrol;
+		var {patrol} = this.memory;
 		if(!this.isPatrolling())
 			return;
 		if(!this.isInRangeToGoal())
 			return;
-		var name = this.name;
+		// var name = this.name;
 		var goal = _.min(patrol, p => this.pos.getRangeToPlain(p.pos));
 		var i = patrol.indexOf(goal);
 		/* console.log(`${name} goal: ` + JSON.stringify(goal));
@@ -218,7 +212,7 @@ Object.assign(Creep.prototype, {
 			throw new Error('Invalid args');
 		this.setPatrolRoute(
 			_.map(rooms, r => ({pos: new RoomPosition(25,25,r), range: 22})
-		));
+			));
 	},
 	
 	pausePatrol() {

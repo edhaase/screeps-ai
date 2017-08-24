@@ -28,7 +28,7 @@ module.exports = {
 		if (Memory.stats.lastTS) {
 			var elapsedInSeconds = ((new Date()).getTime() - Memory.stats.lastTS) / 1000;
 			var avg = elapsedInSeconds / freq;
-			console.log('Updating tick length! ' + avg);
+			console.log(`Updating tick length! ${avg}`);
 			Memory.stats.tickLength = avg;
 		}
 		Memory.stats.lastTS = (new Date()).getTime();
@@ -86,7 +86,7 @@ module.exports = {
 				start = Game.cpu.getUsed();
 				results[i].rtn = arr[i]();
 				used = Game.cpu.getUsed() - start;
-				if (i > 0 && results[i].rtn != results[0].rtn)
+				if (i > 0 && results[i].rtn !== results[0].rtn)
 					throw new Error('Results are not the same!');
 				results[i].time += used;
 			}

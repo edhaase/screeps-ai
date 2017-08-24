@@ -34,7 +34,7 @@ module.exports = {
 			if (this.pos.hasConstructionSite()) {
 				return this.move(_.random(0, 8));
 			}
-			let site = creep.getTarget(
+			const site = creep.getTarget(
 				({ room }) => room.find(FIND_MY_CONSTRUCTION_SITES),
 				(site) => site instanceof ConstructionSite,
 				(sites) => _.max(sites, s => (STRUCTURE_BUILD_PRIORITY[s.structureType] || 1) / creep.pos.getRangeTo(s))
@@ -51,7 +51,7 @@ module.exports = {
 						// ignoreCreeps: false
 					});
 				else if (status !== OK) {
-					console.log('build status: ' + status + ' for ' + this.name + ' at ' + this.pos);
+					console.log(`build status: ${status} for ${this.name} at ${this.pos}`);
 					this.defer(15);
 				}
 			} else {

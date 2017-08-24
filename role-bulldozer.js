@@ -7,8 +7,8 @@
 // Game.spawns['Spawn6'].enqueue(Util.RLD([20,ATTACK,20,MOVE]), null, {role: 'bulldozer', site: });
 // Game.spawns['Spawn6'].enqueue(Util.RLD([2,RANGED_ATTACK,2,ATTACK,4,MOVE]), null, {role: 'bulldozer', site: 'E58S40'});
 module.exports = function (creep) {
-	let { site, avoidRamparts = true } = creep.memory;
-	if (site && creep.pos.roomName != site)
+	const { site, avoidRamparts = true } = creep.memory;
+	if (site && creep.pos.roomName !== site)
 		return creep.moveToRoom(site);
 	/* let target = null;
 	if(!creep.cache.target || !(target=Game.getObjectById(creep.cache.target))) {
@@ -42,11 +42,11 @@ module.exports = function (creep) {
 			return this.setRole('recycle');
 		}
 	}
-	let range = creep.pos.getRangeTo(target);
-	if (range <= 3 && creep.hasActiveBodypart(RANGED_ATTACK))
+	const range = creep.pos.getRangeTo(target);
+	if (range <= CREEP_RANGED_ATTACK_RANGE && creep.hasActiveBodypart(RANGED_ATTACK))
 		creep.rangedAttack(target);
 	if (range > 1)
-		creep.moveTo(target, { ignoreDestructibles: creep.canAttack });
+		creep.moveTo(target);
 	else {
 		if (creep.hasActiveBodypart(WORK))
 			creep.dismantle(target);

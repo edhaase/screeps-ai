@@ -6,12 +6,12 @@
 "use strict";
 
 ConstructionSite.prototype.draw = function () {
-	let { room, pos, structureType } = this;
+	const { room, pos, structureType } = this;
 	if (room)
 		this.room.visual.structure(pos.x, pos.y, structureType);
 };
 
-let ets = Error.prototype.toString;
+const ets = Error.prototype.toString;
 Error.prototype.toString = function () {
 	return ets.apply(this, arguments) + ` (Tick ${Game.time})`;
 };
@@ -43,28 +43,6 @@ Math.mAvg = function (n, p = n, s = 100, w = 1) {
 
 Math.cmAvg = (n, p = n, s = 100) => p + (n - p) / s; // Cumulutive moving average.
 Math.mmAvg = (n, p = n, s = 100) => ((s - 1) * p + n) / s; // Modified moving average.
-
-global.testMath = function () {
-	var i, p, q, n = 1.0, s = 5;
-	var a = [], b = [], c = [];
-	for (p = 0, q = p, i = 0; i < 20; i++) {
-		// p = Math.runningAvg(n,p,s);
-		p = Math.mmAvg(p, n, s);
-		a.push(_.round(p, 2));
-		q = Math.cmAvg(n, q, s);
-		b.push(_.round(q, 2));
-	}
-
-	console.log('a: ' + a.join());
-	console.log('b: ' + b.join());
-
-	var w = 10;
-	for (p = 0, i = 0; i < 20; i++) {
-		p = Math.cmAvg(n, p, s, w);
-		c.push(_.round(p, 2));
-	}
-	console.log('c: ' + c.join());
-};
 
 Math.clamp = function (low, value, high) {
 	return Math.max(low, Math.min(value, high));

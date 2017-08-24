@@ -31,7 +31,7 @@
  */
 RoomObject.prototype.getTarget = function (selector, validator = _.identity, chooser = _.first, prop = 'tid') {
 	var target, tid = this.memory[prop];
-	if (tid != undefined) // Sanity check for cassandra migration
+	if (tid != null) // Sanity check for cassandra migration
 		target = Game.getObjectById(tid);
 	if (target == null || !validator(target)) {
 		this.room.visual.circle(this.pos, { fill: 'red' });
@@ -86,7 +86,7 @@ RoomObject.prototype.getTargetDeep = function (selector, validator = _.identity,
 RoomObject.prototype.getUniqueTarget = function (selector, restrictor, validator = _.identity, chooser = _.first, prop = 'tid') {
 	var tid = this.memory[prop];
 	var target = Game.getObjectById(tid);
-	if (tid == undefined || target == null || !validator(target)) {
+	if (tid == null || target == null || !validator(target)) {
 		this.room.visual.circle(this.pos, { fill: 'red' });
 		this.clearTarget(prop);
 		var invalid = restrictor.call(this, this) || [];
@@ -113,7 +113,7 @@ RoomObject.prototype.clearTarget = function (prop = 'tid') {
 
 RoomObject.prototype.setTarget = function (target, prop = 'tid') {
 	if (!target)
-		return;
+		return null;
 	this.room.visual.circle(this.pos, { fill: 'blue' });
 	if (typeof target == 'string')
 		this.memory[prop] = target;
@@ -181,9 +181,9 @@ RoomObject.prototype.throttle = function (freq, prop, fn) {
  *
  * ex: StructureTerminal.prototype.receiveMessage = function(msg) {}
  */
-RoomObject.prototype.receiveMessage = function (msg, sender, tick) {
+RoomObject.prototype.receiveMessage = function (msg, sender, tick = Game.time) {
 	var AB = Game.time & 1;
-	console.log(`Receiving message ${JSON.stringify(msg)} on channel ${AB} from ${sender}`);
+	console.log(`Receiving message ${JSON.stringify(msg)} on channel ${AB} from ${sender} on tick ${tick}`);
 };
 
 /**
@@ -238,7 +238,7 @@ global.processMessages = function () {
 		if (!obj)
 			return false;
 		status = obj.receiveMessage(JSON.parse(data), sender, tick);
-		return (status == undefined) ? true : status;
+		return (status == null) ? true : status;
 	});
 };
 
@@ -341,11 +341,11 @@ RoomObject.prototype.getAdjacentContainer = function () {
  */
 RoomObject.prototype.getClosestSpawn = function (prop = 'memory') {
 	if (!this[prop].spawn || !Game.spawns[this[prop].spawn] || Game.spawns[this[prop].spawn].isDefunct()) {
-		let spawn = this.pos.findClosestSpawn();
+		const spawn = this.pos.findClosestSpawn();
 		if (!spawn)
 			return null;
 		this[prop].spawn = spawn.name;
-		Log.info('Assigning spawn ' + this[prop].spawn + ' to ' + this);
+		Log.info(`Assigning spawn ${this[prop].spawn} to ${this}`);
 	}
 	return Game.spawns[this[prop].spawn];
 };
@@ -411,7 +411,7 @@ RoomObject.prototype.disableBit = function (bit) {
 
 RoomObject.prototype.checkBit = function (bit) {
 	if (this.memory !== undefined)
-		return ((this.memory.bits || 0) & bit) != 0;
+		return ((this.memory.bits || 0) & bit) !== 0;
 	return false;
 };
 
@@ -438,12 +438,3 @@ defineCachedGetter(RoomObject.prototype, 'total', function () {
 		return _.sum(this.store);
 	return 0;
 });
-
-RoomObject.prototype.drawRangeRect = function (range = 3) {
-	range += 0.5;
-	this.room.visual.rect(
-		this.pos.x - range,
-		this.pos.y - range,
-		range * 2,
-		range * 2);
-};

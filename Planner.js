@@ -51,9 +51,9 @@ Room.prototype.canBuild = function (structureType) {
 	if (_.size(Game.constructionSites) >= MAX_CONSTRUCTION_SITES)
 		return;
 	// let count = _.sum(this.structures, s => s.structureType === structureType)
-	let count = (this.structuresByType[structureType] || []).length
+	const count = (this.structuresByType[structureType] || []).length
 		+ _.sum(this.find(FIND_MY_CONSTRUCTION_SITES, { filer: s => s.structureType === structureType }));
-	let allowed = CONTROLLER_STRUCTURES[structureType][this.controller.level];
+	const allowed = CONTROLLER_STRUCTURES[structureType][this.controller.level];
 	return allowed >= count;
 };
 
@@ -66,8 +66,8 @@ Room.prototype.getStructuresAllowed = function () {
 };
 
 Room.prototype.getStructuresWeCanBuild = function () {
-	let level = this.controller.level;
-	let have = _.countBy(this.structures, 'structureType');
+	const { level } = this.controller;
+	const have = _.countBy(this.structures, 'structureType');
 	// let have = this.structuresByType;
 	return _.mapValues(CONTROLLER_STRUCTURES, (v, k) => v[level] - (have[k] || 0));
 };
@@ -161,7 +161,7 @@ class FleePlanner {
 		var { path, ops, cost, incomplete } = PathFinder.search(this.origin, goals, this);
 		Log.warn(`Found ${path.length}, cost: ${cost}, ops: ${ops}, incomplete: ${incomplete}`, 'Planner');
 		this.cpu += (Game.cpu.getUsed() - ds);
-		if (!path || !path.length || incomplete == true || ops === this.maxOps)
+		if (!path || !path.length || incomplete === true || ops === this.maxOps)
 			return false;
 		// Log.debug(ex(path), 'Planner');		
 		this.saveNewPath(path, structureType);
@@ -250,7 +250,7 @@ class FleePlanner {
 	}
 
 	draw(road = false) {
-		let [a, b] = _.partition(this.plan, ({ structureType }) => structureType === STRUCTURE_ROAD);
+		const [a, b] = _.partition(this.plan, ({ structureType }) => structureType === STRUCTURE_ROAD);
 		if (road) {
 			_.each(a, (item) => this.visual.structure(item.pos.x, item.pos.y, item.structureType, { opacity: 0.05 }));
 			this.visual.connectRoads();
@@ -298,10 +298,10 @@ class BuildPlanner {
 			return ERR_BUSY;
 		if (!_.isEmpty(room.find(FIND_MY_CONSTRUCTION_SITES)))
 			return ERR_BUSY;
-		Log.warn('Building room: ' + room.name + ' on tick ' + Game.time, 'Planner');
+		Log.warn(`Building room: ${room.name} on tick ${Game.time}`, 'Planner');
 		if (!room.memory.origin) {
 			room.memory.origin = this.distanceTransformWithController(room);
-			Log.warn('Found origin: ' + room.memory.origin);
+			Log.warn(`Found origin: ${room.memory.origin}`, 'Planner');
 		}
 		var radius = 4; // If controller.
 		if (room.memory.origin) {
@@ -319,7 +319,7 @@ class BuildPlanner {
 			Log.debug('Nothing to build', 'Planner');
 			// return;
 		} else {
-			let plan = this.uberPlan(pos, want, {
+			const plan = this.uberPlan(pos, want, {
 				drawRoad: true, plainCost: 2, swampCost: 3, heuristicWeight: 0.9,
 				radius: radius
 			});
@@ -331,20 +331,19 @@ class BuildPlanner {
 		this.placeRamparts(room);
 		this.placeRampartsOnWalls(room);
 		if (level >= 3)
-			this.buildSourceRoads(room, room.storage || room.controller, room.controller.level == 3);
+			this.buildSourceRoads(room, room.storage || room.controller, room.controller.level === 3);
 		this.findRoadMisplacements(room).invoke('destroy').commit();
 		// if(level >= 3)
 		//	this.exitPlanner(room.name, {commit: true});
 		if (level >= 6) {
-			let mineral = room.mineral;
+			const { mineral } = room;
 			if (mineral && !mineral.pos.hasStructure(STRUCTURE_EXTRACTOR)) {
 				room.addToBuildQueue(mineral.pos, STRUCTURE_EXTRACTOR);
 			}
 			if (room.terminal)
 				this.planRoad(room.terminal.pos, { pos: mineral.pos, range: 1 }, { rest: true, initial: true, container: true });
 		}
-		// return plan;
-		return;
+		return OK;
 	}
 
 	/**
@@ -434,9 +433,9 @@ class BuildPlanner {
 		// while _stuff to add_.
 		var newStuff = [];
 
-		var item,status;
+		var item;
 		while (item = stuffToAdd.shift()) {
-			status = this.plan(cursor, goals, newStuff, cm, item, opts);
+			this.plan(cursor, goals, newStuff, cm, item, opts);
 			// used = Time.measure( () =>  );		
 			// Log.warn(`Used ${used} cpu`);
 		}
@@ -446,7 +445,7 @@ class BuildPlanner {
 		// @todo: Draw roads first.
 		if (opts.draw) {
 			var visual = new RoomVisual(origin.roomName);
-			let [a, b] = _.partition(newStuff, ({ structureType }) => structureType === STRUCTURE_ROAD);
+			const [a, b] = _.partition(newStuff, ({ structureType }) => structureType === STRUCTURE_ROAD);
 			if (opts.drawRoad === true) {
 				_.each(a, (item) => visual.structure(item.pos.x, item.pos.y, item.structureType, { opacity: 0.05 }));
 				visual.connectRoads();
@@ -456,12 +455,11 @@ class BuildPlanner {
 		// console.log(ex(newStuff));
 		// ..set cursor?
 		// visualize?
-		return newStuff;
 	}
 
 	static mergeCurrentPlan(room, goals, cm, opts) {
 		_.each(room.find(FIND_STRUCTURES), ({ pos, structureType }) => {
-			if (!opts.ignoreRoad && structureType == STRUCTURE_ROAD) {
+			if (!opts.ignoreRoad && structureType === STRUCTURE_ROAD) {
 				cm.set(pos.x, pos.y, 1);
 				goals.push({ pos, range: 1, structureType });
 			} else if (!opts.ignoreStructures && OBSTACLE_OBJECT_TYPES.includes(structureType)) {
@@ -507,14 +505,14 @@ class BuildPlanner {
 			maxOps: 2500, // Perhaps higher given the work we do.
 			heuristicWeight
 		});
-		if (!path || incomplete == true) {
+		var dest = _.last(path);
+		if (!path || incomplete === true) {
 			Log.warn(`Found ${dest}, cost: ${cost}, ops: ${ops}, incomplete: ${incomplete}`, 'Planner');
 			Log.warn('Unable to find path!', 'Planner');
 			return false;
 		}
 		if (opts.draw)
-			new RoomVisual().poly(path);
-		var dest = _.last(path);
+			new RoomVisual().poly(path);		
 		Log.warn(`Found ${dest}, cost: ${cost}, ops: ${ops}, incomplete: ${incomplete}`, 'Planner');
 		cm.set(dest.x, dest.y, 255);
 		var entry = {
@@ -528,7 +526,7 @@ class BuildPlanner {
 		path.pop();
 		var rpos;
 		while (rpos = path.pop()) {
-			if (cm.get(rpos.x, rpos.y) == 1) { // Why isn't this working?
+			if (cm.get(rpos.x, rpos.y) === 1) { // Why isn't this working?
 				// origin = rpos;
 				break;
 			}
@@ -542,7 +540,7 @@ class BuildPlanner {
 		// This is still neccesary (As flee goals)
 		var points = _.map(HORIZONTALS, (d) => dest.addDirection(d));
 		while (rpos = points.pop()) {
-			if (cm.get(rpos.x, rpos.y) == 1 || (room && !rpos.isOpen()))
+			if (cm.get(rpos.x, rpos.y) === 1 || (room && !rpos.isOpen()))
 				continue;
 			if ((rpos.x + rpos.y) % 2)
 				continue;
@@ -564,7 +562,7 @@ class BuildPlanner {
 	 * Scores are largest at center of clearance.
 	 * example: Time.measure( () => Planner.distanceTransform('W5N2', (x,y,r) =>  Game.map.getTerrainAt(x, y,r) == 'wall' || new RoomPosition(x,y,r).hasObstacle() ))
 	 */
-	static distanceTransform(roomName, rejector = (x, y, roomName) => Game.map.getTerrainAt(x, y, roomName) == 'wall') {
+	static distanceTransform(roomName, rejector = (x, y, roomName) => Game.map.getTerrainAt(x, y, roomName) === 'wall') {
 		var vis = new RoomVisual(roomName);
 		var topDownPass = new PathFinder.CostMatrix();
 		var x, y;
@@ -602,12 +600,12 @@ class BuildPlanner {
 	static drawAvgRange(room) {
 		var roomName = room.name;
 		var vis = room.visual;
-		var x, y, value, pos, dist;
+		var x, y, pos, dist;
 		var c = room.controller;
 		var s = room.find(FIND_SOURCES);
 		var points = [c, ...s];
 		console.log('points: ' + points);
-		var maxv = 0, maxp = null;
+		// var maxv = 0, maxp = null;
 		for (y = 49; y >= 0; --y) {
 			for (x = 49; x >= 0; --x) {
 				pos = new RoomPosition(x, y, roomName);
@@ -752,14 +750,14 @@ class BuildPlanner {
 		try {
 			// if(_.isObject(toPos) && !(toPos instanceof RoomPosition))
 			//	toPos = [toPos];
-			let result = PathFinder.search(fromPos, toPos, {
+			const result = PathFinder.search(fromPos, toPos, {
 				plainCost: 2, // prefer existing roads
 				swampCost: 2,
 				maxOps: 8000,
 				maxRooms: 1,
 				roomCallback: opts.cmFn
 			});
-			let { path, incomplete, cost, ops } = result;
+			const { path, incomplete, cost, ops } = result;
 			if (incomplete || !path || _.isEmpty(path)) {
 				Log.warn('No path to goal ' + JSON.stringify(toPos), 'Planner#planRoad');
 				Log.warn(`cost ${cost} ops ${ops} steps ${path.length}`);
@@ -797,7 +795,7 @@ class BuildPlanner {
 	static saveCurrentWorldPlan() {
 		var structs = _.filter(Game.structures, s => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_RAMPART);
 		var plan = _.map(structs, ({ pos, structureType }) => ({ pos, structureType }));
-		let size = Util.withMemorySegment(SEGMENT_BUILD, function (obj) {
+		const size = Util.withMemorySegment(SEGMENT_BUILD, function (obj) {
 			obj.plan = plan;
 		});
 		console.log('New segment size: ' + size);
@@ -851,7 +849,7 @@ class BuildPlanner {
 				} else {
 					var color = Util.getColorBasedOnPercentage(100 * (count / limit));
 					// var color = HSV_COLORS[Math.floor(100*(count / limit))];
-					if (oddeven && (n.x + n.y) % 2 == 0)
+					if (oddeven && (n.x + n.y) % 2 === 0)
 						color = 'blue';
 					if (visualize)
 						visual.circle(n, { fill: color, opacity: 1.0 });
@@ -908,7 +906,7 @@ class BuildPlanner {
 				if (p.hasStructure(STRUCTURE_EXTENSION))
 					return;
 				visual.circle(p, { fill: 'yellow' });
-				if (p.createConstructionSite(STRUCTURE_EXTENSION) == OK)
+				if (p.createConstructionSite(STRUCTURE_EXTENSION) === OK)
 					need--;
 			} else {
 				visual.circle(p, { fill: 'grey' });
@@ -931,7 +929,7 @@ class BuildPlanner {
 		var protect = [STRUCTURE_STORAGE, STRUCTURE_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_NUKER, STRUCTURE_OBSERVER, STRUCTURE_TOWER, STRUCTURE_POWER_SPAWN];
 		var start = Game.cpu.getUsed();
 		var structures = room.find(FIND_MY_STRUCTURES, { filter: s => s.structureType !== STRUCTURE_RAMPART });
-		if (!_.any(structures, s => s.structureType == STRUCTURE_TOWER)) {
+		if (!_.any(structures, s => s.structureType === STRUCTURE_TOWER)) {
 			console.log(`No towers in ${room.name}, unable to auto-rampart`);
 			return ERR_NOT_FOUND;
 		}

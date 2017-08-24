@@ -7,16 +7,16 @@
 
 /**
  * Fix for a missing rampart is public check.
- */ 
-let setPublic = StructureRampart.prototype.setPublic;
-StructureRampart.prototype.setPublic = function(status) {
-	if(status != this.isPublic)
+ */
+const { setPublic } = StructureRampart.prototype;
+StructureRampart.prototype.setPublic = function (status) {
+	if (status !== this.isPublic)
 		return setPublic.call(this, status);
 	return OK;
 };
 
 // Insane cpu sink below. Works but doesn't really accomplish anything.
- 
+
 /* StructureRampart.prototype.run = function() {
 	// this.updateHits();
 	// @todo: every 10000 ticks, cache structure we're protecting.	

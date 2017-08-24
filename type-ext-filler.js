@@ -14,7 +14,7 @@ class CreepExtFiller extends Creep {
 	runRole() {
 		let { state = 'G' } = this.memory;
 
-		let start = Game.cpu.getUsed();
+		const start = Game.cpu.getUsed();
 
 		if (this.memory.stuck > 15)
 			return this.wander();
@@ -34,9 +34,9 @@ class CreepExtFiller extends Creep {
 		else if (state === STATE_UNLOAD)
 			this.unload();
 		else
-			console.log('ext-filler: Wrong state! ' + state);
+			console.log(`ext-filler: Wrong state! ${state}`);
 		// super.runRole();
-		let used = Game.cpu.getUsed() - start;
+		const used = Game.cpu.getUsed() - start;
 
 		Volatile['type-ext-fill-' + state] = _.round((Volatile['type-ext-fill-' + state] || 0) + used, 3);
 		Volatile['type-ext-fill'] = _.round((Volatile['type-ext-fill'] || 0) + used, 3);
@@ -59,7 +59,7 @@ class CreepExtFiller extends Creep {
 			this.memory.state = 'U';
 			return; // this.unload();
 		}	*/
-		let goal = this.getPickupSite();
+		const goal = this.getPickupSite();
 		if (!goal) {
 			this.say('No goal');
 			if (this.carryTotal > 0)
@@ -97,7 +97,7 @@ class CreepExtFiller extends Creep {
 						return [...room.containers, ...room.resources];
 				},
 				// ({room,pos}) => _(Game.creeps).filter(c => c.pos.roomName == pos.roomName && c.getRole() == 'scav' && c.memory.tid).map('memory.tid').value(),
-				({ room }) => room.find(FIND_MY_CREEPS, { filter: c => c.getRole() == 'scav' && c.memory.tid }).map(c => c.memory.tid),
+				({ room }) => room.find(FIND_MY_CREEPS, { filter: c => c.getRole() === 'scav' && c.memory.tid }).map(c => c.memory.tid),
 				t => Filter.canProvideEnergy(t, TERMINAL_MIN_ENERGY) || Filter.droppedResources(t) || ((t instanceof StructureContainer) && t.storedTotal > 100),
 				// (c) => c.energy > 50 || (((c.stored && c.stored[RESOURCE_ENERGY] > 300) || Filter.droppedResources(c)) && !terminal.isFull()), // Validator
 				// t => Filter.canProvideEnergy(t,300) || Filter.droppedResources(t),
@@ -115,7 +115,7 @@ class CreepExtFiller extends Creep {
 				}, */
 				({ room }) => [...room.structures, ...room.resources],
 				// ({room,pos}) => _(Game.creeps).filter(c => c.pos.roomName == pos.roomName && c.getRole() == 'scav' && c.memory.tid).map('memory.tid').value(),
-				({ room }) => room.find(FIND_MY_CREEPS, { filter: c => c.getRole() == 'scav' && c.memory.tid }).map(c => c.memory.tid),
+				({ room }) => room.find(FIND_MY_CREEPS, { filter: c => c.getRole() === 'scav' && c.memory.tid }).map(c => c.memory.tid),
 				(s) => Filter.canProvideEnergy(s),
 				// (c) => c.store[RESOURCE_ENERGY] > 300, // Validator
 				(candidates) => _.max(candidates, t => Math.min(this.getAmt(t), this.carryCapacityAvailable) / this.pos.getRangeTo(t.pos))
@@ -183,7 +183,7 @@ class CreepExtFiller extends Creep {
 	}
 
 	amtInRange(thing) {
-		let amt = this.getAmtPct(thing);
+		const amt = this.getAmtPct(thing);
 		return (amt > 0 && amt < 1);
 	}
 
@@ -227,7 +227,7 @@ class CreepExtFiller extends Creep {
 			// this.unload();
 			this.clearTarget();
 		} else if (status !== OK)
-			console.log('ext-fill: status: ' + status + ' on ' + goal + ' at ' + this.pos);
+			console.log(`ext-fill: status: ${status} on ${goal} at ${this.pos}`);
 		else {
 			if (goal instanceof StructureTerminal || goal instanceof StructureStorage)
 				this.defer(3);
@@ -257,18 +257,18 @@ class CreepExtFiller extends Creep {
 						return ['upgrader', 'builder', 'repair'].includes(sel.getRole());
 					} else if (sel instanceof StructureLink)
 						return false;
-					if (sel.store != undefined)
+					if (sel.store != null)
 						return false;
 					return true;
 				}), // Find all available targets
-				({ room }) => room.find(FIND_MY_CREEPS, { filter: c => c.getRole() == 'scav' && c.memory.tid }).map(c => c.memory.tid),
+				({ room }) => room.find(FIND_MY_CREEPS, { filter: c => c.getRole() === 'scav' && c.memory.tid }).map(c => c.memory.tid),
 				// (c) => Filter.canReceiveEnergy(c) && c.pos.roomName == this.pos.roomName, // currently don't fill stores this way
-				(c) => Filter.canReceiveEnergy(c) && c.pos.roomName == this.pos.roomName && c.id !== this.memory.avoid, // currently don't fill stores this way
+				(c) => Filter.canReceiveEnergy(c) && c.pos.roomName === this.pos.roomName && c.id !== this.memory.avoid, // currently don't fill stores this way
 				(candidates) => _.min(candidates, s => (1 + Filter.canReceiveEnergy(s)) * s.pos.getRangeTo(this.pos))
 			);
 
 			if (!goal) {
-				let { storage, terminal } = this.room;
+				const { storage, terminal } = this.room;
 				if (storage && storage.store[RESOURCE_ENERGY] < 300000 && storage.my)
 					goal = storage;
 				else if (terminal && terminal.my && terminal.storedTotal < terminal.storeCapacity)
@@ -314,14 +314,14 @@ class CreepExtFiller extends Creep {
 	}
 
 	withdraw(target, amt) {
-		let status = super.withdraw.apply(this, arguments);
+		const status = super.withdraw.apply(this, arguments);
 		if (status === OK)
 			this.memory.avoid = target.id;
 		return status;
 	}
 
 	pickup() {
-		let status = super.pickup.apply(this, arguments);
+		const status = super.pickup.apply(this, arguments);
 		if (status === OK)
 			delete this.memory.avoid;
 		return status;

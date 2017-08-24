@@ -73,8 +73,8 @@ global.CONTAINER_UPKEEP = CONTAINER_DECAY / REPAIR_POWER / CONTAINER_DECAY_TIME_
 global.REMOTE_CONTAINER_UPKEEP = CONTAINER_DECAY / REPAIR_POWER / CONTAINER_DECAY_TIME;
 
 
-// Active globals
 global.DEFAULT_BUILD_JOB_EXPIRE = 12000;
+global.SAFE_MODE_IGNORE_TIMER = CREEP_LIFE_TIME+500;
 
 global.CONTROLLER_EMERGENCY_THRESHOLD = 3000;
 global.MINIMUM_RESERVATION = CREEP_LIFE_TIME + 200; // Roughly above CREEP_LIFE_TIME (700 ticks doesn't work when room is shut down)
@@ -87,6 +87,11 @@ global.CREEP_BUILD_RANGE = 3;
 global.CREEP_RANGED_ATTACK_RANGE = 3;
 global.CREEP_UPGRADE_RANGE = 3;
 global.CREEP_REPAIR_RANGE = 3;
+global.MINIMUM_SAFE_FLEE_DISTANCE = 4; // Because ranged actions as usually 3.
+
+global.FATIGUE_ROAD = 0.5;
+global.FATIGUE_BASE = 1;
+global.FATIGUE_SWAMP = 5;
 
 global.NUKE_EFFECT_RANGE = 2;
 
@@ -363,9 +368,9 @@ global.ICONS = {
 global.defineCachedGetter = function (proto, propertyName, fn, enumerable = false) {
 	Object.defineProperty(proto, propertyName, {
 		get: function () {
-			if (this === proto || this == undefined)
-				return;
-			let result = fn.call(this, this);
+			if (this === proto || this == null)
+				return null;
+			var result = fn.call(this, this);
 			Object.defineProperty(this, propertyName, {
 				value: result,
 				configurable: true,
@@ -447,23 +452,23 @@ global.GC = function () {
 		return;
 
 	var groups = {};
-
-	for (var name in Memory.creeps) {
+	var name;
+	for (name in Memory.creeps) {
 		if (Memory.creeps[name].gid)
 			groups[Memory.creeps[name].gid] = 1;
 		if (!Game.creeps[name]) {
 			const age = Game.time - Memory.creeps[name].born;
 			const maxAge = _.get(Memory, 'stats.maxAge', 0);
-			if (age > 1500)
-				Log.debug("Garbage collecting " + name + ' (age: ' + age + ')', 'GC');
+			if (age > CREEP_LIFE_TIME)
+				Log.debug(`Garbage collecting ${name} (age: ${age})`, 'GC');
 			if (age > maxAge)
-				Log.info('New max age! ' + name + ' with ' + age + ' ticks!');
+				Log.info(`New max age! ${name} with ${age} ticks!`);
 			_.set(Memory, 'stats.maxAge', Math.max(maxAge, age));
 			delete Memory.creeps[name];
 		}
 	}
 
-	for (var name in Memory.flags) {
+	for (name in Memory.flags) {
 		if (Memory.flags[name].gid)
 			groups[Memory.flags[name].gid] = 1;
 		if (!Game.flags[name] || _.isEmpty(Memory.flags[name])) {
@@ -471,19 +476,14 @@ global.GC = function () {
 		}
 	}
 
-	for (var name in Memory.spawns) {
+	for (name in Memory.spawns) {
 		if (Memory.spawns[name].gid)
 			groups[Memory.spawns[name].gid] = 1;
 		if (!Game.spawns[name]) {
 			delete Memory.spawns[name];
 		}
 	}
-
-	for (var id in Memory.structures) {
-		if (Memory.structures[id].gid)
-			groups[Memory.structures[id].gid] = 1;
-	}
-
+	
 	// console.log("Group ids still around: " + ex(groups));
 	Memory.groups = _.omit(Memory.groups, (v, k) => !groups[k]);
 	/* for(var name in Memory.rooms)
@@ -496,8 +496,8 @@ global.GC = function () {
 global.GCStructureMemory = function () {
 	for (var id in Memory.structures)
 		if (!Game.structures[id]) { // || _.isEmpty(Memory.structures[id])) {
-			Log.notify("Garbage collecting structure " + id + ', ' + JSON.stringify(Memory.structures[id]));
-			delete Memory.structures[id];
+			Log.notify(`Garbage collecting structure ${id}, ${JSON.stringify(Memory.structures[id])}`);
+			Memory.structures[id] = undefined;
 		}
 };
 
@@ -506,14 +506,14 @@ global.profile = function (ticks = 30, filter = null) {
 };
 
 global.progress = function () {
-	let ticksTilGCL = (Game.gcl.progressTotal - Game.gcl.progress) / Memory.gclAverageTick;
-	console.log("Time till GCL " + (Game.gcl.level + 1) + ": " + Time.estimate(ticksTilGCL) + ' ' + Log.progress(Game.gcl.progress, Game.gcl.progressTotal));
+	const ticksTilGCL = (Game.gcl.progressTotal - Game.gcl.progress) / Memory.gclAverageTick;
+	console.log(`Time till GCL ${(Game.gcl.level + 1)}: ${Time.estimate(ticksTilGCL)} ${Log.progress(Game.gcl.progress, Game.gcl.progressTotal)}`);
 	_(Game.rooms)
 		.map('controller')
 		.filter('my')
 		.filter(c => c.level < 8)
 		// .each(c => console.log("Room: " + c.room.name + ", RCL: " + (c.level+1) + ", " + c.estimate()))
-		.each(c => console.log("Room: " + c.room.name + ", RCL: " + (c.level + 1) + ", " + c.estimate() + ' ' + Log.progress(c.room.controller.progress, c.room.controller.progressTotal)))
+		.each(c => console.log(`Room: ${c.room.name}, RCL: ${(c.level + 1)},  ${c.estimate()} ${Log.progress(c.room.controller.progress, c.room.controller.progressTotal)}`))
 		.commit();
 };
 

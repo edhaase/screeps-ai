@@ -11,7 +11,7 @@
  * @return bool
  */
 RoomPosition.prototype.isEqualToPlain = function ({ x, y, roomName } = {}) {
-	return this.x == x && this.y == y && this.roomName == roomName;
+	return this.x === x && this.y === y && this.roomName === roomName;
 };
 
 /**
@@ -21,7 +21,7 @@ RoomPosition.prototype.isEqualToPlain = function ({ x, y, roomName } = {}) {
  * @return bool
  */
 RoomPosition.prototype.isEqualToPlainXY = function (x, y, roomName) {
-	return this.x == x && this.y == y && this.roomName == roomName;
+	return this.x === x && this.y === y && this.roomName === roomName;
 };
 
 /**
@@ -64,7 +64,7 @@ RoomPosition.prototype.inRangeToPos = function (pos, range) {
  */
 RoomPosition.prototype.findClosestByRange = function (ft, opts) {
 	var room = Game.rooms[this.roomName];
-	if (room == undefined) {
+	if (room == null) {
 		throw new Error(`Could not access room ${this.roomName}`);
 	}
 	if (typeof ft === 'number')
@@ -80,19 +80,19 @@ RoomPosition.prototype.findClosestByRange = function (ft, opts) {
 };
 
 RoomPosition.prototype.addDirection = function (dir) {
-	let [dx, dy] = DIR_TABLE[dir];
-	let { x, y, roomName } = this;
+	var [dx, dy] = DIR_TABLE[dir];
+	var { x, y, roomName } = this;
 	return new RoomPosition(x + dx, y + dy, roomName);
 };
 
 // Game.getObjectById('581fb1807e33108a198eee33').pos.findFirstInRange(FIND_DROPPED_RESOURCES, 3)
 // because find in range finds all
 RoomPosition.prototype.firstInRange = function (a, range, opts) {
-	if (a == undefined || range == undefined)
+	if (a == null || range == null)
 		return ERR_INVALID_ARGS;
-	if (Game.rooms[this.roomName] == undefined)
+	if (Game.rooms[this.roomName] == null)
 		return ERR_NOT_FOUND;
-	let results = Game.rooms[this.roomName].find(a, opts);
+	const results = Game.rooms[this.roomName].find(a, opts);
 	return _.find(results, x => this.getRangeTo(x) <= range);
 };
 
@@ -101,11 +101,11 @@ RoomPosition.prototype.getRangeToPlain = function ({ x, y, roomName }) {
 };
 
 RoomPosition.prototype.findFirstInRange = function (a, range, filter = _.Identity) {
-	if (a == undefined || range == undefined)
+	if (a == null || range == null)
 		return ERR_INVALID_ARGS;
-	if (Game.rooms[this.roomName] == undefined)
+	if (Game.rooms[this.roomName] == null)
 		return ERR_NOT_FOUND;
-	let results = Game.rooms[this.roomName].find(a);
+	const results = Game.rooms[this.roomName].find(a);
 	return _.find(results, x => this.getRangeTo(x) <= range && filter(x));
 };
 
@@ -125,7 +125,7 @@ RoomPosition.prototype.isEnclosed = function () {
 		maxRooms: 1,
 		maxCost: CREEP_LIFE_TIME,
 		roomCallback: function (r) {
-			let cm = new PathFinder.CostMatrix;
+			const cm = new PathFinder.CostMatrix;
 			_(room.find(FIND_STRUCTURES))
 				// .filter(i => i.structureType === STRUCTURE_RAMPART || i.structureType === STRUCTURE_WALL)
 				.filter(i => i instanceof StructureRampart || i instanceof StructureWall)
@@ -223,28 +223,6 @@ RoomPosition.prototype.getOpenNeighborHorizontal = function () {
 };
 
 /**
- *
- * Game.rooms['E59S42'].find(FIND_MY_STRUCTURES, {filter: {structureType: 'link'}})
- * [structure (link) #57cb277f5b95d89569ff9d42],[structure (link) #57cb4a896f5d6b2c5e07e5a9],[structure (link) #57cfd9e3da8ddc9202d64fab],[structure (link) #57d902a32f23b797036e475c],[structure (link) #5892a1038b2df6b31f21d6d3],[structure (link) #5892a5db8fdb7107d350c881
- * [room E59S42 pos 17,3],[room E59S42 pos 22,31],[room E59S42 pos 7,43],[room E59S42 pos 38,35],[room E59S42 pos 16,15],[room E59S42 pos 31,12]
- */
-global.shortestPath = function (arr) {
-	var curr = arr.shift();
-	var order = [curr];
-	var loop = 0;
-	while (!_.isEmpty(arr)) {
-		if (++loop > 15)
-			break;
-		let next = curr.pos.findClosestByPath(arr);
-		arr.splice(arr.indexOf(next), 1);
-		order.push(next);
-		curr = next;
-	}
-	return order;
-};
-
-
-/**
  * High-cpu (but _accurate_) step count to destination.
  */
 RoomPosition.prototype.getStepsTo = function (dest, opts = {}) {
@@ -254,7 +232,7 @@ RoomPosition.prototype.getStepsTo = function (dest, opts = {}) {
 	});
 	if (!opts.roomCallback)
 		opts.roomCallback = r => new CostMatrix.LogisticsMatrix(r);
-	let search = PathFinder.search(this, dest, opts);
+	const search = PathFinder.search(this, dest, opts);
 	if (!search)
 		return ERR_NO_PATH;
 	return search.path.length;
@@ -271,18 +249,18 @@ RoomPosition.prototype.getStepsTo = function (dest, opts = {}) {
  * @todo: maxCost testing
  */
 RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = _.identity) {
-	let mapping = _.map(goals, itr);
+	const mapping = _.map(goals, itr);
 	if (_.isEmpty(mapping))
 		return { goal: null };
-	let result = PathFinder.search(this, mapping, {
+	const result = PathFinder.search(this, mapping, {
 		maxOps: 16000,
 		roomCallback: r => logisticsMatrix[r]
 	});
 	let last = _.last(result.path);
-	if (last == undefined)
+	if (last == null)
 		last = this;
 	// return {goal: null};
-	let goal = _.min(goals, g => last.getRangeTo(g.pos));
+	const goal = _.min(goals, g => last.getRangeTo(g.pos));
 	return {
 		goal: (Math.abs(goal) !== Infinity) ? goal : null,
 		cost: result.cost,
@@ -305,31 +283,21 @@ RoomPosition.prototype.getClosest = function (collection, filter = _.identity, r
 };
 
 RoomPosition.prototype.findClosestSpawn = function () {
-	let spawns = _.reject(Game.spawns, s => s.isDefunct());
+	const spawns = _.reject(Game.spawns, s => s.isDefunct());
 	return this.findClosestByPathFinder(spawns, (spawn) => ({ pos: spawn.pos, range: 1 })).goal;
 };
 
 RoomPosition.prototype.findClosestConstructionSite = function () {
 	return this.findClosestByPathFinder(Game.constructionSites,
-		(cs) => ({ pos: cs.pos, range: 3 })).goal;
+		(cs) => ({ pos: cs.pos, range: CREEP_BUILD_RANGE })).goal;
 };
 
 RoomPosition.prototype.findClosestStorage = function () {
-	let storages = _.filter(Game.structures, 'structureType', STRUCTURE_STORAGE);
+	const storages = _.filter(Game.structures, 'structureType', STRUCTURE_STORAGE);
 	return this.findClosestByPathFinder(storages, s => ({ pos: s.pos, range: 1 })).goal;
 };
 
 RoomPosition.prototype.findClosestCreep = function () {
 	return this.findClosestByPathFinder(Game.creeps,
 		(c) => ({ pos: c.pos, range: 1 })).goal;
-};
-
-/**
- * findClosestRoom, with optional filter.
- * ex: flag.pos.findClosestRoom(c => c.controller.my)
- */
-RoomPosition.prototype.findClosestRoom = function (filter = _.identity) {
-	return _(Game.rooms)
-		.filter(filter)
-		.min(r => Game.map.getRoomLinearDistance(this.roomName, r.name));
 };

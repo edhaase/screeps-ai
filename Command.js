@@ -25,7 +25,7 @@ class Command {
 				Log.warn(`Result: ${r}`, "Command");
 		}
 
-		if (Memory.command.length === 0)
+		if (!Memory.command.length)
 			Memory.command = undefined;
 	}
 

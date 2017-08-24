@@ -100,7 +100,7 @@ module.exports = function (creep) {
 		var homeSpawn = homeRoom.find(FIND_MY_SPAWNS);
 		if (!homeSpawn || homeSpawn.length <= 0) return;
 
-		if (creep.pos.roomName != creep.memory.home || creep.pos.isOnRoomBorder()) {
+		if (creep.pos.roomName !== creep.memory.home || creep.pos.isOnRoomBorder()) {
 			// creep.say("Ow.", true);
 			creep.moveTo(homeSpawn[0]);
 		}

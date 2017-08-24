@@ -12,7 +12,7 @@
 "use strict";
 
 /** Module profiler -  */
-global.loadModule = function loadModule(name) {
+function loadModule(name) {
 	var start = Game.cpu.getUsed();
 	try {
 		var mod = require(name);
@@ -25,17 +25,19 @@ global.loadModule = function loadModule(name) {
 		console.log(e.stack);
 		throw e;
 	}
-};
+}
 
 /**
  * Welcome to the ninth level of hell
  * 
  * Delay imports and requires if under low bucket.
  */
-console.log('New runtime: ' + Game.time);
+console.log(`New runtime: ${Game.time}`);
 module.exports.loop = function () {
-	if (Game.cpu.bucket < Game.cpu.tickLimit)
-		return console.log(`Runtime holding: ${Game.cpu.bucket}/${Game.cpu.tickLimit}`);
+	if (Game.cpu.bucket < Game.cpu.tickLimit) {
+		console.log(`Runtime holding: ${Game.cpu.bucket}/${Game.cpu.tickLimit}`);
+		return;
+	}
 
 	var start = Game.cpu.getUsed();
 
@@ -178,7 +180,7 @@ module.exports.loop = function () {
 		profiler.registerObject(Structure, 'Structure');
 
 		Log.info('Patching loop with profiler');
-		let loop = module.exports.loop;
+		const {loop} = module.exports;
 		module.exports.loop = () => profiler.wrap(loop);
 	}
 
@@ -191,6 +193,6 @@ module.exports.loop = function () {
 	};
 		
 	var used = Game.cpu.getUsed() - start;
-	console.log('Delayed global reset (used ' + used + ' cpu)');
+	console.log(`Delayed global reset (used ${used} cpu)`);
 };
 

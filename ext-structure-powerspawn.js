@@ -12,7 +12,7 @@
 StructurePowerSpawn.prototype.run = function () {
 	// if(BUCKET_LIMITER)
 	//	return;
-	if (Game.time % (CREEP_LIFE_TIME + 200) == 0 && !this.power)
+	if (Game.time % (CREEP_LIFE_TIME + 200) === 0 && !this.power)
 		this.runReload();
 	// Not needed, this meets the special case of `checkStructureAgainstController`.
 	// if(this.power === 0 || this.energy < POWER_SPAWN_ENERGY_RATIO)
@@ -23,15 +23,15 @@ StructurePowerSpawn.prototype.run = function () {
 
 // @todo: Size to power spawn available capacity.
 StructurePowerSpawn.prototype.runReload = function () {
-	let storedEnergy = _.get(this.room, 'storage.store.energy', 0);
-	let terminal = this.room.terminal;
+	const storedEnergy = _.get(this.room, 'storage.store.energy', 0);
+	const {terminal} = this.room;
 	// let storedPower =_.get(this.room, ['terminal.store', RESOURCE_POWER], 0);
-	let storedPower = _.get(this.room, ['terminal', 'store', RESOURCE_POWER], 0);
+	const storedPower = _.get(this.room, ['terminal', 'store', RESOURCE_POWER], 0);
 	if (storedEnergy > 10000 && storedPower > 0) {
-		let spawn = this.getClosestSpawn();
-		let amt = Math.min(storedPower, this.powerCapacity - this.power);
-		let carry = Math.ceil(amt / CARRY_CAPACITY);
-		let move = carry / 2;
+		const spawn = this.getClosestSpawn();
+		const amt = Math.min(storedPower, this.powerCapacity - this.power);
+		const carry = Math.ceil(amt / CARRY_CAPACITY);
+		const move = carry / 2;
 		spawn.enqueue(Util.RLD([
 			carry, CARRY,
 			move, MOVE
@@ -43,11 +43,11 @@ StructurePowerSpawn.prototype.runReload = function () {
 /**
  * Track amount of power processed per powerspawn.
  */
-let processPower = StructurePowerSpawn.prototype.processPower;
+const {processPower} = StructurePowerSpawn.prototype;
 StructurePowerSpawn.prototype.processPower = function () {
-	let status = processPower.apply(this, arguments);
+	const status = processPower.apply(this, arguments);
 	if (status === OK) {
-		if (!this.memory.power)
+		if (this.memory.power == null)
 			this.memory.power = 0;
 		this.memory.power += 1;
 	}

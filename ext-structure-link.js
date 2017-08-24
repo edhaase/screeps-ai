@@ -22,8 +22,10 @@ StructureLink.prototype.run = function () {
 		return;
 	if (this.memory.bits & BIT_LINK_RECEIVE_ONLY)
 		return;
-	if (this.room.links.length <= 1)
-		return this.defer(100);
+	if (this.room.links.length <= 1) {
+		this.defer(100);
+		return;
+	}
 	var avgInNetwork = this.room.avgInNetwork;
 	var diff = Math.floor(this.energy - avgInNetwork);
 	if (diff < LINK_AUTOBALANCE_THRESHOLD)
@@ -35,8 +37,8 @@ StructureLink.prototype.run = function () {
 	if (amt <= 0)
 		return;
 	if (this.transferEnergy(target, amt) === OK) {
-		let dist = this.pos.getRangeTo(target.pos);
-		let ept = _.round(amt / dist, 3);
+		var dist = this.pos.getRangeTo(target.pos);
+		var ept = _.round(amt / dist, 3);
 		Log.debug(`${this.pos} Moving ${amt} energy ${dist} units for ${ept} ept`, 'Link');
 	}
 };

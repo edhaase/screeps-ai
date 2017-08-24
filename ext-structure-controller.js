@@ -81,9 +81,9 @@ StructureController.prototype.run = function () {
 	// let newPos = new RoomPosition(x,y-1,roomName);
 	// this.room.visual.text(this.ticksToDowngrade, newPos, {color: 'yellow'});
 
-	if (this.level < 8) {
-		let avgTick = _.round(this.memory.rclAvgTick, 2);
-		let estimate = this.estimateInTicks();
+	if (this.level < MAX_ROOM_LEVEL) {
+		const avgTick = _.round(this.memory.rclAvgTick, 2);
+		const estimate = this.estimateInTicks();
 		this.say(`${avgTick} (${estimate})`);
 		/* let {x,y,roomName} = this.pos;
 		let newPos = new RoomPosition(x,y-0.75,roomName);
@@ -91,7 +91,7 @@ StructureController.prototype.run = function () {
 	}
 
 	// if((Game.time % 50) == 0 && !this.checkBit(BIT_CTRL_DISABLE_CENSUS))
-	if ((Game.time % (DEFAULT_SPAWN_JOB_EXPIRE + 1)) == 0 && !this.checkBit(BIT_CTRL_DISABLE_CENSUS)) {
+	if ((Game.time % (DEFAULT_SPAWN_JOB_EXPIRE + 1)) === 0 && !this.checkBit(BIT_CTRL_DISABLE_CENSUS)) {
 		// if(this.clock(DEFAULT_SPAWN_JOB_EXPIRE) === 0){ // Staggering jobs might be bad.		
 		this.runCensus();
 		this.updateNeighbors();
@@ -102,7 +102,7 @@ StructureController.prototype.run = function () {
 
 	// run % ?
 	if (this.ticksToDowngrade === CONTROLLER_EMERGENCY_THRESHOLD) {
-		Log.notify('Low ticks to downgrade on room controller in ' + this.room.name);
+		Log.notify(`Low ticks to downgrade on room controller in ${this.pos.roomName}`);
 		// Emergency safeties.
 	}
 
@@ -137,7 +137,7 @@ StructureController.prototype.isEmergencyModeActive = function () {
  */
 StructureController.prototype.updateNukeDetection = function () {
 	if (!_.isEmpty(this.room.find(FIND_NUKES))) {
-		Log.notify('[DEFCON] Nuclear launch detected! ' + this.pos.roomName);
+		Log.notify(`[DEFCON] Nuclear launch detected! ${this.pos.roomName}`);
 	}
 };
 
@@ -170,12 +170,12 @@ StructureController.prototype.updateNukeDetection = function () {
 // generalization: if(alive + pending < desired) enqueue(); 
 StructureController.prototype.runCensus = function () {
 	// Bring state into scope
-	let { room, pos, ticksToDowngrade, level, safeModeAvailable, upgradeBlocked } = this;
-	let { name, hostiles, energyPct, energyCapacityAvailable } = room;
-	let { roomName } = pos;
-	let spawns = this.room.find(FIND_MY_SPAWNS);
-	let terminalEnergy = _.get(this.room, 'terminal.store.energy', 0);
-	let storedEnergy = _.get(this.room, 'storage.store.energy', 0);
+	var { room, pos, ticksToDowngrade, level, safeModeAvailable, upgradeBlocked } = this;
+	var { name, hostiles, energyPct, energyCapacityAvailable } = room;
+	const { roomName } = pos;
+	const spawns = this.room.find(FIND_MY_SPAWNS);
+	const terminalEnergy = _.get(this.room, 'terminal.store.energy', 0);
+	const storedEnergy = _.get(this.room, 'storage.store.energy', 0);
 	var prio = 50;
 
 	// Log.debug(`${roomName} Starting census on tick ${Game.time}`, 'Controller');
@@ -185,7 +185,7 @@ StructureController.prototype.runCensus = function () {
 	if (!_.isEmpty(nukes)) {
 		var nuke = _.max(nukes, 'timeToLand');
 		var defer = Math.min(MAX_CREEP_SPAWN_TIME, nuke.timeToLand + 1);
-		Log.warn('Census holding for ' + defer + 'ticks, nuke inbound', 'Controller');
+		Log.warn(`Census holding for ${defer} ticks, nuke inbound`, 'Controller');
 		spawns.forEach(s => s.defer(defer));
 		return;
 	}
@@ -196,23 +196,23 @@ StructureController.prototype.runCensus = function () {
 		Log.warn(`Resource decay in room ${roomName}: ${resDecay}`, 'Controller');		
 	} */
 
-	let census = this.getCensus(); // creeps that exist, and creeps spawning
-	let creeps = this.getMyCreeps().value();
+	const census = this.getCensus(); // creeps that exist, and creeps spawning
+	const creeps = this.getMyCreeps().value();
 	// let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
 	// let spawn = this.getClosestSpawn();
 	var spawn = _.first(room.find(FIND_MY_SPAWNS));
-	let sites = room.find(FIND_MY_CONSTRUCTION_SITES);
+	const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
 
 	let pending = {};
 	if (!this.memory.retarget || Game.time > this.memory.retarget) {
-		Log.debug('Reset assisting spawn for ' + this.pos.roomName, 'Controller');
+		Log.debug(`Reset assisting spawn for ${this.pos.roomName}`, 'Controller');
 		this.clearTarget();
 		this.memory.retarget = Game.time + 10000;
 	}
 
 	// Find us an assiting spawner.
 	// If our room is functional and about RCL 5-6 we probably no longer need this.
-	let assistingSpawn = this.getAssistingSpawn();
+	const assistingSpawn = this.getAssistingSpawn();
 	// if(assistingSpawn)
 	//	Log.warn(`Room ${name} wants to use room ${assistingSpawn.pos.roomName}`, 'Controller');
 	// Basic premise of census:
@@ -232,8 +232,10 @@ StructureController.prototype.runCensus = function () {
 		Log.notify(`Emergency: No creeps in room ${name}!`, 'Controller');
 		if (!spawn)
 			spawn = this.getClosestSpawn();
-		if (spawn)
-			return require('Unit').requestPilot(spawn, roomName);
+		if (spawn) {
+			require('Unit').requestPilot(spawn, roomName);
+			return;
+		}
 	}
 
 	/**
@@ -245,11 +247,12 @@ StructureController.prototype.runCensus = function () {
 		if (!spawn)
 			spawn = this.getClosestSpawn(); // Still checks for defunct
 		if (!spawn)
-			spawn = _.values(Game.spawns)[0];
+			[spawn] = _.values(Game.spawns);
 	}
 
 	if (!spawn) {
-		return Log.warn('No spawn available for ' + roomName, 'Controller');
+		Log.warn(`No spawn available for ${this.pos.roomName}`, 'Controller');
+		return;
 	}
 
 	if (spawn && assistingSpawn)
@@ -276,12 +279,12 @@ StructureController.prototype.runCensus = function () {
 	var dual = false;
 	// @todo: If we start adding sources to this list, how is this supposed to work?
 	// @todo: Start requesting dedicated, assigned haulers?
-	if (numSources == 2 && level >= 6) {
+	if (numSources === 2 && level >= 6) {
 		var totalCapacity = _.sum(sources, 'energyCapacity');
 		// If we have miners currently skip..
 		if (!_.findWhere(Game.creeps, { memory: { site: roomName, role: 'dualminer' } })) {
 			if (!this.cache.steps) {
-				let [s1, s2] = sources;
+				const [s1, s2] = sources;
 				var s1pos = _.create(RoomPosition.prototype, s1.pos);
 				var s2pos = _.create(RoomPosition.prototype, s2.pos);
 				this.cache.steps = s1pos.getStepsTo(s2pos) * 2; // expecting two sources
@@ -305,7 +308,7 @@ StructureController.prototype.runCensus = function () {
 					prio = 50;
 				else if (storedEnergy <= 0)
 					prio = 100;
-				if (source.pos.roomName != roomName)
+				if (source.pos.roomName !== roomName)
 					prio = 1;
 				// Log.warn(`Requesting miner to ${pos} from ${spawn.pos.roomName} priority ${prio}`);
 				if (energyCapacityAvailable < 600)
@@ -320,20 +323,20 @@ StructureController.prototype.runCensus = function () {
 	// Also, clogs up spawn queue.
 	// @todo: can probably remove the room energyAvailable limit, but need drop miners available
 	if (!_.isEmpty(sites)) { // && (this.room.energyAvailable > 200 || storedEnergy > 110000)) {
-		let buildRemaining = _.sum(sites, s => s.progressTotal - s.progress);	// Total energy required to finish all builds
+		const buildRemaining = _.sum(sites, s => s.progressTotal - s.progress);	// Total energy required to finish all builds
 		let score = Math.ceil(buildRemaining / CREEP_LIFE_TIME / BUILD_POWER);
 		// console.log('build remaining in room: ' + score);
 		// score = Math.clamp(0, score, 3);
 		score = 1;
 		if (storedEnergy > 10000)
 			score = 2;
-		let builders = _.get(census, 'builder', 0);
+		const builders = _.get(census, 'builder', 0);
 		// let useSpawn = assistingSpawn || spawn;
 		let useSpawn = spawn;
 		if ((!spawn || storedEnergy > 10000) && assistingSpawn)
 			useSpawn = assistingSpawn;
 		if (!useSpawn)
-			Log.warn('No spawn available to request builders for ' + roomName);
+			Log.warn(`No spawn available to request builders for ${this.pos.roomName}`, "Controller");
 		if (builders < score && !useSpawn.hasJob({ memory: { role: 'builder', home: roomName } })) {
 			prio = Math.min(90, 100 - Math.ceil(100 * (builders / score))); // Can't exceed 90%?
 			var elimit = (storedEnergy > 10000) ? Infinity : (10 * numSources);
@@ -354,22 +357,25 @@ StructureController.prototype.runCensus = function () {
 	}
 
 	// let scavNeed = 4;
-	let maxScav = (level < 3) ? 6 : 4;
+	const maxScav = (level < 3) ? 6 : 4;
 	let scavNeed = Math.clamp(2, resDecay, maxScav);
-	let scavHave = curr('scav');
+	const scavHave = curr('scav');
 	// @todo: Every tick we can pretty easily get this value. Can we do anything useful with it?
 	if (energyPct < 0.25)
 		scavNeed += 1;
 	// if(level >= 2 && _.get(census, 'scav',0) + _.get(pending, 'scav',0) < scavNeed) {
 	// if(level >= 2 && curr('scav') < scavNeed && _.size(this.room.structures) > 1) {
-	let ownedStructures = this.room.find(FIND_MY_STRUCTURES);
+	// const ownedStructures = this.room.find(FIND_MY_STRUCTURES);
+	const ownedStructures = this.room.structuresMy;
 	// if(scavHave < scavNeed && _.size(this.room.structures) > 1) {
 	// console.log(`scav ${scavHave} / ${scavNeed}`);
 	if (_.size(ownedStructures) <= 1)
 		scavNeed = 1;
 	if (scavHave < scavNeed) {
-		if (scavHave === 0 && curr('pilot') <= 0)
-			return require('Unit').requestPilot(spawn, roomName);
+		if (scavHave === 0 && curr('pilot') <= 0) {
+			require('Unit').requestPilot(spawn, roomName);
+			return;
+		}
 		// prio = 100 - Math.ceil(100 * (scavHave / scavNeed));
 		prio = Math.clamp(25, 100 - Math.ceil(100 * (scavHave / scavNeed)), 100);
 		if (scavHave <= 0 && assistingSpawn)
@@ -389,10 +395,10 @@ StructureController.prototype.runCensus = function () {
 	// Defenders
 	// @todo If not enclosed, requesting ranged kiters.
 	// @todo Compare my damage output versus heal in the room.
-	let towers = _.size(this.room.find(FIND_MY_STRUCTURES, { filter: Filter.loadedTower }));
+	const towers = _.size(this.room.find(FIND_MY_STRUCTURES, { filter: Filter.loadedTower }));
 	if (!_.isEmpty(hostiles) && (towers <= 0 || hostiles.length > towers)) {
-		let have = _.get(census, 'defender', 0) + _.get(pending, 'defender', 0);
-		let desired = Math.clamp(1, hostiles.length - 1, 4);
+		const have = _.get(census, 'defender', 0) + _.get(pending, 'defender', 0);
+		const desired = Math.clamp(1, hostiles.length - 1, 4);
 		prio = Math.max(75, 100 - Math.ceil(100 * (have / desired)));
 		if (have < desired) {
 			// Log.warn(this.pos.roomName + ' wants ' + (desired-have) + ' defenders!', 'Controller');
@@ -414,14 +420,14 @@ StructureController.prototype.runCensus = function () {
 		// 2016-12-24: Changed to 0, fallback scav code will take over
 		// 2017-03-26: Changed back to 1 at RCL 8 for expansion purposes
 		let desired = 1;
-		if (this.level === 8)
-			desired = (this.ticksToDowngrade < 6000 || storedEnergy > 700000) ? 1 : 0;
+		if (this.level === MAX_ROOM_LEVEL)
+			desired = (ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || storedEnergy > 700000) ? 1 : 0;
 		else if (level <= 3)
 			desired = 3;
 		// if(storedEnergy < 10000 && (!ticksToDowngrade || ticksToDowngrade > CONTROLLER_EMERGENCY_THRESHOLD) )
 		//	desired = 0;
-		let have = _.get(census, 'upgrader', 0) + _.get(pending, 'upgrader', 0);
-		let haps = _.get(census, 'hapgrader', 0) + _.get(pending, 'hapgrader', 0);
+		const have = _.get(census, 'upgrader', 0) + _.get(pending, 'upgrader', 0);
+		const haps = _.get(census, 'hapgrader', 0) + _.get(pending, 'hapgrader', 0);
 		if ((have + haps) < desired) {
 			// console.log('Requesting upgrader at ' + this.room.name);
 			require('Unit').requestUpgrader(spawn, roomName, 25);
@@ -435,8 +441,8 @@ StructureController.prototype.runCensus = function () {
 	// Shut this off if we're dismantling the room.
 	// if(_.any(this.room.structures, s => s.hits < s.hitsMax)) {
 	if (_.any(this.room.structures, s => s.hits / s.hitsMax < 0.90)) {
-		let haveRepair = _.get(census, 'repair', 0) + _.get(pending, 'repair', 0);
-		let desiredRepair = (this.level >= 4 && (storedEnergy > 200000 || terminalEnergy > 60000)) ? 1 : 0;
+		const haveRepair = _.get(census, 'repair', 0) + _.get(pending, 'repair', 0);
+		const desiredRepair = (this.level >= 4 && (storedEnergy > 200000 || terminalEnergy > 60000)) ? 1 : 0;
 		if (haveRepair < desiredRepair) {
 			// console.log('Requesting repairer at ' + this.room.name);
 			// require('Unit').requestRepair(spawn, 900); // Make it a small one for now.
@@ -444,11 +450,11 @@ StructureController.prototype.runCensus = function () {
 			require('Unit').requestRepair(spawn, roomName);
 		} else if (haveRepair > desiredRepair) {
 			// How are we even getting here?
-			let target = _(creeps)
+			const target = _(creeps)
 				.filter('memory.role', 'repair')
 				.min('ticksToLive');
 			if (target && Math.abs(target) != Infinity) {
-				Log.info('Request recycle of repairer: ' + target + ' at ' + target.pos, 'Controller');
+				Log.info(`Request recycle of repairer: ${target} at ${target.pos}`, 'Controller');
 				target.setRole('recycle');
 			}
 		}
@@ -481,8 +487,8 @@ StructureController.prototype.getCensus = function () {
 StructureController.prototype.getMyCreeps = function () {
 	// return _(Game.creeps).filter(c => c.pos.roomName === this.pos.roomName || Memory.creeps[c.name].home == this.pos.roomName);
 	return _(Game.creeps)
-		.filter(c => c.pos.roomName === this.pos.roomName || Memory.creeps[c.name].home == this.pos.roomName)
-		.filter(c => c.ticksToLive == undefined || c.ticksToLive > c.body.length * CREEP_SPAWN_TIME);
+		.filter(c => c.pos.roomName === this.pos.roomName || Memory.creeps[c.name].home === this.pos.roomName)
+		.filter(c => c.ticksToLive == null || c.ticksToLive > c.body.length * CREEP_SPAWN_TIME);
 };
 
 StructureController.prototype.getSafeModeGoal = function () {
@@ -494,8 +500,8 @@ StructureController.prototype.getSafeModeGoal = function () {
  * At empire level we could periodically update closest dropoff points.
  */
 StructureController.prototype.getSources = function () {
-	if (!this.memory.sources || this.memory.sources.length == 0) {
-		Log.info('Initilizing list of sources for ' + this.pos.roomName, 'Controller');
+	if (!this.memory.sources || this.memory.sources.length === 0) {
+		Log.info(`Initilizing list of sources for ${this.pos.roomName}`, 'Controller');
 		this.memory.sources = this.room.find(FIND_SOURCES).map(s => _.pick(s, ['id', 'pos', 'energyCapacity']));
 	}
 	return this.memory.sources;
@@ -532,7 +538,7 @@ StructureController.prototype.getProjectedIncome = function () {
  */
 StructureController.prototype.updateNeighbors = function () {
 	var exits = Game.map.describeExits(this.pos.roomName);
-	var avail = _.mapValues(exits, e => Game.map.isRoomAvailable(e));
+	//var avail = _.mapValues(exits, e => Game.map.isRoomAvailable(e));
 	var mine = _.mapValues(exits, e => (Game.rooms[e] && Game.rooms[e].my) || false);
 	// Require vis
 	if (_.all(mine)) {
@@ -544,24 +550,26 @@ StructureController.prototype.updateNeighbors = function () {
 /**
  * Safe mode automation
  */
+const SAFE_MODE_LOW_COOLDOWN = 2000;
+const SAFE_MODE_LOW_TICKS = 4000;
 StructureController.prototype.updateSafeMode = function () {
-	if (this.safeModeCooldown === 2000)
-		Log.notify(this.pos.roomName + ': Safe mode cooldown almost complete');
+	if (this.safeModeCooldown === SAFE_MODE_LOW_COOLDOWN)
+		Log.notify(`${this.pos.roomName}: Safe mode cooldown almost complete`);
 	if (this.safeMode > this.memory.safeMode)
 		this.onSafeModeEnter();
-	else if (this.safeMode == undefined && this.memory.safeMode)
+	else if (this.safeMode == null && this.memory.safeMode)
 		this.onSafeModeExit();
-	if (this.safeMode === 4000)
-		Log.notify(this.room.name + ': Safe mode expiring soon!');
+	if (this.safeMode === SAFE_MODE_LOW_TICKS)
+		Log.notify(`${this.room.name}: Safe mode expiring soon!`);
 	this.memory.safeMode = this.safeMode || 0;
 };
 
 StructureController.prototype.onSafeModeEnter = function () {
-	Log.notify('Room ' + this.room.name + ' entering safe mode!');
+	Log.notify(`Room ${this.room.name} entering safe mode!`);
 };
 
 StructureController.prototype.onSafeModeExit = function () {
-	Log.notify('Room ' + this.room.name + ' leaving safe mode!');
+	Log.notify(`Room ${this.room.name} leaving safe mode!`);
 };
 
 /** 
@@ -599,14 +607,14 @@ StructureController.prototype.onDowngrade = function (level, prev) {
 StructureController.prototype.onUpgrade = function (level, prev) {
 	Log.info(`${this.room.name} has been upgraded to level ${this.level}`, 'Controller');
 	this.memory.maxlevel = this.level;
-	if (this.level === 8) {
+	if (this.level === MAX_ROOM_LEVEL) {
 		delete this.memory.rclLastTick;
 		delete this.memory.rclAvgTick;
 	}
 
 	if (this.level === 3) {
 		if (this.safeMode) {
-			Log.notify('RCL 3 reached in ' + this.pos.roomName + ' with ' + this.safeMode + ' ticks left on safe mode!');
+			Log.notify(`RCL 3 reached in ${this.pos.roomName} with ${this.safeMode} ticks left on safe mode!`);
 		}
 		this.memory['RCL3ReachedIn'] = Game.time - this.memory.claimedAt;
 	}
@@ -616,9 +624,9 @@ StructureController.prototype.onUpgrade = function (level, prev) {
  * Progress tracking
  */
 StructureController.prototype.updateRclAvg = function () {
-	if (this.level === 8)
+	if (this.level === MAX_ROOM_LEVEL)
 		return;
-	if (this.memory.rclLastTick || this.memory.rclLastTick == 0) {
+	if (this.memory.rclLastTick || this.memory.rclLastTick === 0) {
 		var diff = this.progress - this.memory.rclLastTick;
 		// this.memory.rclAvgTick = Math.cmAvg(diff, this.memory.rclAvgTick, 1000);
 		this.memory.rclAvgTick = Math.mmAvg(diff, this.memory.rclAvgTick, 1000);
@@ -640,10 +648,10 @@ StructureController.prototype.canUnclaim = function () {
 	return !PREVENT_UNCLAIM.includes(this.pos.roomName);
 };
 
-let unclaim = StructureController.prototype.unclaim;
+const {unclaim} = StructureController.prototype;
 StructureController.prototype.unclaim = function () {
 	if (this.canUnclaim())
 		unclaim.call(this);
 	else
-		Log.warn('Unable to unclaim controller. Protected.', 'Controller');
+		Log.notify(`Unable to unclaim ${this.pos.roomName}`);
 };

@@ -20,7 +20,7 @@ defineCachedGetter(Structure.prototype, 'storedTotal', s => _.sum(s.store));
  * All owned structures can be 'run'.
  */
 OwnedStructure.prototype.logic = function () {
-	var name = 's-' + this.structureType;
+	var name = `s-${this.structureType}`;
 	Volatile[name] = _.round((Volatile[name] || 0) + Time.measure(() => this.run()), 3);
 };
 
@@ -32,12 +32,10 @@ OwnedStructure.prototype.run = function () {
  * Monkey patch isActive to cache.
  * @todo: Invalidate periodically?
  */
-let isActive = Structure.prototype.isActive;
+const { isActive } = Structure.prototype;
 Structure.prototype.isActive = function () {
-	if (this.cache.active === undefined) {
+	if (this.cache.active === undefined)
 		this.cache.active = isActive.apply(this, arguments);
-		// Log.warn('isActive check: ' + this.structureType + ' at ' + this.pos);
-	}
 	return this.cache.active;
 };
 
@@ -55,7 +53,7 @@ OwnedStructure.prototype.defer = function (ticks) {
 	if (!_.isNumber(ticks))
 		throw new Error('OwnedStructure.defer expects numbers');
 	if (ticks >= Game.time)
-		Log.notify('[WARNING] Structure ' + this.id + ' at ' + this.pos + ' deferring for unusually high ticks!');
+		Log.notify(`[WARNING] Structure ${this.id} at ${this.pos} deferring for unusually high ticks!`);
 	if (Memory.structures[this.id] === undefined)
 		Memory.structures[this.id] = {};
 	if (!this.isDeferred())
@@ -70,7 +68,7 @@ OwnedStructure.prototype.clearDefer = function () {
 
 OwnedStructure.prototype.isDeferred = function () {
 	if (this.my === true) {
-		let memory = Memory.structures[this.id];
+		const memory = Memory.structures[this.id];
 		if (memory !== undefined && memory.defer !== undefined && Game.time < memory.defer)
 			return true;
 		else if (memory !== undefined && memory.defer) {
@@ -104,7 +102,7 @@ Object.defineProperty(OwnedStructure.prototype, "memory", {
 		return Memory.structures[this.id];
 	},
 	set: function (v) {
-		return _.set(Memory, 'structures.' + this.id, v);
+		return _.set(Memory, `structures.${this.id}`, v);
 	},
 	configurable: true,
 	enumerable: false

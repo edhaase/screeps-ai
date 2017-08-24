@@ -95,7 +95,7 @@ module.exports = {
 	sort: body => _.sortBy(body, p => _.indexOf([TOUGH, MOVE, WORK, CARRY, ATTACK, RANGED_ATTACK, HEAL, CLAIM], p)),
 
 	shuffle: function (body) {
-		if (body == undefined)
+		if (body == null)
 			return undefined;
 		return _(body)
 			.sortBy(function (part) {
@@ -170,13 +170,13 @@ module.exports = {
 	 */
 	requestBuilder: function (spawn, { elimit = 20, home, body, num = 1, priority = 0, expire = DEFAULT_SPAWN_JOB_EXPIRE } = {}) {
 		// let avail = Math.clamp(300, spawn.room.energyCapacityAvailable, 2000);
-		let partLimit = Math.floor(elimit / BUILD_POWER);
-		let avail = Math.max(SPAWN_ENERGY_START, spawn.room.energyCapacityAvailable);
-		let pattern = [MOVE, MOVE, MOVE, WORK, WORK, CARRY];
-		let cost = UNIT_COST(pattern);
-		let al = Math.min(Math.floor(cost * (partLimit / 2)), avail);
+		const partLimit = Math.floor(elimit / BUILD_POWER);
+		const avail = Math.max(SPAWN_ENERGY_START, spawn.room.energyCapacityAvailable);
+		const pattern = [MOVE, MOVE, MOVE, WORK, WORK, CARRY];
+		const cost = UNIT_COST(pattern);
+		const al = Math.min(Math.floor(cost * (partLimit / 2)), avail);
 		// console.log(`Pattern cost: ${cost}, avail: ${avail}, limit: ${al}`);
-		if (body == undefined)
+		if (body == null)
 			body = this.repeat(pattern, al); // 400 energy gets me 2 work parts.
 		if (_.isEmpty(body)) {
 			body = [WORK, CARRY, MOVE, MOVE];
@@ -185,16 +185,16 @@ module.exports = {
 	},
 
 	requestBulldozer: function (spawn, roomName) {
-		let body = [WORK, WORK, MOVE, MOVE];
+		const body = [WORK, WORK, MOVE, MOVE];
 		return spawn.enqueue(body, null, { role: 'bulldozer', site: roomName }, 10);
 	},
 
 	requestDualMiner: function (spawn, workRoom, totalCapacity, steps, expire = 50) {
-		let size = Math.ceil(totalCapacity / HARVEST_POWER / (ENERGY_REGEN_TIME - steps)) + 1; // +2 margin of error
-		Log.info('[Controller] Dual mining op has ' + totalCapacity + ' total capacity');
-		Log.info('[Controller] Dual mining op wants ' + size + ' harvest parts');
+		const size = Math.ceil(totalCapacity / HARVEST_POWER / (ENERGY_REGEN_TIME - steps)) + 1; // +2 margin of error
+		Log.info(`Dual mining op has ${totalCapacity} total capacity`, 'Controller');
+		Log.info(`Dual mining op wants ${size} harvest parts`, 'Controller');
 
-		let body = Util.RLD([
+		const body = Util.RLD([
 			size, WORK,
 			1, CARRY,
 			Math.ceil((1 + size) / 2), MOVE
@@ -203,7 +203,7 @@ module.exports = {
 			Log.warn('[Controller] Body of creep would be too big to build');
 			return false;
 		}
-		let cost = UNIT_COST(body);
+		const cost = UNIT_COST(body);
 		if (spawn.room.energyCapacityAvailable < cost) {
 			Log.warn('[Controller] Body of creep is too expensive for the closest spawn');
 			return false;
@@ -216,7 +216,7 @@ module.exports = {
 	 * Biggest we can!
 	 */
 	requestRepair: function (spawn, home, maxAvail = Infinity, prio = 10) {
-		let avail = Math.clamp(400, spawn.room.energyCapacityAvailable, maxAvail);
+		const avail = Math.clamp(400, spawn.room.energyCapacityAvailable, maxAvail);
 		// var body = this.repeat([WORK,CARRY,MOVE,MOVE], avail);
 		// var body = this.repeat([WORK,WORK,CARRY,MOVE,MOVE,MOVE], avail);
 		var body = this.repeat([MOVE, MOVE, MOVE, WORK, WORK, CARRY], avail);
@@ -236,7 +236,7 @@ module.exports = {
 			type: 'ext-filler',
 			eca: spawn.room.energyCapacityAvailable
 		};
-		if (canRenew == false)
+		if (canRenew === false)
 			memory.bits = BIT_CREEP_DISABLE_RENEW;
 
 		memory.home = home || spawn.pos.roomName;
@@ -385,7 +385,7 @@ module.exports = {
 	requestFaceTank: function (spawn, flag) {
 		// let avail = spawn.room.energyCapacityAvailable;
 		// let body = this.repeat([MOVE,ATTACK], avail).sort().reverse();
-		let body = Arr.cycle([MOVE, ATTACK], MAX_CREEP_SIZE);
+		const body = Arr.cycle([MOVE, ATTACK], MAX_CREEP_SIZE);
 		console.log('body: ' + body.length);
 		if (!flag || !(Game.flags[flag] instanceof Flag))
 			return "Must specify flag";

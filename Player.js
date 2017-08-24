@@ -13,7 +13,7 @@ module.exports = {
 		if (!Memory.players)
 			Memory.players = {};
 		Memory.players[name] = state;
-		Game.notify("Player " + name + " status set to " + state);
+		Log.notify(`Player ${name} status set to ${state}`);
 	},
 
 	status: function (name) {

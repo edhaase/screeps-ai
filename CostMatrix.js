@@ -14,7 +14,7 @@ global.CM_COLORS = Util.getColorRange(256);
 class CostMatrix extends PathFinder.CostMatrix {
 	constructor(room) {
 		super();
-		if (room != undefined) {
+		if (room != null) {
 			if (typeof room == 'string')
 				this.room = Game.rooms[room];
 			else
@@ -45,7 +45,7 @@ class CostMatrix extends PathFinder.CostMatrix {
 
 	/** @return CostMatrix - new cost matrix of sum */
 	static sum(a, b) {
-		let c = new CostMatrix();
+		const c = new CostMatrix();
 		for (var x = 0; x <= 49; x++)
 			for (var y = 0; y <= 49; y++)
 				c.set(x, y, Math.clamp(0, a.get(x, y) + b.get(x, y), 255));
@@ -54,7 +54,7 @@ class CostMatrix extends PathFinder.CostMatrix {
 
 	/** @return CostMatrix - new cost matrix of diff */
 	static diff(a, b) {
-		let c = new CostMatrix();
+		const c = new CostMatrix();
 		for (var x = 0; x <= 49; x++)
 			for (var y = 0; y <= 49; y++)
 				c.set(x, y, Math.clamp(0, Math.abs(b.get(x, y) - a.get(x, y)), 255));
@@ -101,7 +101,7 @@ class CostMatrix extends PathFinder.CostMatrix {
 
 	toConsole(pad = 2) {
 		for (var y = 0; y <= 49; y++) {
-			let ln = [];
+			const ln = [];
 			for (var x = 0; x <= 49; x++) {
 				// let v = _.padLeft(this.get(x,y).toString(16),2,'0').toUpperCase();
 				let n = this.get(x, y);
@@ -110,8 +110,8 @@ class CostMatrix extends PathFinder.CostMatrix {
 				let v = _.padLeft(n, pad, '0');
 
 				// if(v == '00') v = '##';
-				if (v == _.padLeft(0, pad, '0'))
-					v = '<font color="gray">' + v + '</font>';
+				if (v === _.padLeft(0, pad, '0'))
+					v = `<font color="gray">${v}</font>`;
 				ln.push(v);
 			}
 			console.log(ln.join(""));
@@ -160,7 +160,7 @@ class CostMatrix extends PathFinder.CostMatrix {
 
 	/** */
 	clone() {
-		let newMatrix = new CostMatrix;
+		const newMatrix = new CostMatrix;
 		newMatrix._bits = new Uint8Array(this._bits);
 		return newMatrix;
 	}
@@ -228,7 +228,7 @@ class FixedObstacleMatrix extends CostMatrix {
 			throw new TypeError("FixedObstacleMatrix expects roomName string");
 		super(roomName);
 
-		let room = Game.rooms[roomName];
+		const room = Game.rooms[roomName];
 		if (!room)
 			return;
 		// don't forget enemy non-public ramparts!
@@ -242,7 +242,7 @@ class FixedObstacleMatrix extends CostMatrix {
 		// Disable while SK mining, until we find a better way.
 		room
 			.find(FIND_STRUCTURES, { filter: s => s.structureType === STRUCTURE_KEEPER_LAIR })
-			.forEach(s => this.applyInRadius((x, y, r) => this.set(x, y, 20), s.pos.x, s.pos.y, 6));
+			.forEach(s => this.applyInRadius((x, y) => this.set(x, y, 20), s.pos.x, s.pos.y, 6));
 
 	}
 }
@@ -258,7 +258,7 @@ class RoadMatrix extends CostMatrix {
 	 */
 	constructor(roomName) {
 		super();
-		let room = Game.rooms[roomName];
+		const room = Game.rooms[roomName];
 		if (room)
 			room
 				.find(FIND_STRUCTURES, { filter: s => s.structureType === STRUCTURE_ROAD })
@@ -273,7 +273,7 @@ class RoadMatrix extends CostMatrix {
 class LogisticsMatrix extends FixedObstacleMatrix {
 	constructor(roomName) {
 		super(roomName);
-		let room = Game.rooms[roomName];
+		const room = Game.rooms[roomName];
 		if (!room)
 			return;
 
@@ -305,7 +305,7 @@ class ObstacleMatrix extends FixedObstacleMatrix {
 	constructor(roomName) {
 		super(roomName);
 
-		let room = Game.rooms[roomName];
+		const room = Game.rooms[roomName];
 		if (room && (room instanceof Room)) {
 			// room.find(FIND_HOSTILE_CREEPS).forEach(c => this.set(c.pos.x, c.pos.y, 0xfe));		
 			room.find(FIND_CREEPS).forEach(c => this.set(c.pos.x, c.pos.y, 0xff));
@@ -324,7 +324,6 @@ class ObstacleMatrix extends FixedObstacleMatrix {
  */
 class TowerThreatMatrix extends CostMatrix {
 	constructor(room) {
-		console.log("r: " + room);
 		/* if(_.isString(room))
 			if(Game.rooms[room])
 				room = Game.rooms[room];
@@ -392,7 +391,7 @@ class LazyPropertyFactory {
 
 class LazyMatrixStore {
 	get(target, key, proxy) {
-		if (target[key] == undefined) {
+		if (target[key] == null) {
 			// console.log('New logistics matrix needed for ' + key);
 			// let start = Game.cpu.getUsed();
 			if (Game.rooms[key]) {

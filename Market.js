@@ -16,7 +16,7 @@ module.exports = {
 	 */
 	updateOutgoingMarket: function(freq = 5) {
 		var outgoing = Game.market.outgoingTransactions;
-		var transaction, i, j, len, total, distance;
+		var transaction, j, len, total, distance;
 		for (j = 0, len = outgoing.length; j < len; j++) {
 			transaction = outgoing[j];
 			if (Game.time - transaction.time > freq)
@@ -42,7 +42,7 @@ module.exports = {
 	 */
 	updateIncomingMarket: function(freq = 5) {
 		var incoming = Game.market.incomingTransactions;
-		var transaction, i, j, len, total, distance, desc;
+		var transaction, i, len, total, distance, desc;
 		for (i = 0, len = incoming.length; i < len; i++) {
 			transaction = incoming[i];
 			if (Game.time - transaction.time > freq)

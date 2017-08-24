@@ -40,7 +40,7 @@ module.exports = {
 	 * Request miner
 	 */
 	requestRemoteMiner: function (spawn, pos, expire = DEFAULT_SPAWN_JOB_EXPIRE) {
-		let body = _.find(REMOTE_MINING_BODIES, b => UNIT_COST(b) <= spawn.room.energyCapacityAvailable);
+		const body = _.find(REMOTE_MINING_BODIES, b => UNIT_COST(b) <= spawn.room.energyCapacityAvailable);
 		spawn.enqueue(body, null, { role: 'miner', dest: pos, travelTime: 0 }, 10, 0, 1, expire);
 	},
 
@@ -48,7 +48,7 @@ module.exports = {
 	 * Request miner
 	 */
 	requestMiner: function (spawn, dest, prio = 8) {
-		let body = _.find(MINING_BODIES, b => UNIT_COST(b) <= spawn.room.energyCapacityAvailable);
+		const body = _.find(MINING_BODIES, b => UNIT_COST(b) <= spawn.room.energyCapacityAvailable);
 		spawn.enqueue(body, null, { role: 'miner', dest: dest, home: dest.roomName, travelTime: 0 }, prio, 0, 1, DEFAULT_SPAWN_JOB_EXPIRE);
 	},
 

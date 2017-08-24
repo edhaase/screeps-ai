@@ -68,7 +68,7 @@ class Log {
 	static getLogLevel(tag) {
 		if (!Memory.logging)
 			Memory.logging = {};
-		if (Memory.logging[tag] == undefined)
+		if (Memory.logging[tag] == null)
 			return Log.LEVEL_WARN;
 		return Memory.logging[tag];
 	}
