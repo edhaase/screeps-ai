@@ -23,7 +23,7 @@ module.exports = {
 				break;
 			if (transaction.to && _.get(Game.rooms, transaction.to + '.controller.my', false) === true)
 				continue;
-			let { from, to, resourceType, amount, order, recipient } = transaction;
+			var { from, to, resourceType, amount, order, recipient } = transaction;
 			distance = Game.map.getRoomLinearDistance(from, to, true);
 			if (order && order.price) {
 				total = amount * order.price;
@@ -47,7 +47,7 @@ module.exports = {
 			transaction = incoming[i];
 			if (Game.time - transaction.time > freq)
 				break;
-			let { from, to, resourceType, amount, order, sender } = transaction;
+			var { from, to, resourceType, amount, order, sender } = transaction;
 			if (transaction.from && _.get(Game.rooms, transaction.from + '.controller.my', false) === true)
 				continue;
 			distance = Game.map.getRoomLinearDistance(transaction.from, transaction.to, true);
