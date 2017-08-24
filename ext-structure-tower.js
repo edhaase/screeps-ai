@@ -243,7 +243,7 @@ StructureTower.prototype.getDamageCalc = function (target) {
 };
 
 StructureTower.getDamageValue = function (range) {
-	let effect = TOWER_POWER_ATTACK;
+	var effect = TOWER_POWER_ATTACK;
 	if (range > TOWER_OPTIMAL_RANGE) {
 		if (range > TOWER_FALLOFF_RANGE) {
 			range = TOWER_FALLOFF_RANGE;
@@ -254,7 +254,7 @@ StructureTower.getDamageValue = function (range) {
 };
 
 StructureTower.getRepairValue = function (range) {
-	let effect = TOWER_POWER_REPAIR;
+	var effect = TOWER_POWER_REPAIR;
 	if (range > TOWER_OPTIMAL_RANGE) {
 		if (range > TOWER_FALLOFF_RANGE) {
 			range = TOWER_FALLOFF_RANGE;
@@ -264,8 +264,9 @@ StructureTower.getRepairValue = function (range) {
 	return Math.floor(effect);
 };
 
+// Unsuported let compound assignment
 StructureTower.getHealValue = function (range) {
-	let effect = TOWER_POWER_HEAL;
+	var effect = TOWER_POWER_HEAL;
 	if (range > TOWER_OPTIMAL_RANGE) {
 		if (range > TOWER_FALLOFF_RANGE) {
 			range = TOWER_FALLOFF_RANGE;
