@@ -46,8 +46,8 @@ module.exports = {
 		return Math.ceil(sec / this.getAvgTickLength());
 	},
 
-	ticksToSeconds: function (ticks) {
-		return ticks * this.getAvgTickLength();
+	ticksToSeconds: function (ticks,tickLength=this.getAvgTickLength()) {
+		return ticks *tickLength;
 	},
 
 	estimate: function (ticks) {
