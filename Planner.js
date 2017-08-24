@@ -403,7 +403,7 @@ class BuildPlanner {
 
 		if (_.isEmpty(stuffToAdd)) {
 			Log.debug('Nothing to plan!', 'Planner');
-			return;
+			return [];
 		}
 		// ES6 PathFinder extension class?
 
@@ -455,6 +455,7 @@ class BuildPlanner {
 		// console.log(ex(newStuff));
 		// ..set cursor?
 		// visualize?
+		return newStuff;
 	}
 
 	static mergeCurrentPlan(room, goals, cm, opts) {
