@@ -53,7 +53,6 @@ module.exports.loop = function () {
 	global.Mining = loadModule('Mining');
 	global.Filter = loadModule('Filter');
 	global.Route = loadModule('Route');
-	global.WorldMap = loadModule('WorldMap');
 	global.FSM = loadModule('FSM');
 	global.Command = loadModule('Command');
 	global.Segment = require('Segment');
