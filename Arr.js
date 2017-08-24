@@ -21,6 +21,6 @@ module.exports = {
 	repeat: function (arr, max) {
 		var n = Math.min(MAX_CREEP_SIZE / arr.length, max / UNIT_COST(arr));
 		n = Math.floor(n);
-		return (n <= 0) ? [] : this.cycle(arr, arr.length * n);
+		return this.cycle(arr, arr.length * n);
 	}
 };
