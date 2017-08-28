@@ -5,8 +5,7 @@
  */
 "use strict";
 
-global.CM_COLORS = Util.getColorRange(256);
-// defineCachedGetter(global, 'CM_COLORS', () => Util.getColorRange(256));
+// global.CM_COLORS = Util.getColorRange(256);
 
 /**
  *
@@ -121,7 +120,7 @@ class CostMatrix extends PathFinder.CostMatrix {
 	/**
 	 *
 	 */
-	draw(roomName, color = (v) => CM_COLORS[v]) {
+	/* draw(roomName, color = (v) => CM_COLORS[v]) {
 		if (!roomName && this.room)
 			roomName = this.room.name;
 		var visual = new RoomVisual(roomName);
@@ -139,7 +138,7 @@ class CostMatrix extends PathFinder.CostMatrix {
 					// visual.circle(pos, {fill: CM_COLORS[this.get(x,y)]});
 				}
 			}
-	}
+	} */
 
 
 	pack() {
