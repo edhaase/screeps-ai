@@ -45,8 +45,9 @@ class CostMatrix extends PathFinder.CostMatrix {
 	/** @return CostMatrix - new cost matrix of sum */
 	static sum(a, b) {
 		const c = new CostMatrix();
-		for (var x = 0; x <= 49; x++)
-			for (var y = 0; y <= 49; y++)
+		var x,y;
+		for (x = 0; x <= 49; x++)
+			for (y = 0; y <= 49; y++)
 				c.set(x, y, Math.clamp(0, a.get(x, y) + b.get(x, y), 255));
 		return c;
 	}
@@ -54,8 +55,9 @@ class CostMatrix extends PathFinder.CostMatrix {
 	/** @return CostMatrix - new cost matrix of diff */
 	static diff(a, b) {
 		const c = new CostMatrix();
-		for (var x = 0; x <= 49; x++)
-			for (var y = 0; y <= 49; y++)
+		var x,y;
+		for (x = 0; x <= 49; x++)
+			for (y = 0; y <= 49; y++)
 				c.set(x, y, Math.clamp(0, Math.abs(b.get(x, y) - a.get(x, y)), 255));
 		return c;
 	}
@@ -67,16 +69,17 @@ class CostMatrix extends PathFinder.CostMatrix {
 
 	/** @return CostMatrix - self */
 	apply(fn) {
-		for (var x = 0; x <= 49; x++)
-			for (var y = 0; y <= 49; y++)
+		var x,y;
+		for (x = 0; x <= 49; x++)
+			for (y = 0; y <= 49; y++)
 				fn.call(this, x, y);
-		// fn.call(this,new RoomPosition(x,y,roomName));
 		return this;
 	}
 
 	applyInRadius(fn, ax, ay, radius) {
-		for (var dx = -radius; dx <= radius; dx++)
-			for (var dy = -radius; dy <= radius; dy++)
+		var dx,dy;
+		for (dx = -radius; dx <= radius; dx++)
+			for (dy = -radius; dy <= radius; dy++)
 				fn.call(this, ax + dx, ay + dy);
 		return this;
 	}
@@ -139,15 +142,6 @@ class CostMatrix extends PathFinder.CostMatrix {
 				}
 			}
 	} */
-
-
-	pack() {
-		return require('lzw').pack(this.serialize());
-	}
-
-	static unpack(arr) {
-		return this.deserialize(require('lzw').unpack(arr));
-	}
 
 	/** [object CostMatrix] */
 	get [Symbol.toStringTag]() {
@@ -357,18 +351,6 @@ class ArenaMatrix extends CostMatrix {
 		super();
 		this.apply((x, y) => this.set(x, y, (x <= 1 || x >= 48 || y <= 1 || y >= 48) ? 255 : 0));
 	}
-}
-
-/**
- * Composite matrix combines multiple matricies
- */
-class CompositeMatrix extends CostMatrix {
-	constructor(matrices) {
-		super();
-
-	}
-
-
 }
 
 /** Lazy factory */
