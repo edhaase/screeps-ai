@@ -1,5 +1,5 @@
 /**
- * screeps astar
+ * screeps Astar
  *
  * @author Robert Hafner (@tedivm)
  *
@@ -45,13 +45,13 @@ class Grid {
 /**
  * Astar
  */
-var astar = function () {
+var Astar = function () {
 
 };
 
-astar.display = true;
+Astar.display = true;
 
-astar.colors = {
+Astar.colors = {
 	'optimal': 'green',
 	'tested': 'yellow'
 };
@@ -81,7 +81,7 @@ astar.colors = {
           }
         })
 		*/
-astar.defaults = {
+Astar.defaults = {
 	'diagonal': true,
 	'heuristic': 'manhattan',
 	'closest': true,
@@ -122,13 +122,13 @@ astar.defaults = {
  * @param {bool} [options.closest] Specifies whether to return the
            path to the closest node if the target is unreachable.
  * @param {Function} [options.heuristic] Heuristic function (see
- *          astar.heuristics).
+ *          Astar.heuristics).
  */
-// new astar().search(Game.rooms['W8N4'], new RoomPosition(11,12,'W8N4'), new RoomPosition(41,28,'W8N4') )
-// Time.measure( () => (new astar().search(Game.rooms['W8N4'], new RoomPosition(28,33,'W8N4'), new RoomPosition(31,29,'W8N4') )) )
-// Time.measure( () => (new astar().search(new RoomPosition(11,5,'W8N4'), new RoomPosition(28,26,'W8N4') )) )
-astar.prototype.search = function (start, end, user_options = {}) {
-	var options = _.defaultsDeep(user_options, astar.defaults);
+// new Astar().search(Game.rooms['W8N4'], new RoomPosition(11,12,'W8N4'), new RoomPosition(41,28,'W8N4') )
+// Time.measure( () => (new Astar().search(Game.rooms['W8N4'], new RoomPosition(28,33,'W8N4'), new RoomPosition(31,29,'W8N4') )) )
+// Time.measure( () => (new Astar().search(new RoomPosition(11,5,'W8N4'), new RoomPosition(28,26,'W8N4') )) )
+Astar.prototype.search = function (start, end, user_options = {}) {
+	var options = _.defaultsDeep(user_options, Astar.defaults);
 	if (start.roomName !== end.roomName)
 		throw new Error('Start and end positions must be in same room');
 	var weight, heuristic, room = Game.rooms[start.roomName];
@@ -200,7 +200,6 @@ astar.prototype.search = function (start, end, user_options = {}) {
 					ops,
 					incomplete: false
 				};
-				return closest ? this.pathTo(room, closestNode) : [];
 			}
 			ops++;
 
@@ -214,7 +213,7 @@ astar.prototype.search = function (start, end, user_options = {}) {
 			var gScore = currentNode.g + neighbor.weight;
 
 			// Penalize changing direction to encourage straight lines
-			if (scoring.directionchange > 0 && neighbor.getDirectionFrom(currentNode) != direction) {
+			if (scoring.directionchange > 0 && neighbor.getDirectionFrom(currentNode) !== direction) {
 				gScore += scoring.directionchange;
 			}
 
@@ -264,13 +263,13 @@ astar.prototype.search = function (start, end, user_options = {}) {
 
 	// No result was found - return closest (if allowed) or empty array
 	return closest ? this.pathTo(room, closestNode) : [];
-},
+};
 
 /**
  * Heuristic options
  * See list of heuristics: http://theory.stanford.edu/~amitp/GameProgramming/Heuristics.html
  */
-astar.prototype.heuristics = {
+Astar.prototype.heuristics = {
 	manhattan: function (pos0, pos1) {
 		var d1 = Math.abs(pos1.x - pos0.x);
 		var d2 = Math.abs(pos1.y - pos0.y);
@@ -290,20 +289,15 @@ astar.prototype.heuristics = {
 		var d2 = Math.abs(pos1.y - pos0.y);
 		return Math.max(d1, d2);
 	}
-},
+};
 
 /**
  * Astar scoring function
  */
-astar.prototype.scoring = function (room, x, y, scoring) {
-
-	if (!scoring) {
-		scoring = {};
-	}
-
+Astar.prototype.scoring = function (room, x, y, scoring={}) {
 	var pos = room.getPositionAt(x, y);
 
-	if (typeof scoring.filter == 'function') {
+	if (typeof scoring.filter === 'function') {
 		if (!scoring.filter(pos)) {
 			return 0;
 		}
@@ -328,9 +322,9 @@ astar.prototype.scoring = function (room, x, y, scoring) {
 		if (structures.length > 0) {
 			for (var structure of structures) {
 
-				var structureType = structure.structureType;
+				var {structureType} = structure;
 
-				if (typeof scoring.structures[structureType] == 'undefined') {
+				if (scoring.structures[structureType] == null) {
 					structure = 'default';
 				}
 
@@ -339,7 +333,7 @@ astar.prototype.scoring = function (room, x, y, scoring) {
 				}
 
 				if (!structure.my) {
-					var hostileStructureType = 'hostile_' + structureType;
+					var hostileStructureType = `hostile_${structureType}`;
 					if (scoring.structures[hostileStructureType] !== false) {
 						score = scoring.structures[hostileStructureType];
 					}
@@ -369,7 +363,7 @@ astar.prototype.scoring = function (room, x, y, scoring) {
 /**
  * 
  */
-astar.prototype.pathTo = function (room, node) {
+Astar.prototype.pathTo = function (room, node) {
 	var path = [];
 	var curr = node;
 
@@ -379,9 +373,9 @@ astar.prototype.pathTo = function (room, node) {
 			'y': curr.y
 		};
 
-		if (astar.display && astar.colors.optimal) {
-			room.visual.circle(curr.x, curr.y, { fill: astar.colors.optimal, opacity: 1.0 });
-			// room.createFlagMemoryEfficient(room.getPositionAt(curr.x, curr.y), astar.colors.optimal)
+		if (Astar.display && Astar.colors.optimal) {
+			room.visual.circle(curr.x, curr.y, { fill: Astar.colors.optimal, opacity: 1.0 });
+			// room.createFlagMemoryEfficient(room.getPositionAt(curr.x, curr.y), Astar.colors.optimal)
 		}
 
 		if (curr.parent) {
@@ -432,11 +426,11 @@ Graph.prototype.getNode = function (x, y) {
 		}
 
 		this.grid[x][y] = new GridNode(this.room, x, y, weight);
-		if (astar.display && astar.colors.tested) {
-			// this.room.visual.circle(x,y,{fill: astar.colors.tested});
+		if (Astar.display && Astar.colors.tested) {
+			// this.room.visual.circle(x,y,{fill: Astar.colors.tested});
 			this.room.visual.circle(x, y, {
 				fill:
-				(weight < 1) ? 'red' : astar.colors.tested,
+				(weight < 1) ? 'red' : Astar.colors.tested,
 				opacity: 1.0
 			});
 		}
@@ -447,8 +441,7 @@ Graph.prototype.getNode = function (x, y) {
 
 Graph.prototype.neighbors = function (node) {
 	var ret = [];
-	var x = node.x;
-	var y = node.y;
+	var {x,y} = node;
 
 	// West
 	if (x - 1 >= 0) {
@@ -554,10 +547,10 @@ class ESGraph extends Graph {
 			}
 
 			this.grid[i] = new GridNode(this.room, x, y, weight);
-			if (astar.display && astar.colors.tested) {
+			if (Astar.display && Astar.colors.tested) {
 				this.room.visual.circle(x, y, {
 					fill:
-					(weight < 1) ? 'red' : astar.colors.tested,
+					(weight < 1) ? 'red' : Astar.colors.tested,
 					opacity: 1.0
 				});
 			}
@@ -589,7 +582,7 @@ function GridNode(room, x, y, weight) {
 }
 
 GridNode.prototype.toString = function () {
-	return "[" + this.x + " " + this.y + "]";
+	return `[${this.x} ${this.y}]`;
 };
 
 GridNode.prototype.isBlocked = function () {
@@ -597,8 +590,7 @@ GridNode.prototype.isBlocked = function () {
 };
 
 GridNode.prototype.getDirectionFrom = function (node) {
-	var x = this.x;
-	var y = this.y;
+	var {x,y} = this;
 	// Node is to the left
 	if (node.x < x) {
 		// Node is to the top
@@ -607,7 +599,7 @@ GridNode.prototype.getDirectionFrom = function (node) {
 		}
 
 		// Node is on the same level
-		if (node.y == y) {
+		if (node.y === y) {
 			return 7;
 		}
 
@@ -617,7 +609,7 @@ GridNode.prototype.getDirectionFrom = function (node) {
 		}
 	}
 
-	if (node.x == x) {
+	if (node.x === x) {
 		// Node is to the top
 		if (node.y < y) {
 			return 1;
@@ -637,7 +629,7 @@ GridNode.prototype.getDirectionFrom = function (node) {
 		}
 
 		// Node is on the same level
-		if (node.y == y) {
+		if (node.y === y) {
 			return 3;
 		}
 
@@ -687,7 +679,7 @@ function BinaryHeap(scoreFunction) {
 
 BinaryHeap.prototype = {
 	push: function (element) {
-		var content = this.content;
+		var {content} = this;
 		// Add the new element to the end of the array.
 		content.push(element);
 
@@ -695,9 +687,9 @@ BinaryHeap.prototype = {
 		this.sinkDown(content.length - 1);
 	},
 	pop: function () {
-		var content = this.content;
+		var {content} = this;
 		// Store the first element so we can return it later.
-		var result = content[0];
+		var [result] = content;
 		// Get the element at the end of the array.
 		var end = content.pop();
 		// If there are any elements left, put the end element at the
@@ -709,7 +701,7 @@ BinaryHeap.prototype = {
 		return result;
 	},
 	remove: function (node) {
-		var content = this.content;
+		var {content} = this;
 		var i = content.indexOf(node);
 
 		// When it is found, the process seen in 'pop' is repeated
@@ -733,8 +725,7 @@ BinaryHeap.prototype = {
 		this.sinkDown(this.content.indexOf(node));
 	},
 	sinkDown: function (n) {
-		var content = this.content;
-		var scoreFunction = this.scoreFunction;
+		var {content,scoreFunction} = this;
 		// Fetch the element that has to be sunk.
 		var element = content[n];
 		//
@@ -760,10 +751,9 @@ BinaryHeap.prototype = {
 		}
 	},
 	bubbleUp: function (n) {
-		var content = this.content;
-		var scoreFunction = this.scoreFunction;
+		var {content,scoreFunction} = this;
 		// Look up the target element and its score.
-		var length = content.length;
+		var {length} = content;
 		var element = content[n];
 		var elemScore = scoreFunction(element);
 		// early declarations with type hints
@@ -816,7 +806,7 @@ BinaryHeap.prototype = {
 
 /** */
 module.exports = {
-	astar,
+	Astar,
 	BinaryHeap,
 	Graph,
 	ESGraph,
