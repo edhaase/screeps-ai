@@ -73,9 +73,9 @@ module.exports = {
 		if (thing instanceof Creep) {
 			return 1.0 - (thing.carryTotal / thing.carryCapacity);
 		} else {
-			if (thing.energy != undefined)
+			if (thing.energy != null)
 				return (1.0 - thing.energyPct);
-			else if (thing.store != undefined)
+			else if (thing.store != null)
 				return (1.0 - (thing.storedTotal / thing.storeCapacity));
 			else
 				return 0.0;

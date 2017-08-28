@@ -13,7 +13,7 @@ class Body extends Array {
 	/** override push to limit size */
 	push(part) {
 		if (this.length >= MAX_CREEP_SIZE)
-			throw new Error('Creep body is limited to ' + MAX_CREEP_SIZE + ' parts');
+			throw new Error(`Creep body is limited to ${MAX_CREEP_SIZE} parts`);
 		return super.push(part);
 	}
 
@@ -25,7 +25,7 @@ class Body extends Array {
 	/** override unshift to limit size */
 	unshift(...args) {
 		if (args.length + this.length > MAX_CREEP_SIZE)
-			throw new Error('Creep body is limited to ' + MAX_CREEP_SIZE + ' parts');
+			throw new Error(`Creep body is limited to ${MAX_CREEP_SIZE} parts`);
 		return super.unshift.apply(this, args);
 	}
 
@@ -131,7 +131,7 @@ module.exports = {
 			if (_.get(spawn.room, 'storage.store.energy', 0) < 100000) {
 				max = Math.min(BODYPART_COST[WORK] * 10, max); // Less than 20 ept.
 			}
-			if (spawn.room.controller.level === 8)
+			if (spawn.room.controller.level === MAX_ROOM_LEVEL)
 				max = UNIT_COST([MOVE, MOVE, MOVE, CARRY]) + BODYPART_COST[WORK] * CONTROLLER_MAX_UPGRADE_PER_TICK * UPGRADE_CONTROLLER_POWER;
 			// Ignore top 20% of spawn energy (might be in use by renewels)
 			var avail = Math.clamp(250, spawn.room.energyCapacityAvailable - (SPAWN_ENERGY_CAPACITY * 0.20), max);

@@ -104,7 +104,7 @@ Room.prototype.drawVisuals = function () {
 	drawPie(this.visual, energyAvailable, energyCapacityAvailable, "Energy", "#FFDF2E", 2);
 
 	var { level, progress, progressTotal } = this.controller;
-	if (level < 8)
+	if (level < MAX_ROOM_LEVEL)
 		drawPie(this.visual, progress, progressTotal, 'RCL', 'green', 3);
 };
 
@@ -183,7 +183,7 @@ Room.prototype.isBuildQueueEmpty = function () {
  * @todo: Account for expiration? sortedLastIndex _kind_ of handles this, but currently cost is more important than expiration.
  * @todo: Need to account for extra cost of building swamp road (Actually it doesn't matter, still cheaper than anything else)
  */
-Room.prototype.addToBuildQueue = function ({ x, y }, structureType, expire = DEFAULT_BUILD_JOB_EXPIRE, priority = 0.5) {
+Room.prototype.addToBuildQueue = function ({ x, y }, structureType, expire = DEFAULT_BUILD_JOB_EXPIRE, priority = DEFAULT_BUILD_JOB_PRIORITY) {
 	if (!this.memory.bq)
 		this.memory.bq = [];
 	if (Game.map.getTerrainAt(x, y, this.name) === 'wall' && structureType !== STRUCTURE_EXTRACTOR)

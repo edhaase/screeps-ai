@@ -9,7 +9,9 @@ defineCachedGetter(Creep.prototype, 'ticksToLiveMax', (c) => c.hasBodypart(CLAIM
 defineCachedGetter(Creep.prototype, 'carryTotal', (c) => _.sum(c.carry));
 defineCachedGetter(Creep.prototype, 'carryCapacityAvailable', (c) => c.carryCapacity - c.carryTotal);
 defineCachedGetter(Creep.prototype, 'cost', (c) => _.sum(c.body, p => BODYPART_COST[p.type]));
-defineCachedGetter(Creep.prototype, 'cpt', (c) => _.round(c.cost / c.ticksToLiveMax, 3));
+
+const COST_PER_TICK_PRECISION = 3;
+defineCachedGetter(Creep.prototype, 'cpt', (c) => _.round(c.cost / c.ticksToLiveMax, COST_PER_TICK_PRECISION));
 
 
 // Not cached as this can change mid-tick
@@ -195,7 +197,8 @@ Creep.prototype.getSuicideWorth = function () {
  * 
  * https://www.symbolab.com/solver/solve-for-equation-calculator/solve%20for%20t%2C%20c%5Ccdot%5Cleft(%5Cfrac%7Bt-d%7D%7Bm%7D%5Cright)%5Cge%20x
  */
-Creep.prototype.isWorthRecycling = function (minReturn = 10, steps = 0) {
+const DEFAULT_MINIMUM_RECYCLE_RETURN = 10;
+Creep.prototype.isWorthRecycling = function (minReturn = DEFAULT_MINIMUM_RECYCLE_RETURN, steps = 0) {
 	return this.ticksToLive >= ((minReturn * this.ticksToLiveMax) + (steps * this.cost)) / this.cost;
 };
 
@@ -241,7 +244,7 @@ Creep.prototype.findCarry = function () {
  * @todo: _.findLastKey?
  */
 Creep.prototype.transferAny = function (target) {
-	var res = _.findKey(this.carry, (amt, key) => amt > 0);
+	var res = _.findKey(this.carry, amt => amt > 0);
 	if (!res)
 		return ERR_NOT_ENOUGH_RESOURCES;
 	else

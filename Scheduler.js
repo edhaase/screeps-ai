@@ -9,7 +9,7 @@ module.exports = {
 	 */
 	reoccurring: function (fn, args, thisArg, freq = 5, offset = 0) {
 		if ((Game.time % freq) === offset)
-			return fn.apply(thisArg, args);
+			fn.apply(thisArg, args);
 	},
 
 	/**
@@ -34,9 +34,8 @@ module.exports = {
 	 * Slowly iterate through object keys
 	 */
 	staggerKeys: function (obj, fn, thisArg) {
-		if (obj == undefined)
-			return;
-		return this.stagger(Object.keys(obj), k => fn(obj[k]), thisArg);
+		if (obj != null)
+			this.stagger(Object.keys(obj), k => fn(obj[k]), thisArg);
 	}
 
 };

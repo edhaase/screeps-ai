@@ -49,7 +49,7 @@ const RANDO_STRUCTURES = [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_EXTENSION,
  */
 Room.prototype.canBuild = function (structureType) {
 	if (_.size(Game.constructionSites) >= MAX_CONSTRUCTION_SITES)
-		return;
+		return false;
 	// let count = _.sum(this.structures, s => s.structureType === structureType)
 	const count = (this.structuresByType[structureType] || []).length
 		+ _.sum(this.find(FIND_MY_CONSTRUCTION_SITES, { filer: s => s.structureType === structureType }));

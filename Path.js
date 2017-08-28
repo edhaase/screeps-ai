@@ -13,7 +13,7 @@ class Path extends Array {
 	 * Find a path
 	 */
 	static search(src, dst, opts) {
-		let result = PathFinder.search(src, dst, opts);
+		const result = PathFinder.search(src, dst, opts);
 		if (result.path)
 			Object.setPrototypeOf(result.path, Path.prototype);
 		return result;
@@ -28,11 +28,11 @@ class Path extends Array {
 
 	// Return path array without roads
 	withoutRoad() {
-		return this.filter(rp => rp.hasRoad() == false);
+		return this.filter(rp => rp.hasRoad() === false);
 	}
 
 	withoutConstructionSites() {
-		return this.filter(rp => _.findWhere(Game.constructionSites, { pos: rp }) == undefined);
+		return this.filter(rp => _.findWhere(Game.constructionSites, { pos: rp }) == null);
 	}
 
 	without(fn) {
