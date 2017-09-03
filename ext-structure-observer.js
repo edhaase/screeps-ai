@@ -153,7 +153,7 @@ StructureObserver.prototype.getRange = function () {
  */
 StructureObserver.prototype.setRange = function (range) {
 	if (!_.isNumber(range))
-		throw new Error("Invalid type");
+		throw new TypeError("Invalid type");
 	if (range > OBSERVER_RANGE)
 		throw new RangeError("Range may not exceed OBSERVER_RANGE");
 	if (range < 1)

@@ -51,7 +51,7 @@ Structure.prototype.say = function (msg) {
  */
 OwnedStructure.prototype.defer = function (ticks) {
 	if (!_.isNumber(ticks))
-		throw new Error('OwnedStructure.defer expects numbers');
+		throw new TypeError('OwnedStructure.defer expects numbers');
 	if (ticks >= Game.time)
 		Log.notify(`[WARNING] Structure ${this.id} at ${this.pos} deferring for unusually high ticks!`);
 	if (Memory.structures[this.id] === undefined)

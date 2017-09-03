@@ -317,11 +317,6 @@ class ObstacleMatrix extends FixedObstacleMatrix {
  */
 class TowerThreatMatrix extends CostMatrix {
 	constructor(room) {
-		/* if(_.isString(room))
-			if(Game.rooms[room])
-				room = Game.rooms[room];
-			else
-				throw new Error("Must have room visibility"); */
 		if (_.isString(room))
 			if (Game.rooms[room])
 				room = Game.rooms[room];

@@ -507,7 +507,7 @@ StructureTerminal.prototype.getMaxDistance = function (amt) {
 Object.defineProperty(StructureTerminal.prototype, 'credits', {
 	set: function (value) {
 		if (!(typeof value === 'number'))
-			throw new Error(`Expected number, got ${value}`);
+			throw new TypeError(`Expected number, got ${value}`);
 		this.memory.c = value;
 	},
 	get: function () {

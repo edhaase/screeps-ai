@@ -84,7 +84,7 @@ Creep.prototype.run = function run() {
  */
 Creep.prototype.defer = function (ticks) {
 	if (typeof ticks !== "number")
-		throw new Error("Creep.defer expects numbers");
+		throw new TypeError("Creep.defer expects numbers");
 	if (ticks >= Game.time)
 		Log.notify(`Creep ${this.name} at ${this.pos} deferring for unusually high ticks!`, LOG_TAG_CREEP);
 	this.memory.defer = Game.time + ticks;

@@ -33,7 +33,7 @@ global.serializePath = function(arr) {
  */
 Creep.prototype.getPathTo = function(pos,range=1,opts={}) {
 	if(!(pos instanceof RoomPosition))
-		throw new Error('Expected RoomPosition');
+		throw new TypeError('Expected RoomPosition');
 	
 	var result;
 	try {
