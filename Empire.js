@@ -14,6 +14,10 @@
 const EMPIRE_EXPANSION_FREQUENCY = 8191; // Power of 2, minus 1
 const GCL_MOVING_AVG_DURATION = 1000;
 
+if(Memory.empire == null) {
+	Memory.empire = {autoExpand: true};
+}
+
 class Empire {
 	static tick() {
 		Empire.updateGCL();
