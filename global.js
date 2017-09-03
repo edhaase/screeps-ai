@@ -43,6 +43,7 @@ global.POWER_BANK_SINGLE_SPAWN = Math.ceil(POWER_BANK_HITS / ATTACK_POWER / CREE
 global.UPGRADER_PARTS_GOAL = Math.ceil(CONTROLLER_MAX_UPGRADE_PER_TICK / UPGRADE_CONTROLLER_POWER);
 global.TICKS_TO_EMPTY_BUCKET = Math.ceil(10000 / (Game.cpu.tickLimit - Game.cpu.limit));
 
+global.BODYPART_MAX_HITS = 100;
 global.UNIT_COST = (body) => _.sum(body, p => BODYPART_COST[p]);
 global.UNIT_BUILD_TIME = (body) => CREEP_SPAWN_TIME * body.length;
 

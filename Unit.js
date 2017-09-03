@@ -277,18 +277,23 @@ module.exports = {
 		return spawn.enqueue([MOVE], null, memory);
 	},
 
-	requestDefender: function (spawn, count = 1, roomName, prio = 75) {
-		// let body = this.repeat([TOUGH,ATTACK,MOVE,MOVE], spawn.room.energyCapacityAvailable / 2);
-		let body = this.repeat([RANGED_ATTACK, MOVE], spawn.room.energyCapacityAvailable / 2);
+	requestDefender: function (spawn, roomName, prio = 75) {
+		let body = this.repeat([TOUGH,ATTACK,MOVE,MOVE], spawn.room.energyCapacityAvailable / 2);
+		// let body = this.repeat([RANGED_ATTACK, MOVE], spawn.room.energyCapacityAvailable / 2);
 		if (_.isEmpty(body))
 			body = [MOVE, ATTACK];
-		return spawn.enqueue(body, null, { home: roomName, role: 'defender' }, prio, 0, count);
+		return spawn.enqueue(body, null, { home: roomName, role: 'defender' }, prio);
+	},
+
+	requestRanger: function(spawn, roomName, prio = 75) {
+		const body = this.repeat([RANGED_ATTACK, MOVE], spawn.room.energyCapacityAvailable / 2);
+		return spawn.enqueue(body, null, { home: roomName, role: 'defender' }, prio);
 	},
 
 	requestPilot: function (spawn, roomName, count = 1) {
 		const MAX_PILOT_ENERGY = 750;
 		const amt = Math.clamp(SPAWN_ENERGY_START, spawn.room.energyAvailable, MAX_PILOT_ENERGY);
-		let body = Arr.repeat([WORK, CARRY, MOVE, MOVE], amt);
+		const body = Arr.repeat([WORK, CARRY, MOVE, MOVE], amt);
 		return spawn.enqueue(body, null, { role: 'pilot', home: roomName || spawn.pos.roomName }, 100, 0, count);
 	},
 
@@ -358,9 +363,9 @@ module.exports = {
 		this.requestAttacker(s2);
 	},
 
-	requestHealer: function (spawn, priority = 5) {
-		let body = this.repeat([MOVE, HEAL], spawn.room.energyCapacityAvailable / 2);
-		return spawn.enqueue(body, null, { role: 'healer' }, priority);
+	requestHealer: function (spawn, roomName, priority = 50) {
+		const body = this.repeat([MOVE, HEAL], spawn.room.energyCapacityAvailable / 2);
+		return spawn.enqueue(body, null, { role: 'healer', home: roomName }, priority);
 	},
 
 	// Unit.requestGuard(Game.spawns.Spawn1, 'Guard2', Unit.repeat([MOVE,ATTACK],3000).sort())
@@ -387,16 +392,6 @@ module.exports = {
 		// let body = this.repeat([MOVE,ATTACK], avail).sort().reverse();
 		const body = Arr.cycle([MOVE, ATTACK], MAX_CREEP_SIZE);
 		console.log('body: ' + body.length);
-		if (!flag || !(Game.flags[flag] instanceof Flag))
-			return "Must specify flag";
-
-		return spawn.enqueue(body, null, { role: 'guard', site: flag, home: spawn.pos.roomName }, 100);
-	},
-
-	requestRanger: function (spawn, flag) {
-		let avail = spawn.room.energyCapacityAvailable;
-		let body = this.repeat([TOUGH, MOVE, RANGED_ATTACK], avail).sort().reverse();
-		console.log('body: ' + body);
 		if (!flag || !(Game.flags[flag] instanceof Flag))
 			return "Must specify flag";
 

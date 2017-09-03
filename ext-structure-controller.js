@@ -92,7 +92,7 @@ StructureController.prototype.run = function () {
 
 	// if((Game.time % 50) == 0 && !this.checkBit(BIT_CTRL_DISABLE_CENSUS))
 	if ((Game.time % (DEFAULT_SPAWN_JOB_EXPIRE + 1)) === 0 && !this.checkBit(BIT_CTRL_DISABLE_CENSUS)) {
-		// if(this.clock(DEFAULT_SPAWN_JOB_EXPIRE) === 0){ // Staggering jobs might be bad.		
+	// if (this.clock(DEFAULT_SPAWN_JOB_EXPIRE) === 0 && !this.checkBit(BIT_CTRL_DISABLE_CENSUS)) { // Staggering jobs might be bad.
 		this.runCensus();
 		this.updateNeighbors();
 	}
@@ -398,12 +398,20 @@ StructureController.prototype.runCensus = function () {
 	const towers = _.size(this.room.find(FIND_MY_STRUCTURES, { filter: Filter.loadedTower }));
 	if (!_.isEmpty(hostiles) && (towers <= 0 || hostiles.length > towers)) {
 		const have = _.get(census, 'defender', 0) + _.get(pending, 'defender', 0);
-		const desired = Math.clamp(1, hostiles.length - 1, 4);
-		prio = Math.max(75, 100 - Math.ceil(100 * (have / desired)));
-		if (have < desired) {
-			// Log.warn(this.pos.roomName + ' wants ' + (desired-have) + ' defenders!', 'Controller');
-			require('Unit').requestDefender(spawn, (desired - have), roomName, prio);
+		const desired = Math.clamp(1, hostiles.length * 2, 8);		
+		for (var di = have; di < desired; di++) {
+			prio = Math.max(50, 100 - Math.ceil(100 * (di / desired)));
+			const supplier = _.sample(['requestDefender','requestRanger']);
+			require('Unit')[supplier](spawn, roomName, prio);
 		}
+	}
+
+	// Healers
+	if(_.any(creeps, c => c.hits < c.hitsMax)) {
+		const have = _.get(census, 'healer', 0);
+		const desired = 2;
+		for (var hi = have; hi < desired; hi++)
+			require('Unit').requestHealer(spawn, roomName);
 	}
 
 	// Static upgraders (enabled at RCL 3?)
