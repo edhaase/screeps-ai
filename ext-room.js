@@ -11,6 +11,11 @@ global.BIT_LOW_POWER = (1 << 1);
 global.BIT_DISABLE_CONSTRUCTION = (1 << 2);
 global.BIT_DISABLE_REPAIR = (1 << 3);
 
+if (!Memory.rooms) {
+	Log.warn('Initializing room memory', 'Memory');
+	Memory.rooms = {};
+}
+
 /**
  * Room properties
  */
