@@ -329,7 +329,7 @@ class BuildPlanner {
 		}
 		// Then build other stuff
 		this.placeRamparts(room);
-		this.placeRampartsOnWalls(room);
+		// this.placeRampartsOnWalls(room); // Really a waste of energy over a second layer of wall
 		if (level >= 3)
 			this.buildSourceRoads(room, room.storage || room.controller, room.controller.level === 3);
 		this.findRoadMisplacements(room).invoke('destroy').commit();
