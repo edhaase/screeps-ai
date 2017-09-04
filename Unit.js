@@ -364,7 +364,9 @@ module.exports = {
 	},
 
 	requestHealer: function (spawn, roomName, priority = 50) {
-		const body = this.repeat([MOVE, HEAL], spawn.room.energyCapacityAvailable / 2);
+		const body = Arr.repeat([MOVE, HEAL], spawn.room.energyCapacityAvailable / 2);
+		if(_.isEmpty(body))
+			return null;
 		return spawn.enqueue(body, null, { role: 'healer', home: roomName }, priority);
 	},
 

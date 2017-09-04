@@ -159,6 +159,17 @@ global.pushCommandToRoom = function (roomName, cmd) {
 	Memory.rooms[roomName].cmd.push(cmd);
 };
 
+/**
+ * Calculate the origin of a room given our constraints.
+ */
+Room.prototype.getOrigin = function() {
+	if (!this.memory.origin) {
+		this.memory.origin = require('Planner').distanceTransformWithController(this) || {pos: this.controller.pos, range: 4};
+		Log.warn(`Found origin: ${this.memory.origin}`, 'Planner');
+	}
+	return {pos: _.create(RoomPosition.prototype, this.memory.origin), radius: 1};
+};
+
 /***********************************************************************
  * Screeps build queue functionality
  *
@@ -194,7 +205,7 @@ Room.prototype.addToBuildQueue = function ({ x, y }, structureType, expire = DEF
 	if (Game.map.getTerrainAt(x, y, this.name) === 'wall' && structureType !== STRUCTURE_EXTRACTOR)
 		throw new Error(`Invalid target position (${x},${y},${this.name})`);
 	if (this.getPositionAt(x, y).hasStructure(structureType))
-		throw new Error("Invalid target. Structure already exists");
+		throw new Error(`Structure type ${structureType} already exists at ${x},${y},${this.name}`);
 	if (structureType === STRUCTURE_ROAD && this.getPositionAt(x, y).hasObstacle())
 		return OK;
 	try {

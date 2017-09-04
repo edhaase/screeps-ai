@@ -102,17 +102,18 @@ class FleePlanner {
 	 * Goals should be pre-built.
 	 * Cost matrix should be pre-built if goals.
 	 */
-	constructor(goals, origin = new RoomPosition(11, 37, 'W3N9'), opts = {}) {
+	constructor(goals, origin = new RoomPosition(17, 24, 'W2N2'), opts = {}) {
 		this.origin = origin;								// Initial point to expand outwards from.
-		this.radius = 1;									// Minimum radius from initial point.
+		this.radius = opts.radius || 1;						// Minimum radius from initial point.
 		this.minRange = 1;									// Minimum range a structure must be from another.
 		this.maxRange = 4;									// Maximum range a structure can be from another.
 
 		this.goals = goals || [{ pos: this.origin, range: this.radius || 2 }];
 		this.cm = opts.cm || new PathFinder.CostMatrix;
 		this.plan = [];
-		this.stuffToAdd = [];
-		this.stuffToAdd = Util.RLD([1, 'terminal', CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][8], STRUCTURE_EXTENSION, 3, STRUCTURE_SPAWN, 1, STRUCTURE_OBSERVER, 1, STRUCTURE_STORAGE, 1, STRUCTURE_POWER_SPAWN, 1, STRUCTURE_NUKER, 6, STRUCTURE_TOWER]);
+		this.stuffToAdd = opts.stuffToAdd || Util.RLD([1, STRUCTURE_TERMINAL, CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][8], STRUCTURE_EXTENSION, 3, STRUCTURE_SPAWN, 1, STRUCTURE_OBSERVER, 1, STRUCTURE_STORAGE, 1, STRUCTURE_POWER_SPAWN, 1, STRUCTURE_NUKER, 6, STRUCTURE_TOWER]);
+		if (opts.shuffle)
+			this.stuffToAdd = _.shuffle(this.stuffToAdd);
 		this.seed = 4;										// If we use a pRNG we want a seed.
 		this.iteration = 0;									// Iteration might be important if we use a PRNG
 		this.incomplete = true;								// State of planner, not path result.
@@ -120,7 +121,7 @@ class FleePlanner {
 		this.roomCallback = () => this.cm;					// PathFinder stuff
 		this.maxRooms = 1;
 		// this.heuristicWeight = 1.1;
-		this.heuristicWeight = 3.0;
+		this.heuristicWeight = 0.9;
 		this.plainCost = 2;
 		this.swampCost = 5;
 		this.flee = true;
@@ -141,7 +142,7 @@ class FleePlanner {
 		room.find(FIND_MINERALS).forEach(s => this.goals.push({ pos: s.pos, range: 2 }));
 		room.find(FIND_NUKES).forEach(s => this.goals.push({ pos: s.pos, range: 2 }));
 		room.find(FIND_EXIT).forEach(exit => this.goals.push({ pos: exit, range: 5 }));
-		room.find(FIND_STRUCTURES, { filter: { structureType: STRUCTURE_ROAD } }).forEach(r => this.set(r.pos, STRUCTURE_ROAD, false));
+		room.find(FIND_STRUCTURES).forEach(({ pos, structureType }) => this.set(pos, structureType, false));
 		return this;
 	}
 
@@ -176,18 +177,19 @@ class FleePlanner {
 		this.set(dest, structureType);
 		var rpos;
 		while (rpos = path.pop()) {
-			//if(this.cm.get(rpos.x,rpos.y) == 1) // interferes with seed road
-			//	break;
+			if (this.cm.get(rpos.x, rpos.y) === 1) // interferes with seed road
+				break;
 			this.set(rpos, STRUCTURE_ROAD); // (Perhaps optional?)
 		}
-		// var points = _.map(HORIZONTALS, (d) => dest.addDirection(d));		
-		var points = _.map(DIAGONALS, (d) => dest.addDirection(d));
+		var points = _.map(HORIZONTALS, (d) => dest.addDirection(d));
+		// var points = _.map(DIAGONALS, (d) => dest.addDirection(d));
 		while (rpos = points.pop()) {
 			if ((rpos.x + rpos.y) % 2) // (Optional) pRNG chance.
 				continue;
 			//if(Math.random() < 0.1)
 			//	continue;
-			this.set(rpos, STRUCTURE_ROAD);
+			if (this.cm.get(rpos.x, rpos.y) !== 1)
+				this.set(rpos, STRUCTURE_ROAD);
 		}
 
 		return true;
@@ -291,7 +293,7 @@ class BuildPlanner {
 	static buildRoom(room) {
 		if (BUCKET_LIMITER)
 			return ERR_TIRED;
-		let { pos, level } = room.controller;
+		var { level } = room.controller;
 		if (level < 1) // Let's get the easy stuff out of the way.
 			return ERR_RCL_NOT_ENOUGH; // We can't build anything at rcl 0
 		if (!room.isBuildQueueEmpty())
@@ -299,15 +301,7 @@ class BuildPlanner {
 		if (!_.isEmpty(room.find(FIND_MY_CONSTRUCTION_SITES)))
 			return ERR_BUSY;
 		Log.warn(`Building room: ${room.name} on tick ${Game.time}`, 'Planner');
-		if (!room.memory.origin) {
-			room.memory.origin = this.distanceTransformWithController(room);
-			Log.warn(`Found origin: ${room.memory.origin}`, 'Planner');
-		}
-		var radius = 4; // If controller.
-		if (room.memory.origin) {
-			pos = _.create(RoomPosition.prototype, room.memory.origin);
-			radius = 1;
-		}
+		var {pos,radius} = room.getOrigin();
 		var avail = room.getStructuresWeCanBuild();
 		var want = [];
 		_.each(RANDO_STRUCTURES, (type) => {
@@ -319,10 +313,15 @@ class BuildPlanner {
 			Log.debug('Nothing to build', 'Planner');
 			// return;
 		} else {
-			const plan = this.uberPlan(pos, want, {
+			/* var plan = this.uberPlan(pos, want, {
 				drawRoad: true, plainCost: 2, swampCost: 3, heuristicWeight: 0.9,
 				radius: radius
+			}); */
+			var fleePlanner = new FleePlanner(null, pos, {
+				stuffToAdd: want
 			});
+			fleePlanner.mergeCurrentPlan().run().draw(true);
+			var {plan} = fleePlanner;
 			// @todo move to build planner
 			// _.each(plan, ({pos,structureType}) => pos.createConstructionSite(structureType));
 			_.each(plan, ({ pos, structureType }) => Game.rooms[pos.roomName].addToBuildQueue(pos, structureType, DEFAULT_BUILD_JOB_EXPIRE, STRUCTURE_BUILD_PRIORITY[structureType] || 0.5));
@@ -331,7 +330,7 @@ class BuildPlanner {
 		this.placeRamparts(room);
 		// this.placeRampartsOnWalls(room); // Really a waste of energy over a second layer of wall
 		if (level >= 3)
-			this.buildSourceRoads(room, room.storage || room.controller, room.controller.level === 3);
+			this.buildSourceRoads(room, pos, room.controller.level === 3);
 		this.findRoadMisplacements(room).invoke('destroy').commit();
 		// if(level >= 3)
 		//	this.exitPlanner(room.name, {commit: true});
@@ -341,7 +340,7 @@ class BuildPlanner {
 				room.addToBuildQueue(mineral.pos, STRUCTURE_EXTRACTOR);
 			}
 			if (room.terminal)
-				this.planRoad(room.terminal.pos, { pos: mineral.pos, range: 1 }, { rest: true, initial: true, container: true });
+				this.planRoad(room.terminal.pos, { pospos: mineral.pos, range: 1 }, { rest: true, initial: true, container: true });
 		}
 		return OK;
 	}
@@ -698,21 +697,17 @@ class BuildPlanner {
 	}
 
 	/**
-	 *
+	 * Must path within range (Adjacent for source), but road can stop one shorter.
+	 * For controller, road only needs to path to range 3.
 	 */
 	static buildSourceRoads(room, origin, containers = true) {
-		// let spawn = _.first(room.find(FIND_MY_SPAWNS));
-		// if(!spawn)
-		//	return ERR_NOT_FOUND;
-		if (origin === undefined)
-			origin = room.controller;
-		if (!origin)
-			return ERR_NOT_FOUND;
-		let sources = room.find(FIND_SOURCES);
-		_.each(sources, source => this.planRoad(origin, { pos: source.pos, range: 1 }, { rest: false, initial: true, container: containers }));
+		if (origin == null)
+			throw new Error("Origin position required");
+		const sources = room.find(FIND_SOURCES);
+		_.each(sources, source => this.planRoad(origin, { pos: source.pos, range: 1 }, { rest: 1, initial: 1, container: containers }));
 		if (room.controller && room.controller.level >= 6 && sources.length > 1) {
 			var [s1, s2] = sources;
-			this.planRoad(s1, { pos: s2.pos, range: 1 }, { rest: true, initial: true });
+			this.planRoad(s1, { pos: s2.pos, range: 1 }, { rest: 1, initial: 1 });
 		}
 	}
 
@@ -733,7 +728,7 @@ class BuildPlanner {
 				Game.rooms[roomName]
 					.find(FIND_STRUCTURES)
 					.forEach(function (s) {
-						if (s.structureType === STRUCTURE_ROAD)
+						if (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER)
 							cm.set(s.pos.x, s.pos.y, 1);
 						else if (OBSTACLE_OBJECT_TYPES.includes(s.structureType))
 							cm.set(s.pos.x, s.pos.y, 255);
@@ -751,14 +746,14 @@ class BuildPlanner {
 		try {
 			// if(_.isObject(toPos) && !(toPos instanceof RoomPosition))
 			//	toPos = [toPos];
-			const result = PathFinder.search(fromPos, toPos, {
+			var result = PathFinder.search(fromPos, toPos, {
 				plainCost: 2, // prefer existing roads
 				swampCost: 2,
 				maxOps: 8000,
 				maxRooms: 1,
 				roomCallback: opts.cmFn
 			});
-			const { path, incomplete, cost, ops } = result;
+			var { path, incomplete, cost, ops } = result;
 			if (incomplete || !path || _.isEmpty(path)) {
 				Log.warn('No path to goal ' + JSON.stringify(toPos), 'Planner#planRoad');
 				Log.warn(`cost ${cost} ops ${ops} steps ${path.length}`);
@@ -767,15 +762,13 @@ class BuildPlanner {
 				Log.warn(opts.cmFn);
 				return ERR_NO_PATH;
 			}
-			if (opts.rest)
-				path.shift();
+			path = _.drop(path, opts.rest);
 			if (opts.container) {
 				var end = _.last(path);
 				if (!end.hasStructure(STRUCTURE_CONTAINER))
 					Game.rooms[end.roomName].addToBuildQueue(end, STRUCTURE_CONTAINER);
 			}
-			if (opts.initial)
-				path.pop();
+			path = _.dropRight(path, opts.initial);
 			new RoomVisual(path[0].roomName).poly(path);
 			Log.debug(`Road found, cost ${cost} ops ${ops} incomplete ${incomplete}`, 'Planner');
 			if (!opts.dry) {
