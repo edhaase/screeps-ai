@@ -721,7 +721,6 @@ class BuildPlanner {
 		// if(toPos.pos)
 		//	toPos = toPos.pos;
 		if (opts.cmFn === undefined)
-			// cmFn = (room) => logisticsMatrix[room]; // Stuck creeps can cause a re-path
 			opts.cmFn = function (roomName) {
 				// return (new CostMatrix.FixedObstacleMatrix(roomName)).setRoad();
 				var cm = new PathFinder.CostMatrix;
