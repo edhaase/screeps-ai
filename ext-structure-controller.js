@@ -48,15 +48,15 @@ global.BIT_CTRL_ANNOUNCE_ATTACKS = (1 << 1); // Do we notify on hostiles?
 
 global.BIT_CTRL_DISABLE_CENSUS = (1 << 1);		// Disable room census. For claimed remote mines.
 global.BIT_CTRL_DISABLE_AUTOBUILD = (1 << 2);	// Prevent this controller from placing buildings.
+global.BIT_CTRL_DISABLE_SAFEMODE = (1 << 3);
 
-global.BITS_CTRL_REMOTE_CLAIM = BIT_CTRL_DISABLE_CENSUS | BIT_CTRL_DISABLE_AUTOBUILD;
+global.BITS_CTRL_REMOTE_CLAIM = BIT_CTRL_DISABLE_CENSUS | BIT_CTRL_DISABLE_AUTOBUILD | BIT_CTRL_DISABLE_SAFEMODE;
 
-// global.BIT_CTRL_IGNORE_GCL = (1 << 1);				// Build micro-upgraders to keep the controller alive, based on clock.
-global.BIT_CTRL_DISABLE_UPGRADERS = (1 << 2); 		// Test bit, shut off upgraders altogether.
 global.BIT_CTRL_REMOTE_MINING = (1 << 2);			// Do we enable mining of harvesting rooms?
 global.BIT_CTRL_REMOTE_MINERL_MINING = (1 << 3);	// Do we enable mineral harvesting in SK rooms?
 global.BIT_DISABLE_TOWER_REPAIR = (1 << 4);
 global.BIT_DISABLE_TOWER_HEAL = (1 << 5);
+
 
 /**
  * Custom properties
@@ -662,4 +662,11 @@ StructureController.prototype.unclaim = function () {
 		unclaim.call(this);
 	else
 		Log.notify(`Unable to unclaim ${this.pos.roomName}`);
+};
+
+const {activateSafeMode} = StructureController.prototype;
+StructureController.prototype.activateSafeMode = function() {
+	if(this.checkBit(BIT_CTRL_DISABLE_SAFEMODE))
+		return ERR_INVALID_TARGET;
+	return activateSafeMode.call(this);
 };
