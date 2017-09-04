@@ -121,11 +121,10 @@ module.exports.loop = function () {
 			var dEM = Time.measure(() => Empire.tick());
 			// var dPL = Time.measure( () => Planner.tick() );
 			var dCS = Time.measure(() => Command.tick());
-			var dCM = Time.measure(() => Scheduler.staggerKeys(Game.rooms, r => _.set(global, 'logisticsMatrix.' + r.name, new CostMatrix.LogisticsMatrix(r.name))));
 			var dMS = Time.measure(() => _.invoke(SEGMENTS, 'commit'));
 			if (!Memory.stats)
 				Memory.stats = {};
-			Memory.stats.runner = { dTR, dTS, dTC, dTF, dCS, dCM, dMS }; // , dTCS};
+			Memory.stats.runner = { dTR, dTS, dTC, dTF, dCS, dMS }; // , dTCS};
 		} catch (e) {
 			Log.error('Error in main loop: ' + e);
 			Log.error(e.stack);
