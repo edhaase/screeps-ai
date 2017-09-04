@@ -197,8 +197,8 @@ class CreepExtFiller extends Creep {
 	 * 
 	 */
 	unload() {
-		if (Game.time & 2)
-			this.buildNearbyCheapStructure();
+		// if (Game.time & 2)
+		//	this.buildNearbyCheapStructure();
 		var { terminal, storage, controller } = this.room;
 		let goal = this.getDropoff();
 		if (!goal && this.carry[RESOURCE_ENERGY] > 0)
