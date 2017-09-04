@@ -85,25 +85,24 @@ StructureController.prototype.run = function () {
 		const avgTick = _.round(this.memory.rclAvgTick, 2);
 		const estimate = this.estimateInTicks();
 		this.say(`${avgTick} (${estimate})`);
-		/* let {x,y,roomName} = this.pos;
-		let newPos = new RoomPosition(x,y-0.75,roomName);
-		this.room.visual.text(, newPos, {color: 'yellow'});	*/
 	}
 
-	// if((Game.time % 50) == 0 && !this.checkBit(BIT_CTRL_DISABLE_CENSUS))
 	if ((Game.time % (DEFAULT_SPAWN_JOB_EXPIRE + 1)) === 0 && !this.checkBit(BIT_CTRL_DISABLE_CENSUS)) {
 	// if (this.clock(DEFAULT_SPAWN_JOB_EXPIRE) === 0 && !this.checkBit(BIT_CTRL_DISABLE_CENSUS)) { // Staggering jobs might be bad.
-		this.runCensus();
+		try {
+			this.runCensus();
+		} catch(e) {
+			Log.error(`Error in controller ${this.pos.roomName}: ${e}`);
+			Log.error(e.stack);
+		}
 		this.updateNeighbors();
 	}
 
 	if (!(Game.time & 1023))
 		this.updateNukeDetection();
 
-	// run % ?
 	if (this.ticksToDowngrade === CONTROLLER_EMERGENCY_THRESHOLD) {
 		Log.notify(`Low ticks to downgrade on room controller in ${this.pos.roomName}`);
-		// Emergency safeties.
 	}
 
 	// If we're about to lose the room, clean up.
@@ -664,9 +663,13 @@ StructureController.prototype.unclaim = function () {
 		Log.notify(`Unable to unclaim ${this.pos.roomName}`);
 };
 
+const MINIMUM_REQUIRED_SAFE_MODE = 300;
 const {activateSafeMode} = StructureController.prototype;
 StructureController.prototype.activateSafeMode = function() {
 	if(this.checkBit(BIT_CTRL_DISABLE_SAFEMODE))
 		return ERR_INVALID_TARGET;
+	const nukes = this.room.find(FIND_NUKES, { filter: n => n.timeToLand < MINIMUM_REQUIRED_SAFE_MODE });
+	if (!_.isEmpty(nukes))
+		return ERR_BUSY;
 	return activateSafeMode.call(this);
 };
