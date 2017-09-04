@@ -283,8 +283,9 @@ class LogisticsMatrix extends FixedObstacleMatrix {
 			.forEach(c => this.set(c.pos.x, c.pos.y, 1));
 
 		room
-			.find(FIND_MY_CREEPS, { filter: c => _.get(c.memory, 'stuck', 0) > 3 })
-			.forEach(c => this.set(c.pos.x, c.pos.y, 0xff));
+			// .find(FIND_MY_CREEPS, { filter: c => _.get(c.memory, 'stuck', 0) > 3 })
+			.find(FIND_MY_CREEPS, { filter: c => c.memory.stuck > 3 })
+			.forEach(c => this.set(c.pos.x, c.pos.y, 255));
 		/* room
 			.find(FIND_CREEPS)
 			.forEach(c => this.set(c.pos.x, c.pos.y, (_.get(c.memory, 'stuck',0) > 3)?0xff:15 )); */
@@ -365,31 +366,37 @@ class LazyPropertyFactory {
 	}
 }
 
+/* eslint-disable class-methods-use-this */
+const MAX_CACHE_COSTMATRIX_AGE = 5;
 class LazyMatrixStore {
 	get(target, key, proxy) {
-		if (target[key] == null) {
-			// console.log('New logistics matrix needed for ' + key);
+		Log.debug(`Requesting cost matrix for ${key}`, 'Matrix');
+		if (target[key] == null || Game.time - target[key].tick > MAX_CACHE_COSTMATRIX_AGE) {
 			// let start = Game.cpu.getUsed();
 			if (Game.rooms[key]) {
-				// console.log('Creating logstics matrix for ' + key);
-				// target[key] = new CostMatrix.LogisticsMatrix(key);
-				target[key] = new LogisticsMatrix(key);
+				Log.debug(`Creating cost matrix for ${key}`, 'Matrix');
+				proxy[key] = new LogisticsMatrix(key);
 			} else {
 				// console.log('Loading obstacle matrix for ' + key);
-				let om = _.get(Memory.rooms, key + '.cm.obstacle');
-				target[key] = (om) ? CostMatrix.deserialize(om) : new PathFinder.CostMatrix;
+				// Log.debug(`Loading cost matrix for ${key} from memory`, 'Matrix');
+				// let om = _.get(Memory.rooms, key + '.cm.obstacle');
+				// target[key] = (om) ? CostMatrix.deserialize(om) : new PathFinder.CostMatrix;
+				Log.debug(`Creating empty cost matrix for ${key}`, 'Matrix');
+				proxy[key] = new PathFinder.CostMatrix;
 			}
 			// Log.debug(`Creating cost matrix for ${key}: ${target[key].serialize()}`);
 			// console.log('Matrix used: ' + _.round(Game.cpu.getUsed() - start, 3));
 		}
-		return target[key];
+		return target[key].matrix;
 	}
 
 	set(target, key, value, proxy) {
 		// console.log('Saving logistics matrix: ' + key);
-		return target[key] = value;
+		Log.debug(`Saving cost matrix for ${key}`, 'Matrix');
+		return target[key] = {matrix: value, tick: Game.time};
 	}
 }
+/* eslint-enable class-methods-use-this */
 
 // global.logisticsMatrix = new Proxy({}, new LazyPropertyFactory( rn => (Game.rooms[rn])?new CostMatrix.LogisticsMatrix(rn):null ) );
 global._logisticsMatrix = {};
