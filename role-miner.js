@@ -67,8 +67,6 @@ module.exports = {
 			(s) => this.pos.findClosestByRange(s)
 		);
 
-
-
 		if (creep.carry.energy > 25 && structs && structs.length > 0) {
 			structs = _.map(structs, lid => Game.getObjectById(lid));
 			structs = _.compact(structs);

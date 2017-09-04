@@ -83,7 +83,6 @@ module.exports = function (creep) {
 		var patient = creep.pos.findClosestByRange(FIND_MY_CREEPS, { filter: function (c) { return (c.hits < c.hitsMax); } });
 		// var patient = creep.pos.findClosestByRange(FIND_CREEPS, { filter: c => c.hits < c.hitsMax && !Filter.unauthorizedHostile(c) });		
 		if (!patient) {
-			// if ( flag && !creep.pos.isEqualTo(flag.pos) ) creep.moveTo(flag, {costCallback: r => logisticsMatrix[r]});	
 			if (flag && !creep.pos.isEqualTo(flag.pos))
 				creep.moveTo(flag);
 		} else if (creep.pos.isNearTo(patient)) {
@@ -105,11 +104,7 @@ module.exports = function (creep) {
 			creep.moveTo(homeSpawn[0]);
 		}
 	} else if (flag) {
-		if (!creep.pos.isEqualTo(flag.pos)) creep.moveTo(flag);
-		/* if ( !creep.pos.isEqualTo(flag.pos) ) creep.moveTo(flag, {
-			maxOps: 16000,
-			// need generic cM lookup that goes for logistics, memory obstacle, or returns empty.
-			costCallback: (rN, cM) => logisticsMatrix[rN]?logisticsMatrix[rN]:( PathFinder.CostMatrix.deserialize(_.get(Memory.rooms, rN + '.cm.obstacle', cM)))
-		}); */
+		if (!creep.pos.isEqualTo(flag.pos))
+			creep.moveTo(flag);
 	}
 };

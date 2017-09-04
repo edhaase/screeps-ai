@@ -56,8 +56,7 @@ module.exports = function (creep) {
 		creep.moveTo(structure, {
 			ignoreRoads: true,
 			ignoreCreeps: creep.canAttack || (this.pos.roomName !== dest),
-			ignoreDestructibleStructures: creep.canAttack && (this.pos.roomName === dest),
-			costCallback: r => logisticsMatrix[r]
+			// ignoreDestructibleStructures: creep.canAttack && (this.pos.roomName === dest),
 		});
 	}
 };
