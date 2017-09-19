@@ -261,6 +261,7 @@ StructureSpawn.prototype.createCreep = function (body, name, memory, cost) {
 const { renewCreep } = StructureSpawn.prototype;
 StructureSpawn.prototype.renewCreep = function (creep) {
 	const status = renewCreep.call(this, creep);
+	Log.debug(`${this.name} renewing ${creep.name} at ${creep.pos} status ${status}`, 'Spawn');
 	if (status === OK) {
 		const bonus = Math.floor(SPAWN_RENEW_RATIO * CREEP_LIFE_TIME / CREEP_SPAWN_TIME / creep.body.length);
 		const ticksToLive = Math.min(CREEP_LIFE_TIME, creep.ticksToLive + bonus);
