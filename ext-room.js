@@ -388,7 +388,7 @@ Room.prototype.getMyCreeps = function (filter = _.identity) {
  * The built-in findPath is kind of a problem.
  */
 Room.prototype.findPath = function (fromPos, toPos, opts = {}) {
-	Log.debug(`findPath called ${fromPos} ${toPos} --> ${fromPos.getRangeTo(toPos)}`);
+	// Log.debug(`findPath called ${fromPos} ${toPos} --> ${fromPos.getRangeTo(toPos)}`);
 	if (fromPos.roomName !== this.name)
 		return opts.serialize ? '' : [];
 	if (fromPos.isEqualTo(toPos))
