@@ -340,7 +340,7 @@ class BuildPlanner {
 				room.addToBuildQueue(mineral.pos, STRUCTURE_EXTRACTOR);
 			}
 			if (room.terminal)
-				this.planRoad(room.terminal.pos, { pospos: mineral.pos, range: 1 }, { rest: true, initial: true, container: true });
+				this.planRoad(room.terminal.pos, { pos: mineral.pos, range: 1 }, { rest: true, initial: true, container: true });
 		}
 		return OK;
 	}
@@ -777,7 +777,6 @@ class BuildPlanner {
 				});
 			}
 		} catch (e) {
-			console.log(e);
 			console.log(e.stack);
 			console.log(ex(fromPos));
 			console.log(ex(toPos));
