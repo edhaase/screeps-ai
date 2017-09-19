@@ -634,6 +634,23 @@ global.history = function (roomName, tick) {
 	return "https://screeps.com/a/#!/history/" + roomName + "?t=" + tick + "|" + tick;
 };
 
+
+/**
+ * Loops over only functions on the prototype and
+ * passes them to a callback function.
+ */
+global.forEachFn = function forEachFn(proto, cb) {
+	var names = Object.getOwnPropertyNames(proto);
+	var name,j,desc;
+	for(j=0; j<names.length; j++) {
+		name = names[j];
+		desc = Object.getOwnPropertyDescriptor(proto, name);
+		if(desc.get !== undefined || desc.set !== undefined)
+			continue;
+		cb(name,proto);
+	}
+};
+
 /* global.ppc = function() {
 	var ordered = _.sortBy(Memory.profiler.map, m => m.time / m.call);
 	_.each(ordered, ({time,calls},m) => console.log(`${m} ${time/calls}`));
