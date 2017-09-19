@@ -25,8 +25,8 @@ defineCachedGetter(Room.prototype, 'structuresByType', r => _.groupBy(r.structur
 defineCachedGetter(Room.prototype, 'structureCountByType', r => _.countBy(r.structures, 'structureType'));
 defineCachedGetter(Room.prototype, 'mineral', r => r.find(FIND_MINERALS)[0]);
 defineCachedGetter(Room.prototype, 'containers', r => r.structuresByType[STRUCTURE_CONTAINER] || []);
-defineCachedGetter(Room.prototype, 'hurtCreeps', r => _.filter(r.find(FIND_CREEPS), c => c.hitPct < 1 && (c.my || Player.status(c.owner.username) === PLAYER_ALLY)));
-defineCachedGetter(Room.prototype, 'nuker', (room) => _.first(room.structuresByType[STRUCTURE_NUKER]));
+defineCachedGetter(Room.prototype, 'hurtCreeps', r => r.find(FIND_CREEPS, {filter: c => c.hitPct < 1 && (c.my || Player.status(c.owner.username) === PLAYER_ALLY)}));
+defineCachedGetter(Room.prototype, 'nuker', r => r.findOne(FIND_MY_STRUCTURES, {filter: {structureType: STRUCTURE_NUKER}}));
 defineCachedGetter(Room.prototype, 'resources', r => r.find(FIND_DROPPED_RESOURCES, { filter: Filter.droppedResources }));
 defineCachedGetter(Room.prototype, 'energyPct', r => r.energyAvailable / r.energyCapacityAvailable);
 
@@ -382,6 +382,17 @@ Room.getType = function (roomName) {
 
 Room.prototype.getMyCreeps = function (filter = _.identity) {
 	return _(this.find(FIND_MY_CREEPS)).filter(filter);
+};
+
+/**
+ *
+ */
+Room.prototype.findOne = function(c, opts={}) {
+	var results = this.find(c);
+	if(opts.filter)
+		return _.find(results, opts.filter);
+	else
+		return _.first(results);
 };
 
 /**

@@ -199,7 +199,7 @@ StructureController.prototype.runCensus = function () {
 	const creeps = this.getMyCreeps().value();
 	// let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS);
 	// let spawn = this.getClosestSpawn();
-	var spawn = _.first(room.find(FIND_MY_SPAWNS));
+	var spawn = room.findOne(FIND_MY_SPAWNS);
 	const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
 
 	let pending = {};
