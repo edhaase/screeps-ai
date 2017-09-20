@@ -57,6 +57,9 @@ global.BIT_CTRL_REMOTE_MINERL_MINING = (1 << 3);	// Do we enable mineral harvest
 global.BIT_DISABLE_TOWER_REPAIR = (1 << 4);
 global.BIT_DISABLE_TOWER_HEAL = (1 << 5);
 
+const CONTROLLER_DOWNGRADE_SAFEMODE_THRESHOLD = 5000;
+const CONTROLLER_SAFEMODE_MARGIN = 500;
+const EMERGENCY_THRESHOLD = _.mapValues(CONTROLLER_DOWNGRADE, v => v - CONTROLLER_DOWNGRADE_SAFEMODE_THRESHOLD + CONTROLLER_SAFEMODE_MARGIN);
 
 /**
  * Custom properties
@@ -128,7 +131,7 @@ StructureController.prototype.clock = function (freq) {
 // Downgrades are an emergency
 StructureController.prototype.isEmergencyModeActive = function () {
 	// If we use maxlevel, they'll lock onto a downgraded controller and never stop.
-	return (this.ticksToDowngrade <= CONTROLLER_EMERGENCY_THRESHOLD || this.progress > this.progressTotal); // || this.memory.maxlevel > this.level);
+	return (this.ticksToDowngrade <= EMERGENCY_THRESHOLD[this.level] || this.progress > this.progressTotal); // || this.memory.maxlevel > this.level);
 };
 
 /**
@@ -426,6 +429,7 @@ StructureController.prototype.runCensus = function () {
 		// Sizing the upgrader based on level and #remotes?
 		// 2016-12-24: Changed to 0, fallback scav code will take over
 		// 2017-03-26: Changed back to 1 at RCL 8 for expansion purposes
+		// desired = Math.floor(1+-Math.log(x/8)))
 		let desired = 1;
 		if (this.level === MAX_ROOM_LEVEL)
 			desired = (ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || storedEnergy > 700000) ? 1 : 0;
@@ -568,7 +572,13 @@ StructureController.prototype.updateSafeMode = function () {
 		this.onSafeModeExit();
 	if (this.safeMode === SAFE_MODE_LOW_TICKS)
 		Log.notify(`${this.room.name}: Safe mode expiring soon!`);
+	if (this.ticksToDowngrade === EMERGENCY_THRESHOLD[this.level])
+		Log.warn(`${this.pos.roomName}: Low ticksToDowngrade, Safe mode at risk`, 'Controller');
+	else if(this.ticksToDowngrade > EMERGENCY_THRESHOLD[this.level] && this.memory.ticksToDowngrade <= EMERGENCY_THRESHOLD[this.level]) {
+		Log.warn(`${this.pos.roomName}: Safe mode unblocked`, 'Controller');
+	}
 	this.memory.safeMode = this.safeMode || 0;
+	this.memory.ticksToDowngrade = this.ticksToDowngrade || 0;
 };
 
 StructureController.prototype.onSafeModeEnter = function () {

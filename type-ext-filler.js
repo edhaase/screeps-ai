@@ -236,7 +236,7 @@ class CreepExtFiller extends Creep {
 
 	getDropoff() {
 		let goal = null;
-		if (this.room.controller.isEmergencyModeActive())
+		if (this.room.controller.isEmergencyModeActive() && !this.room.controller.upgradeBlocked)
 			return this.room.controller;
 		if (this.isCarryingNonEnergyResource()) {
 			goal = this.room.terminal;

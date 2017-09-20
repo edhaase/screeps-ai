@@ -34,12 +34,12 @@ module.exports = {
 			creep.harvestOrMove(source);
 		} break;
 		case 'unload': {
-			let controller = creep.room.controller;
-			if (controller.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || controller.isEmergencyModeActive()) {
+			const {controller} = creep.room;
+			if ((controller.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || controller.isEmergencyModeActive()) && !controller.upgradedBlocked) {
 				if (creep.upgradeLocalController() === ERR_NOT_IN_RANGE)
 					creep.moveTo(creep.room.controller, { range: CREEP_UPGRADE_RANGE });
 			} else {
-				let goal = this.getTarget(
+				const goal = this.getTarget(
 					({ room }) => room.find(FIND_MY_STRUCTURES),
 					function (structure) {
 						if (structure.structureType === STRUCTURE_SPAWN && structure.energyPct < 0.95) return true;
@@ -48,9 +48,7 @@ module.exports = {
 						return false;
 					},
 					(candidates) => this.pos.findClosestByPath(candidates)
-				);
-				if (!goal)
-					goal = controller;
+				) || controller;
 				creep.transferOrMove(goal, RESOURCE_ENERGY);
 			}
 		} break;
