@@ -256,6 +256,8 @@ RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = _.identi
 		maxOps: 16000,
 		roomCallback: r => logisticsMatrix[r]
 	});
+	// if(result.incomplete)
+	//	throw new Error('Path incomplete');
 	let last = _.last(result.path);
 	if (last == null)
 		last = this;
@@ -300,4 +302,11 @@ RoomPosition.prototype.findClosestStorage = function () {
 RoomPosition.prototype.findClosestCreep = function () {
 	return this.findClosestByPathFinder(Game.creeps,
 		(c) => ({ pos: c.pos, range: 1 })).goal;
+};
+
+RoomPosition.prototype.findPositionNear = function(otherPos, range=1, opts) {
+	const {path,incomplete} = PathFinder.search(this, {pos: otherPos, range}, opts);
+	if(incomplete)
+		throw new Error('Unable to find path');
+	return _.last(path);
 };

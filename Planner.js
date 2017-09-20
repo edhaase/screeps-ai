@@ -42,7 +42,7 @@ global.BIT_BUILD_ROAD = (1 << 0); // Enable road building
 // const RANDO_STRUCTURES = [STRUCTURE_LAB, STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_POWER_SPAWN, STRUCTURE_NUKER, STRUCTURE_OBSERVER];
 const RANDO_STRUCTURES = [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_POWER_SPAWN, STRUCTURE_NUKER, STRUCTURE_OBSERVER];
 // const RANDO_STRUCTURES = [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_POWER_SPAWN, STRUCTURE_NUKER];
-
+const MINIMUM_LEVEL_FOR_LINKS = _.findKey(CONTROLLER_STRUCTURES[STRUCTURE_LINK]);
 
 /**
  *
@@ -138,7 +138,7 @@ class FleePlanner {
 	 */
 	mergeCurrentPlan() {
 		var room = Game.rooms[this.origin.roomName];
-		room.find(FIND_SOURCES).forEach(s => this.goals.push({ pos: s.pos, range: 2 }));
+		room.find(FIND_SOURCES).forEach(s => this.goals.push({ pos: s.pos, range: 3 }));
 		room.find(FIND_MINERALS).forEach(s => this.goals.push({ pos: s.pos, range: 2 }));
 		room.find(FIND_NUKES).forEach(s => this.goals.push({ pos: s.pos, range: 2 }));
 		room.find(FIND_EXIT).forEach(exit => this.goals.push({ pos: exit, range: 5 }));
@@ -329,8 +329,12 @@ class BuildPlanner {
 		// Then build other stuff
 		this.placeRamparts(room);
 		// this.placeRampartsOnWalls(room); // Really a waste of energy over a second layer of wall
-		if (level >= 3)
+		if (level >= 3) {
 			this.buildSourceRoads(room, pos, room.controller.level === 3);
+			this.buildControllerWall(pos, room.controller);
+		}
+		if (level >= MINIMUM_LEVEL_FOR_LINKS)
+			this.buildLinks(pos,level);
 		this.findRoadMisplacements(room).invoke('destroy').commit();
 		// if(level >= 3)
 		//	this.exitPlanner(room.name, {commit: true});
@@ -343,6 +347,39 @@ class BuildPlanner {
 				this.planRoad(room.terminal.pos, { pos: mineral.pos, range: 1 }, { rest: true, initial: true, container: true });
 		}
 		return OK;
+	}
+
+	/**
+	 * Plan for links
+	 */
+	static buildLinks(origin, level = MINIMUM_LEVEL_FOR_LINKS) {
+		if (!origin)
+			throw new Error('Expects origin point');
+		const room = Game.rooms[origin.roomName];
+		if (!room)
+			throw new Error('Room must be visible');
+		Log.debug(`Building links from ${origin} for level ${level}`, 'Planner');
+		const { controller, sources } = room;
+		// controller first
+		let status = controller.planLink(3);
+		Log.debug(`${room.name}: Plan controller link: ${status}`, 'Planner');
+		if (status === OK)
+			return;
+		// now sources
+		for (var s = 0; s < sources.length; s++) {
+			status = sources[s].planLink();
+			Log.debug(`${room.name}: Plan source ${sources[s].id} link: ${status}`, 'Planner');
+			if (status === OK)
+				return;
+		}
+	}
+
+	/**
+	 * @param {*} origin
+	 * @param {*} controller
+	 */
+	static buildControllerWall(origin, controller) {
+
 	}
 
 	/**
@@ -855,56 +892,6 @@ class BuildPlanner {
 		console.log('Used: ' + used);
 		console.log('Count: ' + count);
 		return rtn;
-	}
-
-
-	/**
-	 * Generation 1 very, very rough extension placer.
-	 */
-	static placeExtensions(startPos, limit = 250) {
-		var room = Game.rooms[startPos.roomName];
-		var visual = (room) ? room.visual : (new RoomVisual(startPos.roomName));
-		var ext = room.find(FIND_MY_STRUCTURES, { filter: s => s.structureType === STRUCTURE_EXTENSION });
-		var cext = _.size(ext);
-		var aext = CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][room.controller.level];
-
-		if (aext <= cext) {
-			Log.warn('All extensions built');
-			return;
-		}
-
-		var points = this.floodFill(startPos, {
-			limit: limit,
-			oddeven: true,
-			visualize: true,
-			validator: (pos) => Game.map.getTerrainAt(pos) !== 'wall' && !pos.hasObstacle()
-		});
-
-		// _.remove(points, p => p.inRangeTo(startPos,1) || p.hasObstacle());
-		_.remove(points, p => p.inRangeTo(startPos, 1));
-
-		console.log("Available extensions: " + aext);
-		console.log("Current extensions: " + cext);
-		console.log('Take: ' + ((aext - cext) * 2));
-		// points = _.take(points, (aext-cext)*2);
-		var need = (aext - cext);
-
-		console.log('Planner points: ' + points);
-		_.each(points, function (p) {
-			if (need <= 0)
-				return;
-			var tog = (p.x + p.y) % 2;
-			if (tog) {
-				if (p.hasStructure(STRUCTURE_EXTENSION))
-					return;
-				visual.circle(p, { fill: 'yellow' });
-				if (p.createConstructionSite(STRUCTURE_EXTENSION) === OK)
-					need--;
-			} else {
-				visual.circle(p, { fill: 'grey' });
-				p.createConstructionSite(STRUCTURE_ROAD);
-			}
-		});
 	}
 
 	/**

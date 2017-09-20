@@ -435,6 +435,25 @@ RoomObject.prototype.getLink = function(range=2) {
 };
 
 /**
+ * Create a link for a given object
+ */
+RoomObject.prototype.planLink = function(range=2) {
+	if(this.getLink(range) != null)
+		return ERR_FULL;
+	const origin = this.room.getOrigin().pos;
+	if(!origin)
+		throw new Error('Origin expected');
+	const pos = origin.findPositionNear(this.pos, range, {
+		plainSpeed: 2,
+		swampSpeed: 5,
+		roomCallback: (r) => logisticsMatrix[r]
+	});
+	Log.debug(`Adding link to ${pos} for ${this}`, 'Planner');
+	this.room.addToBuildQueue(pos, STRUCTURE_LINK);
+	return OK;
+};
+
+/**
  * Resource extensions
  */
 defineCachedGetter(Resource.prototype, 'decay', ({ amount }) => Math.ceil(amount / ENERGY_DECAY));

@@ -20,32 +20,6 @@ Source.prototype.getHarvestPartsGoal = function () {
 };
 
 /**
- *
- */
-Source.prototype.planLink = function () {
-	const { path, ops, incomplete } = PathFinder.search(this.pos, { pos: this.pos, range: 2 }, {
-		flee: true,
-		maxRooms: 1,
-		roomCallback: (r) => {
-			console.log('cb: ' + r);
-			var cm = new CostMatrix.FixedObstacleMatrix(r);
-			cm.applyInRadius((x, y) => {
-				if (Game.map.getTerrainAt(x, y, this.pos.roomName) === 'wall' || this.room.getPositionAt(x, y).hasObstacle())
-					cm.set(x, y, 255);
-				else
-					cm.set(x, y, 2);
-			}, this.pos.x, this.pos.y, 2);
-			cm.draw(this.pos.roomName);
-			// cm.setRoad();
-			return cm;
-		}
-	});
-	console.log(`${ops} ${incomplete}`);
-	console.log(ex(path));
-	this.room.visual.poly(path);
-};
-
-/**
  * Double layer cache?
  */
 /* defineCachedGetter(Source.prototype, 'container', function(source) {
