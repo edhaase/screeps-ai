@@ -683,3 +683,10 @@ StructureController.prototype.activateSafeMode = function() {
 		return ERR_BUSY;
 	return activateSafeMode.call(this);
 };
+
+/**
+ * Override room object get link with a higher default range
+ */
+StructureController.prototype.getLink = function(range=3) {
+	return RoomObject.prototype.getLink.call(this,range);
+};

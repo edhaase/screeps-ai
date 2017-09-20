@@ -425,6 +425,16 @@ RoomObject.prototype.canUseBits = function () {
 };
 
 /**
+ * Checks for a link in range
+ */
+RoomObject.prototype.getLink = function(range=2) {
+	const links = this.pos.findInRange(FIND_MY_STRUCTURES, range, {filter: {structureType: STRUCTURE_LINK}});
+	if(!_.isEmpty(links))
+		return links[0];
+	return null;
+};
+
+/**
  * Resource extensions
  */
 defineCachedGetter(Resource.prototype, 'decay', ({ amount }) => Math.ceil(amount / ENERGY_DECAY));
