@@ -77,7 +77,7 @@ StructureTerminal.prototype.run = function () {
 			this.defer(3);
 		} */
 	} catch (e) {
-		Log.error('Error in terminal ' + this.pos.roomName);
+		Log.error(`Error in terminal ${this.pos.roomName}`, 'Terminal');
 		Log.error(e.stack);
 	}
 };
@@ -438,6 +438,7 @@ StructureTerminal.prototype.send = function (resourceType, amount, destination, 
 	if (this.busy)
 		return ERR_BUSY;
 	const status = send.apply(this, arguments);
+	Log.debug(`${this.pos.roomName} sending ${amount} ${resourceType} to ${destination}, status ${status}`, 'Terminal');
 	if (status === OK)
 		this.busy = true;
 	return status;
@@ -489,12 +490,6 @@ StructureTerminal.prototype.sendAllEnergy = function (dest) {
 	if (amt < TERMINAL_MIN_SEND)
 		return ERR_NOT_ENOUGH_RESOURCES;
 	return this.send(RESOURCE_ENERGY, amt, dest, 'Resource transfer');
-};
-
-// log(0.1 * dist + 0.9)
-// c <= amt * fee?
-StructureTerminal.prototype.getMaxDistance = function (amt) {
-
 };
 
 /**
