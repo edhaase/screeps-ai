@@ -10,8 +10,9 @@ global.LINK_AUTOBALANCE_THRESHOLD = 100; // Amount of energy over in-network ave
 global.BIT_LINK_RECEIVE_ONLY = (1 << 1);
 
 defineCachedGetter(Room.prototype, 'links', function() {
-	if(this.cache.links == null) {
+	if(this.cache.links == null || Game.time - this.cache.tick > 10) {
 		this.cache.links = this.find(FIND_MY_STRUCTURES, {filter: s => s.structureType === STRUCTURE_LINK}).map(s => s.id);
+		this.cache.tick = Game.time;
 	}
 	return _.map(this.cache.links, l => Game.getObjectById(l));
 });
