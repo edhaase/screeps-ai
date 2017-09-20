@@ -36,7 +36,7 @@ StructureLink.prototype.run = function () {
 	var diff = Math.floor(this.energy - avgInNetwork);
 	if (diff < LINK_AUTOBALANCE_THRESHOLD)
 		return;
-	var target = this.pos.findClosestByRange(this.room.links, { filter: t => t.energy < avgInNetwork && !t.isReceiving });
+	var target = this.pos.findClosestByRange(this.room.links, { filter: t => t && t.energy < avgInNetwork && !t.isReceiving });
 	if (!target)
 		return;
 	var amt = Math.clamp(0, Math.ceil(diff), LINK_CAPACITY - target.energy);
