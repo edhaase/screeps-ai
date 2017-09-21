@@ -56,7 +56,6 @@ Creep.prototype.getAllActiveBodyparts = function () {
 /**
  * Replaces the built-in getActiveBodyparts, which uses _.filter
  * with a faster version.
- * 2017-02-06: Broken by code update.
  */
 Creep.prototype.getActiveBodyparts = function (type) {
 	var count = 0;

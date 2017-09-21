@@ -91,11 +91,11 @@ class ReserveState extends FSM.State {
 		let status = OK;
 
 		try {
-			if (target.pos.inRangeTo(target.room.controller, 3)
+			if (target.pos.inRangeTo(target.room.controller, 1)
 				&& target.room.controller.owner
 				&& target.room.controller.owner.username
 				&& !target.room.controller.my
-				&& target.getActiveBodyparts(CLAIM) >= 5)
+				&& target.hasActiveBodypart(CLAIM))
 				return target.attackController(target.room.controller);
 
 			if ((status = target.reserveController(target.room.controller)) != OK) {
