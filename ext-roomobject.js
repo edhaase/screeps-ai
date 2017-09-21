@@ -428,17 +428,15 @@ RoomObject.prototype.canUseBits = function () {
  * Checks for a link in range
  */
 RoomObject.prototype.getLink = function(range=2) {
-	const links = this.pos.findInRange(FIND_MY_STRUCTURES, range, {filter: {structureType: STRUCTURE_LINK}});
-	if(!_.isEmpty(links))
-		return links[0];
-	return null;
+	const [link] = this.pos.findInRange(FIND_MY_STRUCTURES, range, {filter: {structureType: STRUCTURE_LINK}});
+	return link;
 };
 
 /**
  * Create a link for a given object
  */
-RoomObject.prototype.planLink = function(range=2) {
-	if(this.getLink(range) != null)
+RoomObject.prototype.planLink = function(range=1,adjust=2) {
+	if(this.getLink(range+1) != null)
 		return ERR_FULL;
 	const origin = this.room.getOrigin().pos;
 	if(!origin)
@@ -447,7 +445,7 @@ RoomObject.prototype.planLink = function(range=2) {
 		plainSpeed: 2,
 		swampSpeed: 5,
 		roomCallback: (r) => logisticsMatrix[r]
-	});
+	}, adjust);
 	Log.debug(`Adding link to ${pos} for ${this}`, 'Planner');
 	this.room.addToBuildQueue(pos, STRUCTURE_LINK);
 	return OK;

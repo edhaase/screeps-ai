@@ -304,9 +304,9 @@ RoomPosition.prototype.findClosestCreep = function () {
 		(c) => ({ pos: c.pos, range: 1 })).goal;
 };
 
-RoomPosition.prototype.findPositionNear = function(otherPos, range=1, opts) {
+RoomPosition.prototype.findPositionNear = function(otherPos, range=1, opts, offset=2) {
 	const {path,incomplete} = PathFinder.search(this, {pos: otherPos, range}, opts);
 	if(incomplete)
 		throw new Error('Unable to find path');
-	return _.last(path);
+	return path[path.length - offset];
 };

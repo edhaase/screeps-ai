@@ -361,10 +361,8 @@ class BuildPlanner {
 		Log.debug(`Building links from ${origin} for level ${level}`, 'Planner');
 		const { controller, sources } = room;
 		// controller first
-		let status = controller.planLink(3);
+		let status = controller.planLink(3,1);
 		Log.debug(`${room.name}: Plan controller link: ${status}`, 'Planner');
-		if (status === OK)
-			return;
 		// now sources
 		for (var s = 0; s < sources.length; s++) {
 			status = sources[s].planLink();
