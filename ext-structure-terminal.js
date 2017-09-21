@@ -55,9 +55,6 @@ StructureTerminal.prototype.run = function () {
 	if (BUCKET_LIMITER || this.cooldown || this.isDeferred())
 		return;
 	try {
-		// 
-		// if(this.room.energyAvailable / this.room.energyCapacityAvailable < 0.25)
-		//	return;
 		if (!(Game.time & 15))
 			this.moderateEnergy();
 		// if(this.moderateEnergy())
@@ -158,7 +155,7 @@ StructureTerminal.prototype.moderateEnergy = function () {
 		return;
 	} */
 
-	const overage = this.store.energy - TERMINAL_RESOURCE_LIMIT;
+	const overage = this.store[RESOURCE_ENERGY] - TERMINAL_RESOURCE_LIMIT;
 	if (overage < 1000)
 		return false;
 
@@ -168,17 +165,17 @@ StructureTerminal.prototype.moderateEnergy = function () {
 		return;
 	}	*/
 
-	const terms = _.filter(Game.structures, s => s.structureType === STRUCTURE_TERMINAL && s.id !== this.id && (s.store.energy + 1000 < TERMINAL_RESOURCE_LIMIT));
+	const terms = _.filter(Game.structures, s => s.structureType === STRUCTURE_TERMINAL && s.id !== this.id && (s.store[RESOURCE_ENERGY] + 1000 < TERMINAL_RESOURCE_LIMIT));
 	if (_.isEmpty(terms)) {
 		Log.warn(`Terminal ${this.pos.roomName} unable to offload ${overage} energy`, "Terminal");
 		return this.sell(RESOURCE_ENERGY, Math.min(overage, TERMINAL_MAX_AUTOSELL), 0.01);
 	}
 	// let best = _.min(terms, 'total');
-	const best = _.max(terms, t => TERMINAL_RESOURCE_LIMIT - t.store.energy);
+	const best = _.max(terms, t => TERMINAL_RESOURCE_LIMIT - t.store[RESOURCE_ENERGY]);
 	if (!(best instanceof StructureTerminal))
 		return false;
-	const amount = Math.min(TERMINAL_RESOURCE_LIMIT - best.store.energy - 1, // Amount we can accept
-		this.store.energy - TERMINAL_RESOURCE_LIMIT);	// Amount we're over.
+	const amount = Math.min(TERMINAL_RESOURCE_LIMIT - best.store[RESOURCE_ENERGY] - 1, // Amount we can accept
+		this.store[RESOURCE_ENERGY] - TERMINAL_RESOURCE_LIMIT);	// Amount we're over.
 	if (amount < 1000)
 		return false;
 	Log.warn(`Terminal ${this.pos.roomName} reaching capacity. Shipping ${amount} energy to ${best.pos.roomName}`);
@@ -455,7 +452,7 @@ StructureTerminal.prototype.getMaximumPayload = function (dest) {
  * How much can we afford to move right now?
  */
 StructureTerminal.prototype.getPayloadWeCanAfford = function (dest) {
-	return Math.floor(this.store.energy / (this.getFee(dest) + 1));
+	return Math.floor(this.store[RESOURCE_ENERGY] / (this.getFee(dest) + 1));
 };
 
 /**
@@ -479,7 +476,7 @@ StructureTerminal.prototype.getCost = function (amt, dest) {
 };
 
 StructureTerminal.prototype.getPayloadCalculation = function (dest) {
-	const amount = Math.floor(this.store.energy / (this.getFee(dest) + 1));
+	const amount = Math.floor(this.store[RESOURCE_ENERGY] / (this.getFee(dest) + 1));
 	const cost = this.getCost(amount, dest);
 	return { amount: amount, cost: cost };
 };
