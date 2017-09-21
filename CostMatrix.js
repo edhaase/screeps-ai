@@ -379,7 +379,7 @@ class LazyMatrixStore {
 		if (target[key] == null || Game.time - target[key].tick > this.maxAge) {
 			// let start = Game.cpu.getUsed();
 			if (Game.rooms[key]) {
-				Log.info(`Creating cost matrix for ${key}`, 'Matrix');
+				Log.info(`Creating cost matrix for ${key} (Tick ${Game.time})`, 'Matrix');
 				// proxy[key] = new LogisticsMatrix(key);
 				proxy[key] = new this.clazz(key);
 			} else {
