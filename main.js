@@ -79,6 +79,7 @@ module.exports.loop = function () {
 	loadModule('ext-structure');
 	loadModule('ext-structure-spawn');
 	loadModule('ext-structure-tower');
+	loadModule('ext-structure-storage');
 	loadModule('ext-structure-link');
 	loadModule('ext-structure-observer');
 	loadModule('ext-structure-controller');

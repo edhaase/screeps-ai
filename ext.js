@@ -127,35 +127,3 @@ StructurePowerBank.prototype.getRangedAttackPartsGoal = function () {
 StructurePowerBank.prototype.getCarryPartsGoal = function () {
 	return Math.ceil(this.power / CARRY_CAPACITY);
 };
-
-/**
- * StructureStorage
- */
-/* StructureStorage.prototype.isActive = function() {
-	return (!this.room.controller || this.room.controller.level >= 4);
-};
-
-StructureStorage.prototype.run = function() {
-	if(Game.time % 5 !== 0 || this.isDeferred())
-		return;
-	if(this.store[RESOURCE_ENERGY] < 25000)
-		Log.warn('[Storage] Storage ' + this.pos.roomName + ' low on energy!');
-	
-	// @todo: If RCL 6 and working terminal and we have other minerals, spawn a filler.
-	this.defer(CREEP_LIFE_TIME * 2);
-	let {terminal} = this.room;
-	if(!terminal)
-		return;
-	let resource = _.findKey(this.store, (amt,key) => amt > 0 && key != RESOURCE_ENERGY);
-	if(!resource)
-		return;
-	let amount = this.store[resource];
-	Log.notify('[Storage] Storage ' + this.pos.roomName + ' excess ' + resource + ', ' + amount);
-	
-	let spawn = this.getClosestSpawn();
-	// @todo: Check if we have one first.
-	if(spawn)
-		spawn.enqueue(Util.RLD([4,CARRY,4,MOVE]), null, {role: 'filler', src: this.id, dest: terminal.id, res: resource, amt: amount})	
-};
-
-*/
