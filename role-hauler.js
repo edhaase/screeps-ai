@@ -91,11 +91,6 @@ class HaulerWalkState extends ScreepsFSM.WalkState {
 			}
 		}
 	}
-
-	// Use logistics matrix. Avoids obstacles and prefers roads
-	/* getCostMatrix(roomName) {
-		return new CostMatrix.LogisticsMatrix(roomName);
-	} */
 }
 
 /**

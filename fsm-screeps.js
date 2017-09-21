@@ -154,7 +154,7 @@ class WalkState extends State {
 	/** overridable method for cost matrix lookups */
 	getCostMatrix(roomName) {
 		// Log.info('Requesting cost matrix for: ' + roomName);
-		let cm = _.get(global, ['logisticsMatrix', roomName]);
+		let cm = LOGISTICS_MATRIX[roomName];
 		if (cm) {
 			// Log.info('found globally cached matrix!');
 			return cm;

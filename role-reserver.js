@@ -46,7 +46,7 @@ class ReserveWalk extends ScreepsFSM.WalkState {
 	// Use logistics matrix. Avoids obstacles and prefers roads
 	// 'Ought to cache this
 	getCostMatrix(roomName) {
-		return new CostMatrix.LogisticsMatrix(roomName);
+		return LOGISTICS_MATRIX[roomName];
 	}
 }
 

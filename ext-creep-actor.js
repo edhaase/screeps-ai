@@ -385,9 +385,6 @@ Creep.prototype.flee = function (min = MINIMUM_SAFE_FLEE_DISTANCE, all = false, 
 		maxRooms: 1
 	};
 
-	// let cM = (cm)?cm:(new CostMatrix.ArenaMatrix(this.room.name));
-	// opts.roomCallback = (r) => cm;
-	// opts.roomCallback = (r) => logisticsMatrix[this.room.name];
 	opts.roomCallback = (r) => Game.rooms[r] ? Game.rooms[r].fleeMatrix : ARENA_MATRIX;
 	const { path } = PathFinder.search(this.pos, b, opts);
 	if (!path || path.length <= 0) {
@@ -444,7 +441,7 @@ Creep.prototype.moveToRoom = function (roomName) {
 		range: 20,
 		ignoreRoads: this.plainSpeed === this.roadSpeed,
 		ignoreCreeps: (this.memory.stuck || 0) < 3,
-		costCallback: (name, cm) => logisticsMatrix[name]
+		costCallback: (name, cm) => LOGISTICS_MATRIX[name]
 	});
 };
 

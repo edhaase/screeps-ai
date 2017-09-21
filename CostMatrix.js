@@ -369,13 +369,19 @@ class LazyPropertyFactory {
 /* eslint-disable class-methods-use-this */
 const MAX_CACHE_COSTMATRIX_AGE = 5;
 class LazyMatrixStore {
+	constructor(clazz, maxAge=MAX_CACHE_COSTMATRIX_AGE) {
+		this.clazz = clazz;
+		this.maxAge = maxAge;
+	}
+
 	get(target, key, proxy) {
 		Log.debug(`Requesting cost matrix for ${key}`, 'Matrix');
-		if (target[key] == null || Game.time - target[key].tick > MAX_CACHE_COSTMATRIX_AGE) {
+		if (target[key] == null || Game.time - target[key].tick > this.maxAge) {
 			// let start = Game.cpu.getUsed();
 			if (Game.rooms[key]) {
-				Log.debug(`Creating cost matrix for ${key}`, 'Matrix');
-				proxy[key] = new LogisticsMatrix(key);
+				Log.info(`Creating cost matrix for ${key}`, 'Matrix');
+				// proxy[key] = new LogisticsMatrix(key);
+				proxy[key] = new this.clazz(key);
 			} else {
 				// console.log('Loading obstacle matrix for ' + key);
 				// Log.debug(`Loading cost matrix for ${key} from memory`, 'Matrix');
@@ -397,10 +403,8 @@ class LazyMatrixStore {
 	}
 }
 /* eslint-enable class-methods-use-this */
-
-// global.logisticsMatrix = new Proxy({}, new LazyPropertyFactory( rn => (Game.rooms[rn])?new CostMatrix.LogisticsMatrix(rn):null ) );
-global._logisticsMatrix = {};
-global.logisticsMatrix = new Proxy(_logisticsMatrix, new LazyMatrixStore);
+global.LOGISTICS_MATRIX = new Proxy({}, new LazyMatrixStore(LogisticsMatrix));
+global.FIXED_OBSTACLE_MATRIX = new Proxy({}, new LazyMatrixStore(FixedObstacleMatrix,30));
 
 module.exports = {
 	CostMatrix: CostMatrix,			// base class

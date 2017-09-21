@@ -41,7 +41,7 @@ Creep.prototype.getPathTo = function(pos,range=1,opts={}) {
 			plainCost: this.plainSpeed,
 			swampCost: this.swampSpeed,
 			maxCost: this.ticksToLive,
-			roomCallback: r => logisticsMatrix[r],
+			roomCallback: r => LOGISTICS_MATRIX[r],
 			maxOps: 32000,
 			maxRooms: opts.maxRooms || 16,		
 			// roomCallback: (roomName) => ((opts.avoid || []).includes(roomName))?false:this.getCostMatrix(roomName)

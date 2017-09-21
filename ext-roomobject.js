@@ -441,14 +441,20 @@ RoomObject.prototype.planLink = function(range=1,adjust=2) {
 	const origin = this.room.getOrigin().pos;
 	if(!origin)
 		throw new Error('Origin expected');
-	const pos = origin.findPositionNear(this.pos, range, {
-		plainSpeed: 2,
-		swampSpeed: 5,
-		roomCallback: (r) => logisticsMatrix[r]
-	}, adjust);
-	Log.debug(`Adding link to ${pos} for ${this}`, 'Planner');
-	this.room.addToBuildQueue(pos, STRUCTURE_LINK);
-	return OK;
+	try {
+		const pos = origin.findPositionNear(this.pos, range, {
+			plainSpeed: 2,
+			swampSpeed: 5,
+			roomCallback: (r) => FIXED_OBSTACLE_MATRIX[r]
+		}, adjust);
+		Log.debug(`Adding link to ${pos} for ${this}`, 'Planner');
+		this.room.addToBuildQueue(pos, STRUCTURE_LINK);
+		return OK;
+	} catch(e) {
+		Log.error(`Error planning link for ${this} at ${this.pos}`, 'RoomObject');
+		Log.error(e.stack);
+		return ERR_NO_PATH;
+	}
 };
 
 /**

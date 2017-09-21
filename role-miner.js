@@ -46,7 +46,7 @@ module.exports = {
 				return creep.moveTo(dest, {
 					reusePath: 25,
 					range: 1,
-					costCallback: (name, cm) => logisticsMatrix[name],
+					costCallback: (name, cm) => LOGISTICS_MATRIX[name],
 					ignoreCreeps: ((creep.memory.stuck < 3) ? ignoreCreeps : false)
 				});
 			}

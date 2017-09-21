@@ -335,7 +335,7 @@ class CreepExtFiller extends Creep {
 		// opts.maxCost = this.ticksToLive;
 		if (this.memory.stuck > 3)
 			opts.ignoreCreeps = false;
-		opts.costCallback = r => logisticsMatrix[r];
+		opts.costCallback = r => LOGISTICS_MATRIX[r];
 		if (goal instanceof StructureController)
 			opts.range = 3;
 		opts.maxRooms = 1;

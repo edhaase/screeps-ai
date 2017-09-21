@@ -231,11 +231,11 @@ RoomPosition.prototype.getStepsTo = function (dest, opts = {}) {
 		swampCost: 5
 	});
 	if (!opts.roomCallback)
-		opts.roomCallback = r => new CostMatrix.LogisticsMatrix(r);
-	const search = PathFinder.search(this, dest, opts);
-	if (!search)
+		opts.roomCallback = r => LOGISTICS_MATRIX[r];
+	const {path,incomplete} = PathFinder.search(this, dest, opts);
+	if (incomplete)
 		return ERR_NO_PATH;
-	return search.path.length;
+	return path.length;
 };
 
 /**
@@ -254,7 +254,7 @@ RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = _.identi
 		return { goal: null };
 	const result = PathFinder.search(this, mapping, {
 		maxOps: 16000,
-		roomCallback: r => logisticsMatrix[r]
+		roomCallback: r => FIXED_OBSTACLE_MATRIX[r]
 	});
 	// if(result.incomplete)
 	//	throw new Error('Path incomplete');
