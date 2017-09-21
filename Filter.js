@@ -35,15 +35,6 @@ module.exports = {
 		;
 	},
 
-	storedResources: function (s) {
-		return ((s.structureType === STRUCTURE_CONTAINER && _.sum(s.store) > 0)
-			// Don't take from links, leave that to others? We're wasting energy triggering exces balances
-			// || ((s.structureType == STRUCTURE_LINK) && s.energy > 50)
-			// || ((s.structureType == STRUCTURE_TERMINAL) && s.store.energy > 10000)
-			|| ((s.structureType === STRUCTURE_STORAGE) && _.sum(s.store) > 0 && ((s.room.energyAvailable / s.room.energyCapacityAvailable) < 0.5))
-		);
-	},
-
 	loadedTower: s => s.structureType === STRUCTURE_TOWER && s.energy > TOWER_ENERGY_COST,
 
 	/**
