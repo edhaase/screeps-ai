@@ -7,6 +7,8 @@
 
 const Arr = require('Arr');
 
+const MAX_RCL_UPGRADER_SIZE = UNIT_COST([MOVE, MOVE, MOVE, CARRY]) + BODYPART_COST[WORK] * CONTROLLER_MAX_UPGRADE_PER_TICK * UPGRADE_CONTROLLER_POWER;
+
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/from
 // Unit.Body.from([WORK,CARRY,MOVE]).sort() -- confirmed to work
 class Body extends Array {
@@ -120,19 +122,19 @@ module.exports = {
 	/**
 	 * Biggest we can! Limit to 15 work parts
 	 * requestUpgrader(firstSpawn,1,5,49)
-	 */
+	 */	
 	requestUpgrader: function (spawn, home, priority = 3, max = 2500) {
 		var body = [];
 		// energy use is  active work * UPGRADE_CONTROLLER_POWER, so 11 work parts is 11 ept, over half a room's normal production
-
-		if (spawn.room.controller.level <= 2) {
+		const {controller,storage} = spawn.room;
+		if (controller.level <= 2) {
 			body = [CARRY, MOVE, WORK, WORK];
 		} else {
-			if (_.get(spawn.room, 'storage.store.energy', 0) < 100000) {
+			if( storage && (storage.store[RESOURCE_ENERGY] || 0) < storage.reserve) {
 				max = Math.min(BODYPART_COST[WORK] * 10, max); // Less than 20 ept.
 			}
-			if (spawn.room.controller.level === MAX_ROOM_LEVEL)
-				max = UNIT_COST([MOVE, MOVE, MOVE, CARRY]) + BODYPART_COST[WORK] * CONTROLLER_MAX_UPGRADE_PER_TICK * UPGRADE_CONTROLLER_POWER;
+			if (controller.level === MAX_ROOM_LEVEL)
+				max = Math.min(max, MAX_RCL_UPGRADER_SIZE);
 			// Ignore top 20% of spawn energy (might be in use by renewels)
 			var avail = Math.clamp(250, spawn.room.energyCapacityAvailable - (SPAWN_ENERGY_CAPACITY * 0.20), max);
 			var count = Math.floor((avail - 300) / BODYPART_COST[WORK]);

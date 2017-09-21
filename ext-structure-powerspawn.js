@@ -22,12 +22,12 @@ StructurePowerSpawn.prototype.run = function () {
 };
 
 // @todo: Size to power spawn available capacity.
+const MINIMUM_STOCK_FOR_POWER_PROCCESSING = 0.10;
 StructurePowerSpawn.prototype.runReload = function () {
-	const storedEnergy = _.get(this.room, 'storage.store.energy', 0);
-	const {terminal} = this.room;
-	// let storedPower =_.get(this.room, ['terminal.store', RESOURCE_POWER], 0);
+	const {terminal,storage} = this.room;
+	const energyStock = _.get(this.room, ['storage', 'stock'], 0);
 	const storedPower = _.get(this.room, ['terminal', 'store', RESOURCE_POWER], 0);
-	if (storedEnergy > 10000 && storedPower > 0) {
+	if (terminal && energyStock >= MINIMUM_STOCK_FOR_POWER_PROCCESSING && storedPower > 0) {
 		const spawn = this.getClosestSpawn();
 		const amt = Math.min(storedPower, this.powerCapacity - this.power);
 		const carry = Math.ceil(amt / CARRY_CAPACITY);

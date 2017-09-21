@@ -33,10 +33,4 @@ Object.defineProperty(StructureStorage.prototype, 'reserve', {
 });
 
 // Sliding scale - Possibly exponential decay at lower levels
-Object.defineProperty(StructureStorage.prototype, 'stock', {
-	get: function() {
-		return (this.store[RESOURCE_ENERGY] || 0) / this.reserve;
-	},
-	configurable: true,
-	enumerable: false
-});
+defineCachedGetter(StructureStorage.prototype, 'stock', (s) => (s.store[RESOURCE_ENERGY] || 0) / s.reserve);

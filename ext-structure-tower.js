@@ -16,6 +16,7 @@
  */
 "use strict";
 
+const TOWER_MINIMUM_RESERVE = 0.75;
 // global.TOWER_DAMAGE_EFFECT = [600,600,600,600,600,600,570,540,510,480,450,420,390,360,330,300,270,240,210,180,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150];
 // global.TOWER_REPAIR_EFFECT = [800,800,800,800,800,800,760,720,680,640,600,560,520,480,440,400,360,320,280,240,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200];
 // global.TOWER_HEAL_EFFECT = [400,400,400,400,400,400,380,360,340,320,300,280,260,240,220,200,180,160,140,120,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100];
@@ -38,22 +39,12 @@ StructureTower.prototype.run = function () {
 		return;
 	if (this.runAttack())
 		return;
-	if (this.energyPct > 0.75) {
+	if (this.energyPct > TOWER_MINIMUM_RESERVE) {
 		// if(this.runHeal() || this.runRepair())
 		if (this.runHeal())
 			return;
 		this.runRepair();
 	}
-	// if(this.energyPct > 0.75 && this.runHeal())
-	//	return;			
-	// if(!CPU_LIMITER && this.energyPct > 0.85)
-	// if(this.energyPct > 0.85 && !CPU_LIMITER
-	//)// && this.room.storage && this.room.storage.store.energy > 50000) // Otherwise we'll starve extensions.
-	//	this.runRepair();
-	// If we didn't attack or heal, but ran repairs, defer for a random period.
-	// this.defer(_.random(2,7));
-
-	// Longer repair runs mean longer naps
 	this.defer(_.random(7, 16));
 };
 
@@ -159,7 +150,7 @@ StructureTower.prototype.delayNextRepair = function () {
 };
 
 StructureTower.prototype.getRepairTarget = function () {
-	if (this.room.storage && this.room.storage.store.energy > 200000)
+	if (this.room.storage && this.room.storage.stock >= 1.0)
 		return this.room.findWeakestStructure(REPAIR_LIMIT[this.room.controller.level]);
 	else
 		return this.room.findWeakestStructure(20000 * this.room.controller.level);
