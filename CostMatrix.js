@@ -226,10 +226,10 @@ class FixedObstacleMatrix extends CostMatrix {
 			return;
 		// don't forget enemy non-public ramparts!
 		room
-			.find(FIND_STRUCTURES, { filter: s => OBSTACLE_OBJECT_TYPES.includes(s.structureType) })
+			.find(FIND_STRUCTURES, { filter: require('Filter').isObstacle })
 			.forEach(s => this.set(s.pos.x, s.pos.y, 0xFF));
 		room
-			.find(FIND_MY_CONSTRUCTION_SITES, { filter: s => OBSTACLE_OBJECT_TYPES.includes(s.structureType) })
+			.find(FIND_MY_CONSTRUCTION_SITES, { filter: require('Filter').isObstacle })
 			.forEach(s => this.set(s.pos.x, s.pos.y, 0xFF));
 
 		// Disable while SK mining, until we find a better way.

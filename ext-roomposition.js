@@ -186,8 +186,8 @@ RoomPosition.prototype.hasConstructionSite = function (structureType) {
 };
 
 RoomPosition.prototype.hasObstacle = function () {
-	return _.any(this.lookFor(LOOK_STRUCTURES), s => OBSTACLE_OBJECT_TYPES.includes(s.structureType))
-		|| _.any(this.lookFor(LOOK_CONSTRUCTION_SITES), s => OBSTACLE_OBJECT_TYPES.includes(s.structureType));
+	return _.any(this.lookFor(LOOK_STRUCTURES), require('Filter').isObstacle)
+		|| _.any(this.lookFor(LOOK_CONSTRUCTION_SITES), require('Filter').isObstacle);
 };
 
 RoomPosition.prototype.hasCreep = function () {
