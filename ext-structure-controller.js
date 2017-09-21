@@ -484,7 +484,6 @@ StructureController.prototype.getAssistingSpawn = function () {
 	return this.getTarget(
 		() => _.filter(Game.spawns, s => s.pos.roomName !== this.pos.roomName && Game.map.getRoomLinearDistance(s.pos.roomName, this.pos.roomName) <= 2),
 		(candidate) => candidate.room.energyCapacityAvailable > this.room.energyCapacityAvailable && !candidate.isDefunct(),
-		// (candidates) => this.wpos.findClosestByRange(candidates)
 		(candidates) => this.pos.findClosestByPathFinder(candidates, (c) => ({ pos: c.pos, range: 1 })).goal
 	);
 };
