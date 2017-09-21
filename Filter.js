@@ -61,16 +61,14 @@ module.exports = {
 	canReceiveEnergy: function (thing) {
 		if (!thing.my)
 			return 0;
-		if (thing instanceof Creep) {
+		if (thing instanceof Creep)
 			return 1.0 - (thing.carryTotal / thing.carryCapacity);
-		} else {
-			if (thing.energy != null)
-				return (1.0 - thing.energyPct);
-			else if (thing.store != null)
-				return (1.0 - (thing.storedTotal / thing.storeCapacity));
-			else
-				return 0.0;
-		}
+		else if (thing.energy != null)
+			return (1.0 - thing.energyPct);
+		else if (thing.store != null)
+			return (1.0 - (thing.storedTotal / thing.storeCapacity));
+		else
+			return 0.0;
 	},
 
 	/**
