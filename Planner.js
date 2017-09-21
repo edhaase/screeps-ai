@@ -907,7 +907,7 @@ class BuildPlanner {
 		var start = Game.cpu.getUsed();
 		var structures = room.find(FIND_MY_STRUCTURES, { filter: s => s.structureType !== STRUCTURE_RAMPART });
 		if (!_.any(structures, s => s.structureType === STRUCTURE_TOWER)) {
-			console.log(`No towers in ${room.name}, unable to auto-rampart`);
+			Log.error(`No towers in ${room.name}, unable to auto-rampart`, 'Planner');
 			return ERR_NOT_FOUND;
 		}
 		_.each(structures, function (s) {
@@ -916,12 +916,11 @@ class BuildPlanner {
 			var isRamparted = s.pos.hasRampart();
 			if (isRamparted)
 				return;
-			console.log(s + ' at pos ' + s.pos + ' has rampart: ' + isRamparted);
-			// s.pos.createConstructionSite(STRUCTURE_RAMPART);			
+			Log.debug(`${s} at pos ${s.pos} has rampart: ${isRamparted}`,'Planner');
 			room.addToBuildQueue(s.pos, STRUCTURE_RAMPART);
 		});
 		var used = Game.cpu.getUsed() - start;
-		console.log(`Updating auto-ramparts in ${room.name} took ${used} cpu`);
+		Log.info(`Updating auto-ramparts in ${room.name} took ${used} cpu`, 'Planner');
 		return used;
 	}
 
