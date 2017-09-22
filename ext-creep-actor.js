@@ -157,10 +157,6 @@ Creep.prototype.transferOrMove = function (target, res, amt) {
 	return status;
 };
 
-Creep.prototype.upgradeLocalController = function () {
-	return this.upgradeController(this.room.controller);
-};
-
 /**
  *
  */
@@ -331,11 +327,6 @@ Creep.prototype.dropAny = function () {
 	return ERR_NOT_ENOUGH_RESOURCES;
 };
 
-Creep.prototype.pipe = function (res, src, dst) {
-	this.withdraw(src, res);
-	this.transfer(dst, res);
-};
-
 /**
  * Traveller
  */
@@ -452,33 +443,6 @@ Creep.prototype.buildNearbyCheapStructure = function () {
 	// var target = _.find(sites, s => CONSTRUCTION_COST[s.structureType] <= 1);
 	var target = _.find(sites, s => s.progressTotal - s.progress <= 1);
 	return this.build(target);
-};
-
-// var distanceRate = {1: 1, 2: 0.4, 3: 0.1};
-const distanceRate = [1.0, 1.0, 0.4, 0.1];
-Creep.prototype.getRangedMassAttackPotentialToTarget = function (target, power = RANGED_ATTACK_POWER) {
-	if (!target.hits || target.my)
-		return 0;
-	var range = this.pos.getRangeTo(target);
-	if (range > 3)
-		return 0;
-	if (!(target instanceof StructureRampart) && target.pos.hasRampart())
-		return 0;
-	return power * distanceRate[range]; // || 0);
-};
-
-// Doesn't account for boosts.
-// look calls might be faster.
-Creep.prototype.getRangedMassAttackPotential = function () {
-	var dmg = 0;
-	/* var creeps = this.lookForNear(LOOK_CREEPS,true,3);
-	var structures = this.lookForNear(LOOK_STRUCTURES,true,3);
-	dmg += _.sum(creeps, ({creep}) => this.getRangedMassAttackPotentialToTarget(creep));
-	dmg += _.sum(structures, ({structure}) => this.getRangedMassAttackPotentialToTarget(structure)); */
-	var power = RANGED_ATTACK_POWER * this.getActiveBodyparts(RANGED_ATTACK);
-	dmg += _.sum(this.pos.findInRange(FIND_HOSTILE_CREEPS, 3), c => this.getRangedMassAttackPotentialToTarget(c, power));
-	dmg += _.sum(this.pos.findInRange(FIND_HOSTILE_STRUCTURES, 3), s => this.getRangedMassAttackPotentialToTarget(s, power));
-	return dmg;
 };
 
 /**

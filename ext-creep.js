@@ -13,9 +13,7 @@ defineCachedGetter(Creep.prototype, 'cost', (c) => _.sum(c.body, p => BODYPART_C
 const COST_PER_TICK_PRECISION = 3;
 defineCachedGetter(Creep.prototype, 'cpt', (c) => _.round(c.cost / c.ticksToLiveMax, COST_PER_TICK_PRECISION));
 
-
-// Not cached as this can change mid-tick
-defineGetter(Creep.prototype, 'hitPct', c => c.hits / c.hitsMax);
+defineGetter(Creep.prototype, 'hitPct', c => c.hits / c.hitsMax); // Not cached as this can change mid-tick
 
 defineCachedGetter(Creep.prototype, 'canMove', (c) => c.fatigue === 0);
 defineCachedGetter(Creep.prototype, 'canAttack', (c) => c.hasActiveBodypart(ATTACK));
@@ -137,6 +135,28 @@ Creep.prototype.getUsedCarryParts = function () {
 	return count;
 };
 
+const distanceRate = [1.0, 1.0, 0.4, 0.1];
+Creep.prototype.getRangedMassAttackPotentialToTarget = function (target, power = RANGED_ATTACK_POWER) {
+	if (!target.hits || target.my)
+		return 0;
+	var range = this.pos.getRangeTo(target);
+	if (range > 3)
+		return 0;
+	if (!(target instanceof StructureRampart) && target.pos.hasRampart())
+		return 0;
+	return power * distanceRate[range]; // || 0);
+};
+
+// Doesn't account for boosts.
+// look calls might be faster.
+Creep.prototype.getRangedMassAttackPotential = function () {
+	var dmg = 0;
+	var power = this.calcEffective(RANGED_ATTACK_POWER, RANGED_ATTACK, 'rangedMassAttack');
+	dmg += _.sum(this.pos.findInRange(FIND_HOSTILE_CREEPS, 3), c => this.getRangedMassAttackPotentialToTarget(c, power));
+	dmg += _.sum(this.pos.findInRange(FIND_HOSTILE_STRUCTURES, 3), s => this.getRangedMassAttackPotentialToTarget(s, power));
+	return dmg;
+};
+
 /**
  * The damage this creep can do if we attack.
  */
@@ -145,21 +165,33 @@ Creep.prototype.getAttackPower = function () {
 };
 
 Creep.prototype.getRangedAttackPower = function () {
-	return this.sumActiveBodyparts(
-		({ boost }) => RANGED_ATTACK_POWER * _.get(BOOSTS, [RANGED_ATTACK, boost, 'rangedAttack'], 1),
-		RANGED_ATTACK);
+	return this.calcEffective(RANGED_ATTACK_POWER, RANGED_ATTACK, 'rangedAttack');
 };
 
 Creep.prototype.getRangedHealPower = function () {
-
+	return this.calcEffective(RANGED_HEAL_POWER, HEAL, 'rangedHeal');
 };
 
+Creep.prototype.getHealPower = function () {
+	return this.calcEffective(HEAL_POWER, HEAL, 'heal');
+};
+
+/**
+ * Calculate a creep's effectiveness at a given task, including boosts.
+ *
+ * @param {Number} base - Base power for action (HEAL_POWER)
+ * @param {String} type - Part type (HEAL)
+ * @param {String} method - Intended method (heal, rangedHeal)
+ */
 Creep.prototype.calcEffective = function (base, type, method) {
 	return this.sumActiveBodyparts(({ boost }) => base * _.get(BOOSTS[type], [boost, method], 1), type);
 };
 
+/**
+ * Iterate over active body parts, scoring them and summing a result
+ */
 Creep.prototype.sumActiveBodyparts = function (fn = () => 1, filter = null) {
-	var i, part, body = this.body;
+	var i, part, {body} = this;
 	var total = 0;
 	for (i = body.length - 1; i >= 0; i--) {
 		part = body[i];
@@ -201,28 +233,6 @@ Creep.prototype.isWorthRecycling = function (minReturn = DEFAULT_MINIMUM_RECYCLE
 	return this.ticksToLive >= ((minReturn * this.ticksToLiveMax) + (steps * this.cost)) / this.cost;
 };
 
-Creep.prototype.getHealing = function () {
-	var heal = 0;
-	for (var i = this.body.length - 1; i >= 0; i--) {
-		const part = this.body[i];
-		if (part.hits <= 0) break;
-		if (part.type !== HEAL) continue;
-		heal = heal + HEAL_POWER * (part.boost ? BOOSTS[HEAL][part.boost][HEAL] : 1);
-	}
-	return heal;
-};
-
-Creep.prototype.getRangedHealing = function () {
-	var heal = 0;
-	for (var i = this.body.length - 1; i >= 0; i--) {
-		const part = this.body[i];
-		if (part.hits <= 0) break;
-		if (part.type !== HEAL) continue;
-		heal += RANGED_HEAL_POWER * (part.boost ? BOOSTS[HEAL][part.boost]['rangedHeal'] : 1);
-	}
-	return heal;
-};
-
 defineCachedGetter(Creep.prototype, 'weight', function (creep) {
 	return _.sum(creep.body, p => (p.type !== MOVE && p.type !== CARRY)) + Math.ceil(this.carryTotal / CARRY_CAPACITY);
 });
@@ -251,7 +261,6 @@ Creep.prototype.transferAny = function (target) {
 };
 
 Creep.prototype.isCarryingNonEnergyResource = function () {
-	// return !_(this.carry).omit('energy').isEmpty();
 	return _.any(this.carry, (amt, key) => amt > 0 && key !== RESOURCE_ENERGY);
 };
 

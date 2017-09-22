@@ -36,7 +36,7 @@ module.exports = {
 		case 'unload': {
 			const {controller} = creep.room;
 			if ((controller.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || controller.isEmergencyModeActive()) && !controller.upgradedBlocked) {
-				if (creep.upgradeLocalController() === ERR_NOT_IN_RANGE)
+				if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE)
 					creep.moveTo(creep.room.controller, { range: CREEP_UPGRADE_RANGE });
 			} else {
 				const goal = this.getTarget(
