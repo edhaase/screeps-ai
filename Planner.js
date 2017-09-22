@@ -362,7 +362,7 @@ class BuildPlanner {
 		const { controller, sources } = room;
 		// controller first, leave room at least 1 upgrader at range 3
 		// by parking the link at range 4
-		let status = controller.planLink(3,2);
+		let status = controller.planLink(CREEP_UPGRADE_RANGE,2);
 		Log.debug(`${room.name}: Plan controller link: ${status}`, 'Planner');
 		// now sources
 		for (var s = 0; s < sources.length; s++) {
