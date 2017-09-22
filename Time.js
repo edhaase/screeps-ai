@@ -3,10 +3,11 @@
  */
 "use strict";
 
-// var ticks = 0;
+const CURRENT_TIMEZONE = -7;
+const DEFAULT_TICK_LENGTH_ESTIMATE = 4;
 
 module.exports = {
-	Timezone: -7,
+	Timezone: CURRENT_TIMEZONE,
 	formatter: new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles" }),
 	// avgTick: 3.5,
 
@@ -14,7 +15,7 @@ module.exports = {
 		if (!Memory.stats)
 			Memory.stats = {};
 		if (!Memory.stats.tickLength)
-			Memory.stats.tickLength = 3.5; // Rough estimate
+			Memory.stats.tickLength = DEFAULT_TICK_LENGTH_ESTIMATE; // Rough estimate
 		return Memory.stats.tickLength;
 	},
 
@@ -38,20 +39,20 @@ module.exports = {
 
 	},
 
-	tickDelay: function (ticks) {
-		return ticks * this.getAvgTickLength(); // roughly
+	tickDelay: function (ticks, tickLength = this.getAvgTickLength()) {
+		return ticks * tickLength;
 	},
 
-	secondsToTicks: function (sec) {
-		return Math.ceil(sec / this.getAvgTickLength());
+	secondsToTicks: function (sec, tickLength = this.getAvgTickLength()) {
+		return Math.ceil(sec / tickLength);
 	},
 
-	ticksToSeconds: function (ticks,tickLength=this.getAvgTickLength()) {
-		return ticks *tickLength;
+	ticksToSeconds: function (ticks, tickLength = this.getAvgTickLength()) {
+		return ticks * tickLength;
 	},
 
-	estimate: function (ticks) {
-		var seconds = this.tickDelay(ticks);
+	estimate: function (ticks, tickLength) {
+		var seconds = this.tickDelay(ticks, tickLength);
 		return new Date(
 			Date.now() + 1000 * ((this.Timezone * 3600) + seconds)
 		);
