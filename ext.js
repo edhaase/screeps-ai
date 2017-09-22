@@ -16,20 +16,6 @@ Error.prototype.toString = function () {
 	return ets.apply(this, arguments) + ` (Tick ${Game.time})`;
 };
 
-/**
- *
- */
-Math.runningAvg = function (newest, previous, samples) {
-	var p = previous;
-	if (!previous && previous !== 0)
-		p = newest;
-
-	var n = p;
-	n -= (p / samples);
-	n += (newest / samples);
-	return n;
-};
-
 // Cumulative moving average
 Math.mAvg = function (n, p = n, s = 100, w = 1) {
 	// return p + (n/s) - (p/s);
