@@ -360,8 +360,9 @@ class BuildPlanner {
 			throw new Error('Room must be visible');
 		Log.debug(`Building links from ${origin} for level ${level}`, 'Planner');
 		const { controller, sources } = room;
-		// controller first
-		let status = controller.planLink(3,1);
+		// controller first, leave room at least 1 upgrader at range 3
+		// by parking the link at range 4
+		let status = controller.planLink(3,2);
 		Log.debug(`${room.name}: Plan controller link: ${status}`, 'Planner');
 		// now sources
 		for (var s = 0; s < sources.length; s++) {
