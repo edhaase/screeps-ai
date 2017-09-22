@@ -79,16 +79,17 @@ class Route {
 	 * E58S47,E58S48,E59S48,E60S48,E60S47,E60S46,E60S45,E60S44,E60S43,E60S42,E59S42
 	 */
 	static findRoute(from, to, rs) {
-		let avoid = _.get(Memory, 'routing.avoid', []);
+		Log.debug(`Route.findRoute called for ${from} ${to}`, 'Route');
+		const avoid = _.get(Memory, 'routing.avoid', []);
 		if (_.contains(avoid, to)) {
-			Log.warn('Trying to route to unreachable room ' + from + ' ==> ' + to);
+			Log.warn(`Trying to route to unreachable room ${from} to ${to}`, 'Route');
 			return ERR_NO_PATH;
 		}
 		if (from === to) return [from];	 // if we're not leaving the room, return the same room.	
 		if (!rs || !rs.routeCallback)
 			rs = new RouteScore(to);
-		let route = Game.map.findRoute(from, to, { routeCallback: (a, b) => rs.routeCallback(a, b) });
-		return (route == ERR_NO_PATH) ? ERR_NO_PATH : _.map(route, 'room');
+		const route = Game.map.findRoute(from, to, { routeCallback: (a, b) => rs.routeCallback(a, b) });
+		return (route === ERR_NO_PATH) ? ERR_NO_PATH : _.map(route, 'room');
 	}
 
 	// Wrap pathfinder results in lodash chain for AWESOME STUFF.
