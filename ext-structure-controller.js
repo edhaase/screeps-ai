@@ -344,18 +344,6 @@ StructureController.prototype.runCensus = function () {
 			var elimit = (storedEnergy > 10000) ? Infinity : (10 * numSources);
 			require('Unit').requestBuilder(useSpawn, { elimit, home: roomName, priority: prio });
 		}
-
-		/* && !_.any(useSpawn.getQueue(), j => j.memory.role == 'builder' && j.memory.home == roomName)) {
-			// let builders = _.get(census, 'builder',0) + _.get(pending, 'builder',0);
-			if(buildRemaining && builders < score) {			
-				// Log.info('Requesting new builder at ' + this.room.name);
-				// if(_.all(sites, s => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL))
-				//	require('Unit').requestMicroBuilder(assistingSpawn || spawn,roomName);
-				// else
-				prio = 100 - Math.ceil(100 * (builders / score));
-				require('Unit').requestBuilder(useSpawn,{home:roomName,priority:prio} );
-			} 
-		} */
 	}
 
 	// let scavNeed = 4;

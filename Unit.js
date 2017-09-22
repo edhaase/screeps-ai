@@ -58,13 +58,6 @@ global.Body = Body;
 module.exports = {
 	Body: Body,
 
-	/**
-	 * Bulk role change
-	 */
-	bulkRoleChange: function (from, to) {
-		return _.each(_.filter(Game.creeps, 'memory.role', from), c => c.memory.role = to);
-	},
-
 	listAges: () => _.map(Game.creeps, c => Game.time - c.memory.born),
 	oldestCreep: () => _.max(Game.creeps, c => Game.time - c.memory.born),
 
@@ -84,15 +77,6 @@ module.exports = {
 			}
 		});
 	},
-
-	/**
-     * Sums up the part cost to build a thing
-     */
-	cost: _.memoize(function cost(parts) {
-		return _.sum(parts, part => BODYPART_COST[part]);
-	}),
-
-	livingCost: c => _.sum(c.body, part => BODYPART_COST[part.type]),
 
 	sort: body => _.sortBy(body, p => _.indexOf([TOUGH, MOVE, WORK, CARRY, ATTACK, RANGED_ATTACK, HEAL, CLAIM], p)),
 
@@ -157,13 +141,6 @@ module.exports = {
 		return spawn.enqueue(Util.RLD([9, WORK, 19, MOVE, 1, CARRY, 3, RANGED_ATTACK, 13, ATTACK, 4, HEAL, 1, MOVE]), // Cost: 4440
 			null,
 			memory, 1, 1, 1, 200);
-	},
-
-	requestMicroBuilder: function (spawn, roomName) {
-		// WCM creep only generates fatigue when carrying resource.
-		// return trip is fine.
-		return spawn.enqueue([WORK, CARRY, MOVE, MOVE], null, { home: roomName, role: 'builder' });
-		// return this.requestBuilder(spawn, {body:[WORK,CARRY,MOVE,MOVE]} )
 	},
 
 	/**
@@ -400,11 +377,6 @@ module.exports = {
 			return "Must specify flag";
 
 		return spawn.enqueue(body, null, { role: 'guard', site: flag, home: spawn.pos.roomName }, 100);
-	},
-
-	// works for everything except role# roles.
-	recovery: function () {
-		_.each(Game.creeps, c => c.memory.role = c.name.replace(/[0-9]/g, ''));
-	}
+	}	
 
 };
