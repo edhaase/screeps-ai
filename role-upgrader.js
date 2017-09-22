@@ -57,8 +57,9 @@ module.exports = {
 
 		if (Game.time % 3 || creep.carry[RESOURCE_ENERGY] / creep.carryCapacity > 0.75)
 			return;
+		// +1 to range for providers, in case we opt to park them in less obtrusive spots.
 		const provider = this.getTarget(
-			() => _.map(controller.lookForNear(LOOK_STRUCTURES, true, CREEP_UPGRADE_RANGE), LOOK_STRUCTURES),
+			() => _.map(controller.lookForNear(LOOK_STRUCTURES, true, CREEP_UPGRADE_RANGE+1), LOOK_STRUCTURES),
 			(c) => Filter.canProvideEnergy(c)
 		);
 		if (!provider)
