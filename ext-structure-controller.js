@@ -314,9 +314,9 @@ StructureController.prototype.runCensus = function () {
 					prio = 1;
 				// Log.warn(`Requesting miner to ${pos} from ${spawn.pos.roomName} priority ${prio}`);
 				if (energyCapacityAvailable < 600)
-					Mining.requestMiner(assistingSpawn || spawn, pos, prio);
+					require('Unit').requestMiner(assistingSpawn || spawn, pos, prio);
 				else
-					Mining.requestMiner(spawn || assistingSpawn, pos, prio);
+					require('Unit').requestMiner(spawn || assistingSpawn, pos, prio);
 			}
 		});
 	}

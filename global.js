@@ -584,14 +584,6 @@ global.storage = function () {
 	console.log(Log.table(headers, rows));
 };
 
-global.remoteMine = function (roomName) {
-	if (!Game.rooms[roomName])
-		return wroom(roomName, (room) => remoteMine(room.name));
-	let room = Game.rooms[roomName];
-	room.createFlag(room.controller.pos, FLAG_MILITARY, STRATEGY_RESERVE);
-	Mining.flagSites(roomName);
-};
-
 /**
  *
  */

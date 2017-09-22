@@ -71,7 +71,7 @@ StructureExtractor.prototype.run = function() {
 	
 	var spawn = this.getClosestSpawn();	
 	if(spawn && mineral && container && !this.room.hostiles.length) {
-		Mining.requestMineralHarvester(spawn, mineral.id, container.id, (MAX_CREEP_SPAWN_TIME*2)-1);
+		require('Unit').requestMineralHarvester(spawn, mineral.id, container.id, (MAX_CREEP_SPAWN_TIME*2)-1);
 	}
 	this.defer(MAX_CREEP_SPAWN_TIME * 2); // margin of error
 };

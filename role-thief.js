@@ -39,7 +39,7 @@ module.exports = function (creep) {
 	var structure = this.getUniqueTarget(
 		() => goalRoom.find(ttype, { filter: s => s.structureType !== STRUCTURE_NUKER }),
 		() => _(Game.creeps).filter(c => c.memory.tid).map('memory.tid').value(),
-		(s) => (s.energy > 0 || s.storedTotal > 0) && !s.pos.hasRampart(),
+		(s) => (s.energy > 1 || s.storedTotal > 1) && !s.pos.hasRampart(),
 		(candidates, { pos }) => pos.findClosestByPath(candidates)
 	);
 	if (!structure) {
@@ -55,8 +55,7 @@ module.exports = function (creep) {
 	} else {
 		creep.moveTo(structure, {
 			ignoreRoads: true,
-			ignoreCreeps: creep.canAttack || (this.pos.roomName !== dest),
-			// ignoreDestructibleStructures: creep.canAttack && (this.pos.roomName === dest),
+			ignoreCreeps: (this.pos.roomName !== dest),
 		});
 	}
 };

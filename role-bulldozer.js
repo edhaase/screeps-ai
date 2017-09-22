@@ -47,10 +47,8 @@ module.exports = function (creep) {
 		creep.rangedAttack(target);
 	if (range > 1)
 		creep.moveTo(target);
-	else {
-		if (creep.hasActiveBodypart(WORK))
-			creep.dismantle(target);
-		else if (creep.hasActiveBodypart(ATTACK))
-			creep.attack(target);
-	}
+	else if (creep.hasActiveBodypart(WORK))
+		creep.dismantle(target);
+	else if (creep.hasActiveBodypart(ATTACK))
+		creep.attack(target);
 };

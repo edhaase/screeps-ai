@@ -52,7 +52,6 @@ module.exports.loop = function () {
 	global.Scheduler = loadModule('Scheduler');
 	global.Time = loadModule('Time');
 	global.Player = loadModule('Player');
-	global.Mining = loadModule('Mining');
 	global.Filter = loadModule('Filter');
 	global.Route = loadModule('Route');
 	global.FSM = loadModule('FSM');
@@ -160,7 +159,6 @@ module.exports.loop = function () {
 		profiler.enable();
 		profiler.registerObject(PathFinder.CostMatrix, 'pCostMatrix');
 		profiler.registerClass(Empire, 'Empire');
-		profiler.registerObject(Mining, 'Mining');
 		profiler.registerObject(Filter, 'Filter');
 		// profiler.registerObject(OwnedStructure, 'OwnedStructure');
 		profiler.registerObject(RoomObject, 'RoomObject');

@@ -358,7 +358,7 @@ Flag.prototype.runLogic = function () {
 	 * Remote mining site operations (very similar, but also requires an assigned hauler)
 	 * 2016-10-26: carryCapacity gets weird when creeps get damaged
 	 */
-	if (this.color === FLAG_MINING && this.secondaryColor === SITE_PICKUP && Mining.isRemoteEnabled() && !BUCKET_LIMITER) {
+	if (this.color === FLAG_MINING && this.secondaryColor === SITE_PICKUP && !BUCKET_LIMITER) {
 		if (this.room && !this.room.canMine) {
 			Log.notify(`[Mining] Cannot mine in ${this.pos.roomName}, deferring.`);
 			return this.defer(5000);
@@ -367,7 +367,6 @@ Flag.prototype.runLogic = function () {
 			this.assignNearbySpot();
 		if (this.room && !BUCKET_LIMITER)
 			this.throttle(300, 'clk', () => require('Planner').planRoad(this.pos, { pos: _.create(RoomPosition.prototype, this.memory.dropoff), range: 1 }));
-		// Mining.requestRemoteScav(Game.spawns.Spawn2, new RoomPosition(5,13,'E57S46'), null, true)				
 		const m = _.matches(this.pos);
 		const creeps = _.filter(Game.creeps, c => c.memory.role === 'hauler' && m(c.memory.site));
 		const assigned = _.sum(creeps, c => c.getBodyParts(CARRY));
@@ -405,7 +404,7 @@ Flag.prototype.runLogic = function () {
 	// Move to module?
 	if (this.color === FLAG_MINING
 		&& (((this.secondaryColor === SITE_LOCAL || this.secondaryColor === SITE_NEAR_RC))
-			|| (Mining.isRemoteEnabled() && this.secondaryColor === SITE_REMOTE && !BUCKET_LIMITER))
+			|| (this.secondaryColor === SITE_REMOTE && !BUCKET_LIMITER))
 	) {
 		if (this.room && !this.room.canMine) {
 			Log.notify('[Mining] Cannot mine in ' + this.room.name + ', deferring.');
@@ -436,7 +435,7 @@ Flag.prototype.runLogic = function () {
 					this.memory.defer = Game.time + MAX_CREEP_SPAWN_TIME; // 36 + leeway
 					return;
 				} else
-					Mining.requestMiner(spawn, this.name);
+					require('Unit').requestMiner(spawn, this.name);
 			}
 			this.memory.defer = Game.time + 45;
 		} else {
@@ -456,9 +455,9 @@ Flag.prototype.runLogic = function () {
 			) {
 				var spawn = this.getClosestSpawn();
 				if (this.secondaryColor === SITE_REMOTE)
-					Mining.requestRemoteMiner(spawn, this.pos, 50);
+					require('Unit').requestRemoteMiner(spawn, this.pos, 50);
 				else
-					Mining.requestMiner(spawn, this.pos, 50);
+					require('Unit').requestMiner(spawn, this.pos, 50);
 				this.defer(Time.secondsToTicks(60 * 7));
 				// } else {
 				//	console.log("No visibility in " + this.pos.roomName)

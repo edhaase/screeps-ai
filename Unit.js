@@ -9,6 +9,24 @@ const Arr = require('Arr');
 
 const MAX_RCL_UPGRADER_SIZE = UNIT_COST([MOVE, MOVE, MOVE, CARRY]) + BODYPART_COST[WORK] * CONTROLLER_MAX_UPGRADE_PER_TICK * UPGRADE_CONTROLLER_POWER;
 
+const MINING_BODIES = [
+	// [WORK,WORK,WORK,WORK,WORK,WORK,CARRY,MOVE,MOVE,MOVE],
+	[WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE],
+	[WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE],
+	[WORK, WORK, WORK, WORK, WORK, MOVE],
+	[WORK, WORK, WORK, WORK, MOVE],
+	[WORK, WORK, WORK, MOVE],
+	[WORK, WORK, MOVE]
+];
+
+const REMOTE_MINING_BODIES = [
+	// [WORK,WORK,WORK,WORK,WORK,WORK,WORK,CARRY,MOVE,MOVE,MOVE],
+	[WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE],
+	[WORK, WORK, WORK, WORK, WORK, MOVE, MOVE]
+];
+
+global.MAX_MINING_BODY = (amt) => _.find(MINING_BODIES, b => UNIT_COST(b) <= amt);
+
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/from
 // Unit.Body.from([WORK,CARRY,MOVE]).sort() -- confirmed to work
 class Body extends Array {
@@ -102,6 +120,19 @@ module.exports = {
 		console.log('Unit.repeat is deprecated');
 		return Arr.repeat(arr, max);
 	},
+
+	requestRemoteMiner: function (spawn, pos, expire = DEFAULT_SPAWN_JOB_EXPIRE) {
+		const body = _.find(REMOTE_MINING_BODIES, b => UNIT_COST(b) <= spawn.room.energyCapacityAvailable);
+		spawn.enqueue(body, null, { role: 'miner', dest: pos, travelTime: 0 }, 10, 0, 1, expire);
+	},
+
+	/**
+	 * Request miner
+	 */
+	requestMiner: function (spawn, dest, prio = 8) {
+		const body = _.find(MINING_BODIES, b => UNIT_COST(b) <= spawn.room.energyCapacityAvailable);
+		spawn.enqueue(body, null, { role: 'miner', dest: dest, home: dest.roomName, travelTime: 0 }, prio, 0, 1, DEFAULT_SPAWN_JOB_EXPIRE);
+	},		
 
 	/**
 	 * Biggest we can! Limit to 15 work parts
@@ -274,6 +305,11 @@ module.exports = {
 		const amt = Math.clamp(SPAWN_ENERGY_START, spawn.room.energyAvailable, MAX_PILOT_ENERGY);
 		const body = Arr.repeat([WORK, CARRY, MOVE, MOVE], amt);
 		return spawn.enqueue(body, null, { role: 'pilot', home: roomName || spawn.pos.roomName }, 100, 0, count);
+	},
+
+	requestMineralHarvester(spawn, site, cid, expire) {
+		var body = require('Arr').repeat([WORK, WORK, MOVE], spawn.room.energyCapacityAvailable);
+		spawn.enqueue(body, null, { role: 'harvester', site: site, cid: cid }, 10, 0, 1, expire);
 	},
 
 	requestReserver: function (spawn, site, prio = 50) {
