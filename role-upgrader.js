@@ -44,14 +44,12 @@ module.exports = {
 	},
 	run: function (creep) {
 		const { controller } = creep.room;
-		if (!creep.pos.inRangeTo(creep.room.controller, CREEP_UPGRADE_RANGE))
-			creep.moveTo(controller, { range: CREEP_UPGRADE_RANGE });
-
 		if (creep.carry[RESOURCE_ENERGY] === 0)
 			creep.say('\u26FD', true);
-		else if (controller && !controller.upgradeBlocked)
-			creep.upgradeController(creep.room.controller);
-		else if (controller && controller.upgradeBlocked > creep.ticksToLive) {
+		else if (controller && !controller.upgradeBlocked) {
+			if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE)
+				creep.moveTo(controller, { range: CREEP_UPGRADE_RANGE });
+		} else if (controller && controller.upgradeBlocked > creep.ticksToLive) {
 			Log.warn(`${this.pos.roomName}: Upgrade block exeeds creep ttl, recycling ${this.name}`, 'Creep');
 			creep.setRole('recycle');
 			return;
