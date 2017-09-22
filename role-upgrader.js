@@ -47,34 +47,25 @@ module.exports = {
 		if (!creep.pos.inRangeTo(creep.room.controller, CREEP_UPGRADE_RANGE))
 			creep.moveTo(controller, { range: CREEP_UPGRADE_RANGE });
 
-		if (creep.carry.energy === 0) // && Math.random() < 0.25)
+		if (creep.carry[RESOURCE_ENERGY] === 0)
 			creep.say('\u26FD', true);
 		else if (controller && !controller.upgradeBlocked)
 			creep.upgradeController(creep.room.controller);
 		else if (controller && controller.upgradeBlocked > creep.ticksToLive) {
-			Log.warn(`Recycling upgrader at ${this.pos}, upgrade block exceeds ttl`, 'Creep');
+			Log.warn(`${this.pos.roomName}: Upgrade block exeeds creep ttl, recycling ${this.name}`, 'Creep');
 			creep.setRole('recycle');
 			return;
 		}
 
-		if (Game.time % 3)
+		if (Game.time % 3 || creep.carry[RESOURCE_ENERGY] / creep.carryCapacity > 0.75)
 			return;
-		var adj = _.map(creep.lookForNear(LOOK_STRUCTURES, true), 'structure');
-		var avail = _.filter(adj, s => s.structureType === STRUCTURE_LINK || s.structureType === STRUCTURE_CONTAINER || s.structureType === STRUCTURE_TERMINAL || s.structureType === STRUCTURE_STORAGE);
-		var target = _.max(avail, c => _.get(c, 'store.energy', c.energy));
-		if (target && target !== Infinity && target !== -Infinity) {
-			creep.withdraw(target, RESOURCE_ENERGY);
-			if (target.hits < target.hitsMax)
-				creep.repair(target);
-		} else {
-			var provider = this.getTarget(
-				() => _.map(controller.lookForNear(LOOK_STRUCTURES, true, 3), LOOK_STRUCTURES),
-				(c) => Filter.canProvideEnergy(c)
-			);
-			if (provider) {
-				if (this.pull(provider, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE)
-					this.moveTo(provider, { range: 1 });
-			}
-		}
+		const provider = this.getTarget(
+			() => _.map(controller.lookForNear(LOOK_STRUCTURES, true, CREEP_UPGRADE_RANGE), LOOK_STRUCTURES),
+			(c) => Filter.canProvideEnergy(c)
+		);
+		if (!provider)
+			return;
+		if (this.pull(provider, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE)
+			this.moveTo(provider, { range: 1 });
 	}
 };
