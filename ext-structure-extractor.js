@@ -10,8 +10,10 @@
 const EXTRACTOR_CONTAINER_FULL = 0.80; // 80%
 const EXTRACTOR_DELAY = 50;
 
+defineCachedGetter(StructureExtractor.prototype, 'mineral', s => _.first(s.pos.lookFor(LOOK_MINERALS)));
+
 StructureExtractor.prototype.onWake = function() {
-	var mineral = this.mineral;
+	var {mineral} = this;
 	// if mineral density changed, notify
 	if(mineral.density && mineral.density !== this.memory.density) {
 		Log.info(`Mineral density in ${this.pos.roomName} changed to ${mineral.density}`, 'Extractor');
@@ -28,7 +30,7 @@ StructureExtractor.prototype.run = function() {
 		return;
 	
 	// (Optional) if we don't have a terminal in the room, don't run.
-	var terminal = this.room.terminal;
+	var {terminal} = this.room;
 	if(terminal == null) {
 		Log.warn(`No terminal in ${this.pos.roomName}, operations disabled.`, 'Extractor');		
 		this.defer(EXTRACTOR_DELAY);
@@ -36,7 +38,7 @@ StructureExtractor.prototype.run = function() {
 	}
 
 	// If exhausted, defer	
-	var mineral = this.mineral;
+	var {mineral} = this;
 	if(mineral && mineral.mineralAmount === 0 && mineral.ticksToRegeneration > MAX_CREEP_SPAWN_TIME) {
 		Log.info(`Mineral site at ${this.pos} empty. Going to sleep for ${mineral.ticksToRegeneration} ticks`, 'Extractor');			
 		// this.memory.defer = Game.time + mineral.ticksToRegeneration;
@@ -89,5 +91,3 @@ StructureExtractor.prototype.rampartContainer = function() {
 StructureExtractor.prototype.isActive = function() {
 	return (!this.room.controller || this.room.controller.level >= 6);
 };
-
-defineCachedGetter(StructureExtractor.prototype, 'mineral', s => _.first(s.pos.lookFor(LOOK_MINERALS)));
