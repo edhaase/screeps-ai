@@ -296,7 +296,7 @@ StructureTerminal.prototype.buy = function (res, amount = Infinity, maxRange = I
 	if (status === OK)
 		this.say('\u26A0');
 	else
-		Log.warn(`Terminal ${this.pos.roomName} buy failure on ${order.id}, status ${status}`, 'Terminal');
+		Log.warn(`${this.pos.roomName} buy failure on ${afford} ${order.resourceType} [${order.id}], status ${status}`, 'Terminal');
 	return status;
 };
 
@@ -314,6 +314,8 @@ StructureTerminal.prototype.isFull = function () {
  */
 StructureTerminal.prototype.deal = function (id, amount, order = {}) {
 	// track score, transaction cost averages
+	if(amount <= 0)
+		return ERR_INVALID_ARGS;
 	const status = Game.market.deal(id, amount, this.pos.roomName);
 	Log.debug(`${this.pos.roomName} dealing on ${amount} ${order.resourceType}, order ${id}, status ${status}`, 'Terminal');
 	if (status === OK && order) {
