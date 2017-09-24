@@ -63,7 +63,7 @@ OwnedStructure.prototype.defer = function (ticks) {
 
 OwnedStructure.prototype.clearDefer = function () {
 	if (Memory.structures[this.id] && Memory.structures[this.id].defer)
-		delete Memory.structures[this.id].defer;
+		Memory.structures[this.id].defer = undefined;
 };
 
 OwnedStructure.prototype.isDeferred = function () {
@@ -72,7 +72,7 @@ OwnedStructure.prototype.isDeferred = function () {
 		if (memory !== undefined && memory.defer !== undefined && Game.time < memory.defer)
 			return true;
 		else if (memory !== undefined && memory.defer) {
-			delete Memory.structures[this.id].defer;
+			Memory.structures[this.id].defer = undefined;
 			this.onWake();
 		}
 	}

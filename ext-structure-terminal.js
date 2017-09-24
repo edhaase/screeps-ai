@@ -103,7 +103,7 @@ StructureTerminal.prototype.getOrder = function (selector, validator = _.identit
 		if (order)
 			this.memory[prop] = order.id;
 		else
-			delete this.memory[prop];
+			this.memory[prop] = undefined;
 	}
 	return order;
 };

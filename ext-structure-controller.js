@@ -612,8 +612,8 @@ StructureController.prototype.onUpgrade = function (level, prev) {
 	Log.info(`${this.room.name} has been upgraded to level ${this.level}`, 'Controller');
 	this.memory.maxlevel = this.level;
 	if (this.level === MAX_ROOM_LEVEL) {
-		delete this.memory.rclLastTick;
-		delete this.memory.rclAvgTick;
+		this.memory.rclLastTick = undefined;
+		this.memory.rclAvgTick = undefined;
 	}
 
 	if (this.level === 3) {

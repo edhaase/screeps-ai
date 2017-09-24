@@ -52,13 +52,6 @@ class CreepExtFiller extends Creep {
 	 *
 	 */
 	gather() {
-		/* if(this.carryTotal >= this.carryCapacity) {
-			this.say('unload!');
-			delete this.memory.target;
-			this.clearTarget();
-			this.memory.state = 'U';
-			return; // this.unload();
-		}	*/
 		const goal = this.getPickupSite();
 		if (!goal) {
 			this.say('No goal');
@@ -223,8 +216,6 @@ class CreepExtFiller extends Creep {
 			this.moveTo(goal);
 		else if (status === ERR_FULL) {
 			this.say('full!');
-			// delete this.memory.target;
-			// this.unload();
 			this.clearTarget();
 		} else if (status !== OK)
 			console.log(`ext-fill: status: ${status} on ${goal} at ${this.pos}`);
@@ -268,13 +259,13 @@ class CreepExtFiller extends Creep {
 			);
 
 			if (!goal) {
-				const { storage, terminal } = this.room;
-				if (storage && storage.store[RESOURCE_ENERGY] < 300000 && storage.my)
-					goal = storage;
-				else if (terminal && terminal.my && terminal.storedTotal < terminal.storeCapacity)
+				const { storage, terminal, controller } = this.room;
+				if (terminal && terminal.my && terminal.store[RESOURCE_ENERGY] < TERMINAL_MIN_ENERGY*2)
 					goal = terminal;
+				else if (storage && storage.my && storage.store[RESOURCE_ENERGY] / storage.storeCapacity < 0.9)
+					goal = storage;
 				else
-					goal = null;
+					goal = controller;
 				this.setTarget(goal);
 			}
 
@@ -323,7 +314,7 @@ class CreepExtFiller extends Creep {
 	pickup() {
 		const status = super.pickup.apply(this, arguments);
 		if (status === OK)
-			delete this.memory.avoid;
+			this.memory.avoid = undefined;
 		return status;
 	}
 

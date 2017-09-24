@@ -43,7 +43,7 @@ RoomObject.prototype.getTarget = function (selector, validator = _.identity, cho
 		if (target)
 			this.memory[prop] = target.id;
 		else
-			delete this.memory[prop];
+			this.memory[prop] = undefined;
 	}
 	//if(target && target.pos.roomName == this.pos.roomName)
 	//	target.room.visual.line(this.pos, target.pos, {lineStyle: 'dashed', opacity: 0.5});
@@ -107,7 +107,6 @@ RoomObject.prototype.getUniqueTarget = function (selector, restrictor, validator
  * Clear target lock for actor
  */
 RoomObject.prototype.clearTarget = function (prop = 'tid') {
-	// delete this.memory[prop];
 	this.memory[prop] = undefined;
 };
 
@@ -417,7 +416,7 @@ RoomObject.prototype.checkBit = function (bit) {
 
 RoomObject.prototype.clearBits = function () {
 	if (this.memory !== undefined)
-		delete this.memory.bits;
+		this.memory.bits = undefined;
 };
 
 RoomObject.prototype.canUseBits = function () {

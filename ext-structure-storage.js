@@ -14,7 +14,7 @@ const DEFAULT_STORAGE_RESERVE = 100000;
 Object.defineProperty(StructureStorage.prototype, 'reserve', {
 	set: function (value) {
 		if (value === null) {
-			delete this.memory.r;
+			this.memory.r = undefined;
 			return;
 		}
 		if (!(typeof value === 'number'))

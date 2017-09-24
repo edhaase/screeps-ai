@@ -6,7 +6,7 @@
 module.exports = function (creep) {
 	if (BUCKET_LIMITER)
 		return creep.suicide();
-	delete this.memory.home;
+	this.memory.home = undefined;
 	if ((Game.time & 3) === 0
 		&& creep.carryTotal <= 0
 		&& !creep.isBoosted()

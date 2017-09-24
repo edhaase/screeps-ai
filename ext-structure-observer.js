@@ -64,8 +64,8 @@ StructureObserver.prototype.run = function () {
 			Log.error(e);
 			Log.error(e.stack);
 		}
-		delete this.memory.last;
-		delete this.memory.cmd;
+		this.memory.last = undefined;
+		this.memory.cmd = undefined;
 		return;
 	}
 
@@ -209,8 +209,8 @@ StructureObserver.prototype.watch = function () {
 	} */
 
 	if (Game.rooms[watch] && _.get(Game.rooms[watch], 'controller.my', false) === true) {
-		Log.info('[OBSERVER] Already have visibility in this room. Ending watch operations.');
-		delete this.memory.watch;
+		Log.info(`Already have visibility in ${watch}. Ending watch operations.`, 'Observer');
+		this.memory.watch = undefined;
 		return;
 	}
 
@@ -247,6 +247,6 @@ StructureObserver.prototype.observeRoom = function (roomName) {
 };
 
 StructureObserver.prototype.reset = function () {
-	delete this.memory.watch;
-	delete this.memory.mode;
+	this.memory.watch = undefined;
+	this.memory.mode = undefined;
 };

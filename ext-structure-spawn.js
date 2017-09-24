@@ -142,7 +142,7 @@ StructureSpawn.prototype.resetEnergyClock = function () {
 	var test = this.memory.edelay;
 	this.memory.edelay = Math.mmAvg(this.memory.e || 0, this.memory.edelay, 25);
 	Log.debug(`edelay mmAvg (${this.memory.e || 0}) ${test} --> ${this.memory.edelay}`, 'Spawn');
-	delete this.memory.e;
+	this.memory.e = undefined;
 	return this;
 };
 

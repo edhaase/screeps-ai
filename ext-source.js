@@ -51,7 +51,7 @@ defineCachedGetter(Source.prototype, 'container', function (source) {
 			source.memory = { cid: container.id };
 		} else {
 			Log.debug('No container found', 'Source');
-			delete Memory.sources[this.id];
+			Memory.sources[this.id] = undefined;
 		}
 	}
 	return container;

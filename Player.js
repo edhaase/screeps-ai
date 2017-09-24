@@ -23,7 +23,7 @@ module.exports = {
 	},
 
 	reset: function () {
-		delete Memory.players;
+		Memory.players = undefined;
 	}
 
 };
