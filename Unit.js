@@ -145,11 +145,10 @@ module.exports = {
 		if (controller.level <= 2) {
 			body = [CARRY, MOVE, WORK, WORK];
 		} else {
-			if( storage && (storage.store[RESOURCE_ENERGY] || 0) < storage.reserve) {
-				max = Math.min(BODYPART_COST[WORK] * 10, max); // Less than 20 ept.
-			}
 			if (controller.level === MAX_ROOM_LEVEL)
 				max = Math.min(max, MAX_RCL_UPGRADER_SIZE);
+			else if(storage)
+				max = Math.min(BODYPART_COST[WORK] * Math.floor(10*storage.stock), max); // Less than 20 ept.
 			// Ignore top 20% of spawn energy (might be in use by renewels)
 			var avail = Math.clamp(250, spawn.room.energyCapacityAvailable - (SPAWN_ENERGY_CAPACITY * 0.20), max);
 			var count = Math.floor((avail - 300) / BODYPART_COST[WORK]);
