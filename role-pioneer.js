@@ -16,16 +16,15 @@
  * Rules for claiming a room:
  * 
  */
+const MAX_SIGN_AGE = 20000 * 3;
 function canClaimRoom(room) {
-	let controller = room.controller;
+	const {controller} = room;
 	if (!controller)
 		return false;
-	var { owner, reservation, sign } = controller;
-	if (owner)
+	const { owner, reservation, sign } = controller;
+	if (owner || reservation)
 		return false; // We can't claim it either, it's not ours.
-	if (reservation)
-		return false;
-	if (sign && (Game.time - sign.time < 20000 * 5)) {
+	if (sign && (Game.time - sign.time < MAX_SIGN_AGE)) {
 		// var {username,text,time,datetime} = sign;
 		return false;
 	}
@@ -50,7 +49,7 @@ module.exports = function () {
 		// this.memory.rooms = _.shuffle(this.memory.rooms);
 		dest = this.memory.rooms.shift();
 		this.memory.dest = dest;
-		Log.warn('Pioneer chose room ' + dest);
+		Log.warn(`Pioneer chose room ${dest}`);
 	}
 	this.say(dest);
 
@@ -58,14 +57,14 @@ module.exports = function () {
 	if (this.pos.roomName !== dest)
 		return this.moveToRoom(dest);
 
-	var controller = this.room.controller;
+	var {controller} = this.room;
 	if (!controller || !canClaimRoom(this.room))
 		return this.memory.dest = null;
 
 	var status = this.claimController(controller);
-	if (status == ERR_NOT_IN_RANGE)
+	if (status === ERR_NOT_IN_RANGE)
 		this.moveTo(controller, { range: 1, maxRooms: 1 });
-	else if (status != OK) {
-		Log.warn('Status: ' + status, 'Pioneer');
+	else if (status !== OK) {
+		Log.warn(`Status: ${status}`, 'Pioneer');
 	}
 };

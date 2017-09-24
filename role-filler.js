@@ -29,8 +29,8 @@ module.exports = function (creep) {
 
 	if (creep.carryTotal === 0) {
 		// let limit = (amt === Infinity) ? amt : undefined;
-		let wamt = (amt != Infinity) ? Math.min(amt, this.carryCapacity) : undefined;
-		let status = creep.withdraw(src, res, wamt);
+		const wamt = (amt != Infinity) ? Math.min(amt, this.carryCapacity) : undefined;
+		const status = creep.withdraw(src, res, wamt);
 		if (status === ERR_NOT_IN_RANGE)
 			creep.moveTo(src);
 	} else {
@@ -47,5 +47,5 @@ module.exports = function (creep) {
 		}
 	}
 
-	creep.memory.amt = (amt != Infinity) ? amt : undefined;
+	creep.memory.amt = (amt !== Infinity) ? amt : undefined;
 };

@@ -20,7 +20,7 @@ module.exports = function (creep) {
 
 	const { lid } = creep.memory;
 	const link = Game.getObjectById(lid);
-	const room = creep.room;
+	const {room} = creep;
 	const energyNetPct = room.energyInNetwork / room.energyCapacityInNetwork;
 	const container = room.storage || room.terminal;
 
@@ -33,13 +33,11 @@ module.exports = function (creep) {
 		if (creep.withdraw(link, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE)
 			creep.moveTo(link, { ignoreRoads: true });
 		creep.transferOrMove(container, RESOURCE_ENERGY);
-		return;
 	} else if (energyNetPct < 0.50) {
 		// pull from storage and put in link		
 		creep.transferOrMove(link, RESOURCE_ENERGY);
 		if (creep.withdraw(container, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE)
 			creep.moveTo(container, { ignoreRoads: true });
-		return;
 	} else {
 		this.defer(3);
 	}

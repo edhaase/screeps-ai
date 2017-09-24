@@ -19,14 +19,6 @@ module.exports = {
 		var { container, dest, structs } = creep.memory;
 		if (!dest)
 			this.setRole('recycle');
-		// var flag = Game.flags[site];
-		// if(!flag && !dest) {
-		//	creep.say("NO SITE");
-		//	return;
-		// }
-
-		// if(flag)
-		//	dest = flag.pos;
 		container = Game.getObjectById(container);
 		if (container) {
 			/* if(!container) {
@@ -52,22 +44,13 @@ module.exports = {
 			}
 		}
 
-		// Harvest source
-		/* if(source)
-			source = Game.getObjectById(source);
-		else {
-			var parts = flag.name.split("_");
-			var sourceId = parts[1];	
-			source = Game.getObjectById(sourceId); 
-			creep.memory.source = source.id;
-		} */
 		var source = this.getTarget(
 			() => this.room.find(FIND_SOURCES),
 			() => true,
 			(s) => this.pos.findClosestByRange(s)
 		);
 
-		if (creep.carry.energy > 25 && structs && structs.length > 0) {
+		if (creep.carry[RESOURCE_ENERGY] > 25 && structs && structs.length > 0) {
 			structs = _.map(structs, lid => Game.getObjectById(lid));
 			structs = _.compact(structs);
 			if (structs && !_.isEmpty(structs)) {

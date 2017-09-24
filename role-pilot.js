@@ -9,8 +9,8 @@
 // Game.spawns.Spawn11.createCreep([WORK,CARRY,MOVE], null, {role: 'pilot', source: '579faa780700be0674d31082'})
 module.exports = {
 	run: function (creep) {
-		let { room, source, state } = creep.memory;
-		if (room && creep.pos.roomName != room)
+		const { room, state } = creep.memory;
+		if (room && creep.pos.roomName !== room)
 			return creep.moveToRoom(room);
 
 		if (!state)
@@ -26,9 +26,9 @@ module.exports = {
 				creep.memory.state = 'harvest';
 			break;
 		case 'harvest': {
-			let source = this.getTarget(
+			const source = this.getTarget(
 				({ room }) => room.find(FIND_SOURCES_ACTIVE),
-				(source) => (source instanceof Source) && (source.energy > 0 || source.ticksToRegeneration < this.pos.getRangeTo(source)),
+				(s) => (s instanceof Source) && (s.energy > 0 || s.ticksToRegeneration < this.pos.getRangeTo(s)),
 				(sources) => this.pos.findClosestByPath(sources)
 			);
 			creep.harvestOrMove(source);

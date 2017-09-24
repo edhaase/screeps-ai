@@ -5,7 +5,7 @@
 "use strict";
 
 module.exports = function (creep) {
-	var site = creep.memory.site;
+	var {site} = creep.memory;
 	if (!site) return;
 
 	var flag = Game.flags[site];

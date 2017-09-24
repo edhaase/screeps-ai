@@ -56,15 +56,15 @@ class IdleReserveState extends FSM.State {
 	}
 
 	tick(tick) {
-		let { fsm, target, store } = tick;
-		let pos = _.create(RoomPosition.prototype, store.get('site'));
+		const { fsm, target, store } = tick;
+		const pos = _.create(RoomPosition.prototype, store.get('site'));
 
 
 		var routing = Memory.routing || {};
 		if (_.contains(routing.avoid, pos.roomName))
-			return Log.warn('Reserver ' + target.name + ' at ' + target.pos + ', unable to reach target site ' + pos + ', room is blacklisted');
+			return Log.warn(`Reserver ${target.name} at ${target.pos}, unable to reach target site ${pos}, room is blacklisted`);
 
-		Log.info('Reserver ' + target.name + ' idle at ' + target.pos + ', moving to target site ' + pos);
+		Log.info(`Reserver ${target.name} idle at ${target.pos}, moving to target site ${pos}`);
 		if (target.pos.isNearTo(pos)) {
 			tick.transition('reserve');
 		} else {
@@ -81,13 +81,13 @@ class ReserveState extends FSM.State {
 		super('reserve');
 	}
 	enter(tick) {
-		let { fsm, target, store } = tick;
+		const { fsm, target, store } = tick;
 		target.memory.travelTime = CREEP_CLAIM_LIFE_TIME - target.ticksToLive;
 		// Log.info('Reserver at ' + target.pos + ' switch to reserve!');
 	}
 
 	tick(tick) {
-		let { fsm, target, store } = tick;
+		const { fsm, target, store } = tick;
 		let status = OK;
 
 		try {
@@ -99,7 +99,7 @@ class ReserveState extends FSM.State {
 				return target.attackController(target.room.controller);
 
 			if ((status = target.reserveController(target.room.controller)) != OK) {
-				Log.warn('ReserveState: ' + status + ' at ' + target.pos);
+				Log.warn(`ReserveState: ${status} at ${target.pos}`);
 				if (status === ERR_NOT_IN_RANGE)
 					tick.transition('walk', {
 						dest: { pos: tick.store.get('site'), range: 1 },

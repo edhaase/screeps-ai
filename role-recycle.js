@@ -18,7 +18,7 @@ module.exports = function (creep) {
 	if (!creep.memory.spawn) {
 		spawn = creep.pos.findClosestSpawn();
 		if (!spawn) {
-			Log.notify('Creep ' + creep.name + ' unable to find spawn for recycle. Giving up');
+			Log.notify(`Creep ${this.name} unable to find spawn for recycle. Giving up`);
 			creep.suicide();
 		}
 		creep.memory.spawn = spawn.id;
@@ -30,7 +30,7 @@ module.exports = function (creep) {
 			return;
 		spawn.recycleCreep(creep);
 	} else {
-		creep.moveTo(spawn, { reusePath: 10 });
+		creep.moveTo(spawn, { reusePath: 10, range: 1 });
 		if (creep.hits < creep.hitsMax)
 			creep.heal(creep);
 	}

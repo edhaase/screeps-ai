@@ -15,21 +15,21 @@
 module.exports = {
 	run: function () {
 		var { room, dest, msg } = this.memory;
-		if (dest == undefined && room != undefined) {
-			if (this.pos.roomName == room) {
+		if (dest == null && room != null) {
+			if (this.pos.roomName === room) {
 				this.say('Found');
 				this.memory.dest = this.room.controller.pos;
 			} else
 				this.moveToRoom(room);
 			return;
 		}
-		let pos = _.create(RoomPosition.prototype, dest);
+		const pos = _.create(RoomPosition.prototype, dest);
 		if (!this.pos.isNearTo(pos))
 			return this.moveTo(pos, { range: 1 });
-		let status = this.signController(this.room.controller, msg);
+		const status = this.signController(this.room.controller, msg);
 		if (status === OK)
 			return this.setRole('recycle');
 		else
-			Log.warn('Unable to sign controller: ' + status);
+			Log.warn(`Unable to sign controller: ${status}`);
 	}
 };
