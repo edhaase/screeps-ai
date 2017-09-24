@@ -40,7 +40,7 @@ module.exports = {
 	/**
 	 * Filter for room objects that can provide energy
 	 */
-	canProvideEnergy: function (thing, min = 40000) {
+	canProvideEnergy: function (thing, min = TERMINAL_MIN_ENERGY) {
 		if (thing instanceof Resource
 			&& thing.resourceType === RESOURCE_ENERGY
 			&& this.droppedResources(thing))
