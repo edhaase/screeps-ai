@@ -140,7 +140,7 @@ class FleePlanner {
 		var room = Game.rooms[this.origin.roomName];
 		room.find(FIND_SOURCES).forEach(s => this.goals.push({ pos: s.pos, range: 3 }));
 		room.find(FIND_MINERALS).forEach(s => this.goals.push({ pos: s.pos, range: 2 }));
-		room.find(FIND_NUKES).forEach(s => this.goals.push({ pos: s.pos, range: 2 }));
+		room.find(FIND_NUKES).forEach(s => this.goals.push({ pos: s.pos, range: NUKE_EFFECT_RANGE+1 }));
 		room.find(FIND_EXIT).forEach(exit => this.goals.push({ pos: exit, range: 5 }));
 		room.find(FIND_STRUCTURES).forEach(({ pos, structureType }) => this.set(pos, structureType, false));
 		return this;
