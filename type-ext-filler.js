@@ -97,6 +97,7 @@ class CreepExtFiller extends Creep {
 				(candidates) => _.max(candidates, t => Math.min(this.getAmt(t), this.carryCapacityAvailable) / this.pos.getRangeTo(t.pos))
 			);
 		} else {
+			// @todo candidate for early termination
 			goal = this.getUniqueTarget(
 				// goal = this.getTarget(
 				// ({room,pos}) => [...room.containers], // Find all available targets
