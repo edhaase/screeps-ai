@@ -77,7 +77,7 @@ global.REMOTE_CONTAINER_UPKEEP = CONTAINER_DECAY / REPAIR_POWER / CONTAINER_DECA
 global.DEFAULT_BUILD_JOB_EXPIRE = 12000;
 global.DEFAULT_BUILD_JOB_PRIORITY = 0.5;
 
-global.SAFE_MODE_IGNORE_TIMER = CREEP_LIFE_TIME+500;
+global.SAFE_MODE_IGNORE_TIMER = CREEP_LIFE_TIME + 500;
 
 global.CONTROLLER_EMERGENCY_THRESHOLD = 3000;
 global.MINIMUM_RESERVATION = CREEP_LIFE_TIME + 200; // Roughly above CREEP_LIFE_TIME (700 ticks doesn't work when room is shut down)
@@ -106,25 +106,6 @@ global.BUCKET_LIMITER_UPPER = 6000;
 global.CONTROLLER_STRUCTURES_LEVEL_FIRST = [];
 for (var i = 0; i <= 8; i++)
 	CONTROLLER_STRUCTURES_LEVEL_FIRST[i] = _.transform(CONTROLLER_STRUCTURES, (r, v, k) => r[k] = v[i]);
-
-
-/** Creep roles */
-global.ROLE_PILOT = 'pilot';	// Cheap unit for room recovery (should aim to do away with this)
-global.ROLE_MINER = 'miner';
-global.ROLE_GUARD = 'guard';
-global.ROLE_ATTACK = 'attack';
-global.ROLE_BULLDOZER = 'bulldozer';
-global.ROLE_BUILDER = 'builder';
-global.ROLE_HAULER = 'hauler';
-global.ROLES_ALL = [
-	ROLE_PILOT, ROLE_MINER, ROLE_GUARD, ROLE_ATTACK, ROLE_BULLDOZER, ROLE_BUILDER, ROLE_HAULER
-];
-
-/* global.ROLE_MODULES = {
-	[ROLE_PILOT]: loadModule('role-pilot'),
-	[ROLE_MINER]: loadModule('role-miner'),
-	'dualminer': loadModule('role-dualminer'),
-}; */
 
 
 /** primary flag types */
@@ -169,7 +150,6 @@ global.TRANSPORT_H = COLOR_GREY;	// put a reserver here to hold the room.
 global.TRANSPORT_I = COLOR_WHITE;
 
 global.LOG_TAG_CREEP = 'Creep';
-global.LOG_TAG_TERMINAL = 'Terminal';
 
 Object.defineProperty(global, 'CPU_LIMITER', {
 	get: function () {
@@ -276,7 +256,6 @@ global.UNICODE_ARROWS = {
 global.UNICODE = {
 	MU: '\u03BC', // Greek letter mu. Mathematical average.
 };
-global['\u216F'] = 42;
 // Number forms:
 // \u2160 - \u216F
 
@@ -363,7 +342,6 @@ global.ICONS = {
 	, testPassed: "\uD83C\uDF89" // for when scout reaches its goal location
 	, testFinished: "\uD83C\uDFC1" // for when scout has finished its test run
 };
-
 
 /**
  * Global functions
@@ -467,7 +445,7 @@ global.GC = function () {
 			if (age > maxAge)
 				Log.info(`New max age! ${name} with ${age} ticks!`);
 			_.set(Memory, 'stats.maxAge', Math.max(maxAge, age));
-			delete Memory.creeps[name];
+			Memory.creeps[name] = undefined;
 		}
 	}
 
@@ -475,7 +453,7 @@ global.GC = function () {
 		if (Memory.flags[name].gid)
 			groups[Memory.flags[name].gid] = 1;
 		if (!Game.flags[name] || _.isEmpty(Memory.flags[name])) {
-			delete Memory.flags[name];
+			Memory.flags[name] = undefined;
 		}
 	}
 
@@ -483,10 +461,10 @@ global.GC = function () {
 		if (Memory.spawns[name].gid)
 			groups[Memory.spawns[name].gid] = 1;
 		if (!Game.spawns[name]) {
-			delete Memory.spawns[name];
+			Memory.spawns[name] = undefined;
 		}
 	}
-	
+
 	// console.log("Group ids still around: " + ex(groups));
 	Memory.groups = _.omit(Memory.groups, (v, k) => !groups[k]);
 	/* for(var name in Memory.rooms)
@@ -521,14 +499,14 @@ global.progress = function () {
 };
 
 global.stats = function () {
-	console.log('Bucket: ' + Game.cpu.bucket);
-	console.log('Rooms: ' + _.size(Game.rooms));
-	console.log('Creeps: ' + _.size(Game.creeps));
-	console.log('Structures: ' + _.size(Game.structures));
-	console.log('Flags: ' + _.size(Game.flags));
-	console.log('Construction sites: ' + _.size(Game.constructionSites));
+	console.log(`Bucket: ${Game.cpu.bucket}`);
+	console.log(`Rooms: ${_.size(Game.rooms)}`);
+	console.log(`Creeps: ${_.size(Game.creeps)}`);
+	console.log(`Structures: ${_.size(Game.structures)}`);
+	console.log(`Flags: ${_.size(Game.flags)}`);
+	console.log(`Construction sites: ${_.size(Game.constructionSites)}`);
 	if (Memory.profiler)
-		console.log('Profiler: ' + (Memory.profiler.disableTick - Game.time));
+		console.log(`Profiler: ${(Memory.profiler.disableTick - Game.time)}`);
 	console.log(ex(_.countBy(Game.creeps, 'memory.role')));
 };
 
@@ -600,7 +578,7 @@ global.resetRoom = function (roomName) {
 	room.find(FIND_FLAGS).forEach(f => f.remove());
 	room.find(FIND_STRUCTURES).forEach(s => s.destroy());
 	room.find(FIND_MY_CREEPS).forEach(c => c.suicide());
-	delete Memory.rooms[roomName];
+	Memory.rooms[roomName] = undefined;
 };
 
 global.memLargestKey = function () {
@@ -622,24 +600,19 @@ global.randInt = function randInt(min, max) {
 	return Math.floor(Math.random() * (max - min + 1)) + min;
 };
 
-global.history = function (roomName, tick) {
-	return "https://screeps.com/a/#!/history/" + roomName + "?t=" + tick + "|" + tick;
-};
-
-
 /**
  * Loops over only functions on the prototype and
  * passes them to a callback function.
  */
 global.forEachFn = function forEachFn(proto, cb) {
 	var names = Object.getOwnPropertyNames(proto);
-	var name,j,desc;
-	for(j=0; j<names.length; j++) {
+	var name, j, desc;
+	for (j = 0; j < names.length; j++) {
 		name = names[j];
 		desc = Object.getOwnPropertyDescriptor(proto, name);
-		if(desc.get !== undefined || desc.set !== undefined)
+		if (desc.get !== undefined || desc.set !== undefined)
 			continue;
-		cb(name,proto);
+		cb(name, proto);
 	}
 };
 
@@ -648,4 +621,4 @@ global.forEachFn = function forEachFn(proto, cb) {
 	_.each(ordered, ({time,calls},m) => console.log(`${m} ${time/calls}`));
 } */
 
-global.roomLink = (room) => `<a href='https://screeps.com/a/#!/room/${room}'>${room}</a>`;
+global.roomLink = (room,shard='shard0') => `<a href='https://screeps.com/a/#!/room/${shard}/${room}'>${shard}/${room}</a>`;
