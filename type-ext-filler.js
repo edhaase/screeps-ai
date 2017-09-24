@@ -257,7 +257,7 @@ class CreepExtFiller extends Creep {
 
 			if (!goal) {
 				const { storage, terminal, controller } = this.room;
-				if (terminal && terminal.my && terminal.store[RESOURCE_ENERGY] < TERMINAL_MIN_ENERGY*2)
+				if (terminal && terminal.my && (terminal.store[RESOURCE_ENERGY] < TERMINAL_MIN_ENERGY*2 || (storage && storage.stock >= 1) ) )
 					goal = terminal;
 				else if (storage && storage.my && storage.store[RESOURCE_ENERGY] / storage.storeCapacity < 0.9)
 					goal = storage;
