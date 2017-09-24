@@ -190,8 +190,6 @@ class CreepExtFiller extends Creep {
 	 * 
 	 */
 	unload() {
-		// if (Game.time & 2)
-		//	this.buildNearbyCheapStructure();
 		var { terminal, storage, controller } = this.room;
 		let goal = this.getDropoff();
 		if (!goal && this.carry[RESOURCE_ENERGY] > 0)
@@ -219,9 +217,8 @@ class CreepExtFiller extends Creep {
 			this.clearTarget();
 		} else if (status !== OK)
 			console.log(`ext-fill: status: ${status} on ${goal} at ${this.pos}`);
-		else {
-			if (goal instanceof StructureTerminal || goal instanceof StructureStorage)
-				this.defer(3);
+		else if (goal instanceof StructureTerminal || goal instanceof StructureStorage) {
+			this.defer(3);
 		}
 	}
 
@@ -271,37 +268,6 @@ class CreepExtFiller extends Creep {
 
 		}
 		return goal;
-		/* let {target} = this.memory;
-		let goal = Game.getObjectById(target);
-		if( (!goal || this.full(goal)) && this.carry[RESOURCE_ENERGY] > 0 ) {	
-			delete this.memory.target;
-			if(this.room.controller.isEmergencyModeActive()) {
-				goal = this.room.controller;				
-			} else {
-				let sel = _(Game.creeps).filter('memory.target').map('memory.target').value();
-				// let opts = _.filter(this.room.structures, s => s.energy !== undefined && s.energyPct < 1 && !_.any(Game.creeps, 'memory.target', s.id)); // || s.store[RESOURCE_ENERGY]);
-				let opts = _.filter(this.room.structures, s => s.energy !== undefined && s.energyPct < 1 && sel.indexOf(s.id) === -1); // || s.store[RESOURCE_ENERGY]);
-				if(!_.isEmpty(opts))
-					goal = _.min(opts, s => (1+s.energyPct) * s.pos.getRangeTo(this.pos) );	
-					// goal = _.min(opts, s => (1+s.energyPct) * (s.pos.getRangeTo(this.pos) / 3) );	
-			}
-		}		
-		if(!goal || (this.carryTotal > 0 && this.carry[RESOURCE_ENERGY] <= 0)) {
-			let {storage,terminal} = this.room;
-			
-			if(this.carry[RESOURCE_ENERGY] > 0) {
-				if(storage && storage.store[RESOURCE_ENERGY] < 300000)
-					goal = storage;
-				else if(terminal)
-					goal = terminal;
-			} else {
-				goal = terminal;
-			}
-			// goal = this.room.terminal || this.room.storage;
-		}
-		if(goal)
-			this.memory.target = goal.id;
-		return goal; */
 	}
 
 	withdraw(target, amt) {
