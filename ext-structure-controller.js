@@ -120,6 +120,10 @@ StructureController.prototype.run = function () {
 	// won't run in remote rooms!
 };
 
+StructureController.prototype.updateDefenses = function() {
+
+};
+
 StructureController.prototype.clock = function (freq) {
 	return (Game.time - (this.memory.claimedAt || 0)) % freq;
 };
@@ -136,11 +140,21 @@ StructureController.prototype.isEmergencyModeActive = function () {
 
 /**
  * Nuke detection - Exactly what it sounds like.
+ *
+ * @todo Group by time intervals so we don't waste safe modes.
+ * @todo Switch to threat level model. Nuke sets to highest threat level forcing safe mode on next hostile action.
  */
+// const MAX_NUKE_DEBOUNCE = 500;
 StructureController.prototype.updateNukeDetection = function () {
-	if (!_.isEmpty(this.room.find(FIND_NUKES))) {
-		Log.notify(`[DEFCON] Nuclear launch detected! ${this.pos.roomName}`);
-	}
+	const nukes = this.room.find(FIND_NUKES);
+	if(nukes == null || !nukes.length)
+		return;
+	Log.notify(`[DEFCON] Nuclear launch detected! ${this.pos.roomName}`);
+	// const nukesByTimeGroup = _.groupBy(nukes, n => Math.floor(n.timeToLand / MAX_NUKE_DEBOUNCE));
+	const maxNuke = _.max(nukes, 'timeToLand');
+	const postNukeSafeMode = maxNuke.timeToLand + CONTROLLER_NUKE_BLOCKED_UPGRADE + _.random(1,150);
+	Log.debug(`${this.pos.roomName} Scheduling immediate safe mode following nuke arrival in ${postNukeSafeMode} ticks`, 'Controller');
+	this.memory.postNukeSafeMode = postNukeSafeMode;
 };
 
 /**
@@ -563,6 +577,11 @@ StructureController.prototype.updateSafeMode = function () {
 		Log.warn(`${this.pos.roomName}: Low ticksToDowngrade, Safe mode at risk`, 'Controller');
 	else if(this.ticksToDowngrade > EMERGENCY_THRESHOLD[this.level] && this.memory.ticksToDowngrade <= EMERGENCY_THRESHOLD[this.level]) {
 		Log.warn(`${this.pos.roomName}: Safe mode unblocked`, 'Controller');
+	}
+
+	if(Game.time === this.memory.postNukeSafeMode) {
+		Log.notify(`${this.pos.roomName} Activating post-nuke safe mode.`);
+		this.activateSafeMode();
 	}
 	this.memory.safeMode = this.safeMode || 0;
 	this.memory.ticksToDowngrade = this.ticksToDowngrade || 0;
