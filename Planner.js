@@ -336,8 +336,8 @@ class BuildPlanner {
 		if (level >= MINIMUM_LEVEL_FOR_LINKS)
 			this.buildLinks(pos,level);
 		this.findRoadMisplacements(room).invoke('destroy').commit();
-		// if(level >= 3)
-		//	this.exitPlanner(room.name, {commit: true});
+		if(level >= 7)
+			this.exitPlanner(room.name, {commit: true});
 		if (level >= 6) {
 			const { mineral } = room;
 			if (mineral && !mineral.pos.hasStructure(STRUCTURE_EXTRACTOR)) {
@@ -378,7 +378,11 @@ class BuildPlanner {
 	 * @param {*} controller
 	 */
 	static buildControllerWall(origin, controller) {
-
+		if(!origin || !controller)
+			throw new Error("Invalid args");
+		Log.debug(`${controller.pos.roomName}: Barricading controller`, 'Planner');
+		const tiles = _.reject(controller.pos.getOpenNeighbors(), p => p.hasStructure(STRUCTURE_RAMPART));
+		tiles.forEach(t => controller.room.addToBuildQueue(t,STRUCTURE_RAMPART));
 	}
 
 	/**
