@@ -623,3 +623,8 @@ global.forEachFn = function forEachFn(proto, cb) {
 } */
 
 global.roomLink = (room,shard='shard0') => `<a href='https://screeps.com/a/#!/room/${shard}/${room}'>${shard}/${room}</a>`;
+
+/** Set height of console, author Spedwards */
+global.setConsoleLines = function(lines) {
+	console.log(`<script>document.querySelector(\'.editor-panel\').style.height = "${Math.ceil(lines * 22.5714) + 30}px";</script>`);
+}
