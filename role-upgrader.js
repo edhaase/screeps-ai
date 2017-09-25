@@ -44,9 +44,10 @@ module.exports = {
 	},
 	run: function (creep) {
 		const { controller } = creep.room;
-		if (creep.carry[RESOURCE_ENERGY] === 0)
+		if (creep.carry[RESOURCE_ENERGY] === 0) {
 			creep.say('\u26FD', true);
-		else if (controller && !controller.upgradeBlocked) {
+			creep.moveTo(controller, { range: CREEP_UPGRADE_RANGE });
+		} else if (controller && !controller.upgradeBlocked) {
 			if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE)
 				creep.moveTo(controller, { range: CREEP_UPGRADE_RANGE });
 		} else if (controller && controller.upgradeBlocked > creep.ticksToLive) {
