@@ -350,7 +350,7 @@ StructureController.prototype.runCensus = function () {
 		const builders = _.get(census, 'builder', 0);
 		// let useSpawn = assistingSpawn || spawn;
 		let useSpawn = spawn;
-		if ((!spawn || storedEnergy > 10000) && assistingSpawn)
+		if ((!spawn || (storedEnergy < 10000)) && assistingSpawn)
 			useSpawn = assistingSpawn;
 		if (!useSpawn)
 			Log.warn(`No spawn available to request builders for ${this.pos.roomName}`, "Controller");
