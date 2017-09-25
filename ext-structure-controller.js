@@ -345,8 +345,8 @@ StructureController.prototype.runCensus = function () {
 		// console.log('build remaining in room: ' + score);
 		// score = Math.clamp(0, score, 3);
 		score = 1;
-		if (storedEnergy > 10000)
-			score = 2;
+		if (storedEnergy > 10000 || resDecay > 2)
+			score = Math.clamp(2, resDecay, 3);
 		const builders = _.get(census, 'builder', 0);
 		let useSpawn = spawn || assistingSpawn;
 		// Past a certain point it doesn't make sense to use. Otherwise mix things up.
