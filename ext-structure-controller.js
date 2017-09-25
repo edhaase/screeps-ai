@@ -348,9 +348,9 @@ StructureController.prototype.runCensus = function () {
 		if (storedEnergy > 10000)
 			score = 2;
 		const builders = _.get(census, 'builder', 0);
-		// let useSpawn = assistingSpawn || spawn;
-		let useSpawn = spawn;
-		if ((!spawn || (storedEnergy < 10000)) && assistingSpawn)
+		let useSpawn = spawn || assistingSpawn;
+		// Past a certain point it doesn't make sense to use. Otherwise mix things up.
+		if (this.level < 6 && assistingSpawn && Math.random() < 0.5)
 			useSpawn = assistingSpawn;
 		if (!useSpawn)
 			Log.warn(`No spawn available to request builders for ${this.pos.roomName}`, "Controller");
