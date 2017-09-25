@@ -180,7 +180,7 @@ module.exports = {
 	requestBuilder: function (spawn, { elimit = 20, home, body, num = 1, priority = 0, expire = DEFAULT_SPAWN_JOB_EXPIRE } = {}) {
 		// let avail = Math.clamp(300, spawn.room.energyCapacityAvailable, 2000);
 		const partLimit = Math.floor(elimit / BUILD_POWER);
-		const avail = Math.max(SPAWN_ENERGY_START, spawn.room.energyCapacityAvailable);
+		const avail = Math.max(SPAWN_ENERGY_START, spawn.room.energyCapacityAvailable * 0.80);
 		const pattern = [MOVE, MOVE, MOVE, WORK, WORK, CARRY];
 		const cost = UNIT_COST(pattern);
 		const al = Math.min(Math.floor(cost * (partLimit / 2)), avail);
