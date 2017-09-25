@@ -60,6 +60,7 @@ global.BIT_DISABLE_TOWER_HEAL = (1 << 5);
 const CONTROLLER_DOWNGRADE_SAFEMODE_THRESHOLD = 5000;
 const CONTROLLER_SAFEMODE_MARGIN = 500;
 const EMERGENCY_THRESHOLD = _.mapValues(CONTROLLER_DOWNGRADE, v => v - CONTROLLER_DOWNGRADE_SAFEMODE_THRESHOLD + CONTROLLER_SAFEMODE_MARGIN);
+const MINIMUM_REQUIRED_SAFE_MODE = 300;
 
 /**
  * Custom properties
@@ -679,14 +680,13 @@ StructureController.prototype.unclaim = function () {
 		Log.notify(`Unable to unclaim ${this.pos.roomName}`);
 };
 
-const MINIMUM_REQUIRED_SAFE_MODE = 300;
 const {activateSafeMode} = StructureController.prototype;
 StructureController.prototype.activateSafeMode = function() {
 	if(this.checkBit(BIT_CTRL_DISABLE_SAFEMODE))
 		return ERR_INVALID_TARGET;
-	const nukes = this.room.find(FIND_NUKES, { filter: n => n.timeToLand < MINIMUM_REQUIRED_SAFE_MODE });
-	if (!_.isEmpty(nukes))
-		return ERR_BUSY;
+	// const nukes = this.room.find(FIND_NUKES, { filter: n => n.timeToLand < MINIMUM_REQUIRED_SAFE_MODE });
+	// if (!_.isEmpty(nukes))
+	//	return ERR_BUSY;
 	return activateSafeMode.call(this);
 };
 
