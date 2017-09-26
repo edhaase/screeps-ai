@@ -313,10 +313,6 @@ class BuildPlanner {
 			Log.debug('Nothing to build', 'Planner');
 			// return;
 		} else {
-			/* var plan = this.uberPlan(pos, want, {
-				drawRoad: true, plainCost: 2, swampCost: 3, heuristicWeight: 0.9,
-				radius: radius
-			}); */
 			var fleePlanner = new FleePlanner(null, pos, {
 				stuffToAdd: want
 			});
@@ -384,214 +380,7 @@ class BuildPlanner {
 		const tiles = _.reject(controller.pos.getOpenNeighbors(), p => p.hasStructure(STRUCTURE_RAMPART));
 		tiles.forEach(t => controller.room.addToBuildQueue(t,STRUCTURE_RAMPART));
 	}
-
-	/**
-	 * Interesting results even without updating cost matrix..
-	 * ex(PathFinder.search(new RoomPosition(43,42,'W6N3'),[{pos: new RoomPosition(43,42,'W6N3'), range: 3},{pos: new RoomPosition(46,39,'W6N3'), range: 1}], {flee:true}))
-	 * ex(PathFinder.search(new RoomPosition(43,42,'W6N3'),[{pos: new RoomPosition(43,42,'W6N3'), range: 3},{pos: new RoomPosition(46,39,'W6N3'), range: 1},{pos: new RoomPosition(46,40,'W6N3'), range: 1}], {flee:true}))
-	 * Notes: Cost matrix must be built correctly. Roads are cheap, structures are obstacles.
-	 * Should be able to re-call for missing structures
-	 *
-	 * (new CostMatrix.CostMatrix(Game.rooms['W6N3'])).setFixedObstacles().setRoad().draw()
-	 * Planner.uberPlan(new RoomPosition(39,12,'W7N4'))
-	 * @todo: Occasionally it can't find a plan. It should retry.
-	 * @todo: Instead of unwalkable crosshatch, try just a _slightly_ higher weight like 3?
-	 * @todo: Weigh all extensions and spawns closer together. Walking all that distance will suck.
-	 * @todo: Recurse and backtrack on failure? or just retry?
-	 *
-	 * example: Planner.uberPlan(new RoomPosition(43,42,'W6N3'))
-	 * example: Planner.uberPlan(new RoomPosition(38,7,'W5N3'),null,{drawRoad:true,plainCost:2,swampCost:3,heuristicWeight:1.0})
-	 * example: Planner.uberPlan(new RoomPosition(43,42,'W6N3'),null,{drawRoad:true,plainCost:2,swampCost:3,heuristicWeight:0.9})
-	 * example: Planner.uberPlan(new RoomPosition(31,20,'W2N7'),null,{drawRoad:true,ignoreCurrentPlan:true})
-	 */
-	static uberPlan(origin, stuffToAdd, opts = {}) {
-		_.defaults(opts, {
-			shuffle: false,
-			radius: 1,
-			draw: true,
-			drawRoad: false,
-			ignoreCurrentPlan: false,
-			ignoreRoad: false,
-			ignoreStructures: false,
-			plainCost: 2,
-			swampCost: 3,
-			heuristicWeight: 0
-		});
-
-		// Set up initial goal.
-		var used = 0;
-		var start = Game.cpu.getUsed();
-		var goals = [{ pos: origin, range: opts.radius || 2 }];
-		var room = Game.rooms[origin.roomName];
-		room.find(FIND_SOURCES).forEach(s => goals.push({ pos: s.pos, range: 2 }));
-		room.find(FIND_MINERALS).forEach(s => goals.push({ pos: s.pos, range: 2 }));
-		room.find(FIND_NUKES).forEach(s => goals.push({ pos: s.pos, range: 2 }));
-		// var goals = [{pos: room.controller.pos, range: 2}];		
-
-		// testing
-		if (!stuffToAdd) {
-			// stuffToAdd = Util.RLD([10,STRUCTURE_EXTENSION,1,STRUCTURE_SPAWN]);
-			// stuffToAdd = Util.RLD([20,STRUCTURE_EXTENSION,3,STRUCTURE_SPAWN]);
-			// stuffToAdd = Util.RLD([1,'terminal',3,STRUCTURE_SPAWN,6,'tower',1,STRUCTURE_OBSERVER,1,STRUCTURE_STORAGE,1,'powerSpawn',1,'nuker',60,STRUCTURE_EXTENSION]);
-			// stuffToAdd = Util.RLD([1,'terminal',60,STRUCTURE_EXTENSION,3,STRUCTURE_SPAWN,6,'tower',1,STRUCTURE_OBSERVER,1,STRUCTURE_STORAGE,1,'powerSpawn',1,'nuker']);
-			stuffToAdd = Util.RLD([1, 'terminal', 60, STRUCTURE_EXTENSION, 6, 'tower', 3, STRUCTURE_SPAWN, 1, STRUCTURE_OBSERVER, 1, STRUCTURE_STORAGE, 1, 'powerSpawn', 1, 'nuker']);
-			// stuffToAdd = Util.RLD([1,'spawn',5,'extension',]);
-		}
-		if (opts.shuffle)
-			stuffToAdd = _.shuffle(stuffToAdd);
-
-		if (_.isEmpty(stuffToAdd)) {
-			Log.debug('Nothing to plan!', 'Planner');
-			return [];
-		}
-		// ES6 PathFinder extension class?
-
-		// Set up cost matrix and existing goals.
-		var cm;
-		if (opts.costMatrix !== undefined)
-			cm = opts.costMatrix.clone();
-		else {
-			cm = new CostMatrix.CostMatrix;
-		}
-		// Register existing structures
-		// (Optional)
-		// It's best if we have visibility and avoid exits directly, rather just a box. Or use describeExits and block walls.
-		if (room) {
-			used = Time.measure(() => _.each(room.find(FIND_EXIT), (exit) => goals.push({ pos: exit, range: 5 })));
-			Log.debug('Blocked off exits in ' + used + ' cpu', 'Planner');
-			if (!opts.ignoreCurrentPlan) {
-				used = Time.measure(() => this.mergeCurrentPlan(room, goals, cm, opts));
-				Log.debug(`Merged current state in ${used} cpu`, 'Planner');
-			}
-		} else {
-			used = Time.measure(() => cm.setBorderUnwalkable(2));
-			Log.debug('Blocked off border tiles in ' + used + ' cpu', 'Planner');
-		}
-		// var draw = (path) => 
-		var cursor = origin; // room.controller.pos;
-		// while _stuff to add_.
-		var newStuff = [];
-
-		var item;
-		while (item = stuffToAdd.shift()) {
-			this.plan(cursor, goals, newStuff, cm, item, opts);
-			// used = Time.measure( () =>  );		
-			// Log.warn(`Used ${used} cpu`);
-		}
-		// cm.draw(room.name);			
-		var end = Game.cpu.getUsed() - start;
-		Log.debug('Planner total time: ' + end, 'Planner');
-		// @todo: Draw roads first.
-		if (opts.draw) {
-			var visual = new RoomVisual(origin.roomName);
-			const [a, b] = _.partition(newStuff, ({ structureType }) => structureType === STRUCTURE_ROAD);
-			if (opts.drawRoad === true) {
-				_.each(a, (item) => visual.structure(item.pos.x, item.pos.y, item.structureType, { opacity: 0.05 }));
-				visual.connectRoads();
-			}
-			_.each(b, (item) => visual.structure(item.pos.x, item.pos.y, item.structureType, { opacity: 0.75 }));
-		}
-		// console.log(ex(newStuff));
-		// ..set cursor?
-		// visualize?
-		return newStuff;
-	}
-
-	static mergeCurrentPlan(room, goals, cm, opts) {
-		_.each(room.find(FIND_STRUCTURES), ({ pos, structureType }) => {
-			if (!opts.ignoreRoad && structureType === STRUCTURE_ROAD) {
-				cm.set(pos.x, pos.y, 1);
-				goals.push({ pos, range: 1, structureType });
-			} else if (!opts.ignoreStructures && OBSTACLE_OBJECT_TYPES.includes(structureType)) {
-				cm.set(pos.x, pos.y, 255);
-				goals.push({
-					pos,
-					range: (STRUCTURE_MIN_RANGE[structureType] || 1),
-					structureType
-				});
-			}
-		});
-	}
-
-	/**
-	 * This is where we actually update the plan.
-	 */
-	static plan(origin, goals, newStuff, cm, planStructureType, opts) {
-		var {
-			plainCost = 2,
-			swampCost = 3,
-			heuristicWeight = 0.9
-		} = opts || {};
-		var room = Game.rooms[origin.roomName];
-		var mgoals;
-		/* if(opts.minRange)
-			mgoals = _.map(goals, ({pos,structureType,range}) => ({pos,structureType,range: Math.max(Math.max(range,opts.minRange),STRUCTURE_MIN_RANGE[planStructureType] || 1)}));		
-		else
-			mgoals = _.map(goals, ({pos,structureType,range}) => ({pos,structureType,range: Math.max(range,STRUCTURE_MIN_RANGE[planStructureType] || 1)}));		 */
-
-		mgoals = _.map(goals, ({ pos, structureType, range }) => ({
-			pos,
-			structureType,
-			range: Math.clamp(opts.minRange || 1, Math.max(range, STRUCTURE_MIN_RANGE[planStructureType] || 1), opts.maxRange || 15)
-		}));
-
-		// console.log(ex(mgoals));
-		var { path, ops, cost, incomplete } = PathFinder.search(origin, mgoals, {
-			flee: true,
-			roomCallback: () => cm,
-			maxRooms: 1,
-			maxCost: CREEP_LIFE_TIME, // Perhaps lower?			
-			plainCost, swampCost,
-			maxOps: 2500, // Perhaps higher given the work we do.
-			heuristicWeight
-		});
-		var dest = _.last(path);
-		if (!path || incomplete === true) {
-			Log.warn(`Found ${dest}, cost: ${cost}, ops: ${ops}, incomplete: ${incomplete}`, 'Planner');
-			Log.warn('Unable to find path!', 'Planner');
-			return false;
-		}
-		if (opts.draw)
-			new RoomVisual().poly(path);		
-		Log.warn(`Found ${dest}, cost: ${cost}, ops: ${ops}, incomplete: ${incomplete}`, 'Planner');
-		cm.set(dest.x, dest.y, 255);
-		var entry = {
-			pos: dest,
-			range: STRUCTURE_MIN_RANGE[planStructureType] || 1,
-			structureType: planStructureType
-		};
-		goals.push(entry); // what range?
-		newStuff.push(entry);
-		// work backwards placing road
-		path.pop();
-		var rpos;
-		while (rpos = path.pop()) {
-			if (cm.get(rpos.x, rpos.y) === 1) { // Why isn't this working?
-				// origin = rpos;
-				break;
-			}
-			cm.set(rpos.x, rpos.y, 1);
-			entry = { pos: rpos, range: 1, structureType: STRUCTURE_ROAD };
-			goals.push(entry);
-			newStuff.push(entry);
-		}
-
-		// place road on horizontals.
-		// This is still neccesary (As flee goals)
-		var points = _.map(HORIZONTALS, (d) => dest.addDirection(d));
-		while (rpos = points.pop()) {
-			if (cm.get(rpos.x, rpos.y) === 1 || (room && !rpos.isOpen()))
-				continue;
-			if ((rpos.x + rpos.y) % 2)
-				continue;
-			cm.set(rpos.x, rpos.y, 1);
-			entry = { pos: rpos, range: 1, structureType: STRUCTURE_ROAD };
-			goals.push(entry);
-			newStuff.push(entry);
-		}
-		// origin = dest;
-	}
-
+	
 	/**
 	 * Distance transform - An image procesing technique.
 	 * Rosenfeld and Pfaltz 1968 algorithm
@@ -701,42 +490,6 @@ class BuildPlanner {
 	}
 
 	/**
-	 * @kshepards clearance matrix
-	 * Top-left scoring, single pass. Great for space-fitting prefabs
-	 */
-	static gsm(roomName) {
-		var matrix = []; // : number[][] = [];
-		var x = 49;
-		for (; x >= 0; x--) {
-			matrix[x] = [];
-			var y = 49;
-			for (; y >= 0; y--) {
-				if (x >= 47 || y >= 47 || x <= 2 || y <= 2) {
-					// Set everything to 0 on the room edge, up to the walls
-					matrix[x][y] = 0;
-				} else if (x === 46 || y === 46) {
-					// Bottom or right edge (the 'end' of a square)
-					matrix[x][y] = Game.map.getTerrainAt(x, y, roomName) === 'wall' ? 0 : 1;
-				} else {
-					// Not a room edge or bottom/right edge
-					if (Game.map.getTerrainAt(x, y, roomName) === 'wall') {
-						matrix[x][y] = 0;
-					} else {
-						matrix[x][y] = 1 + Math.min(
-							matrix[x + 1][y], // East
-							matrix[x][y + 1], // South
-							matrix[x + 1][y + 1] // South-east
-						);
-					}
-				}
-			}
-		}
-		// return matrix;
-		console.log(matrix);
-		return CostMatrix.CostMatrix.fromArrayMatrix(matrix);
-	}
-
-	/**
 	 * Must path within range (Adjacent for source), but road can stop one shorter.
 	 * For controller, road only needs to path to range 3.
 	 */
@@ -824,15 +577,6 @@ class BuildPlanner {
 		// _.each(path, p => p.createConstructionSite(STRUCTURE_ROAD));
 	}
 
-	static saveCurrentWorldPlan() {
-		var structs = _.filter(Game.structures, s => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_RAMPART);
-		var plan = _.map(structs, ({ pos, structureType }) => ({ pos, structureType }));
-		const size = Util.withMemorySegment(SEGMENT_BUILD, function (obj) {
-			obj.plan = plan;
-		});
-		console.log('New segment size: ' + size);
-	}
-
 	/**
 	 * Flood fill code
 	 * https://en.wikipedia.org/wiki/Breadth-first_search
@@ -916,12 +660,9 @@ class BuildPlanner {
 			return ERR_NOT_FOUND;
 		}
 		_.each(structures, function (s) {
-			if (!protect.includes(s.structureType))
+			if (!protect.includes(s.structureType) || s.pos.hasRampart())
 				return;
-			var isRamparted = s.pos.hasRampart();
-			if (isRamparted)
-				return;
-			Log.debug(`${s} at pos ${s.pos} has rampart: ${isRamparted}`,'Planner');
+			Log.debug(`Creating rampart for ${s} at pos ${s.pos}`,'Planner');
 			room.addToBuildQueue(s.pos, STRUCTURE_RAMPART);
 		});
 		var used = Game.cpu.getUsed() - start;
@@ -959,46 +700,6 @@ class BuildPlanner {
 	}
 
 	/**
-	 * Planner.planExitWalls(Game.rooms['W8N4'], {visualize:true,commit:false});
-	 */
-	static planExitWalls(room, { visualize = true, commit = true }) {
-		var start = Game.cpu.getUsed();
-		var exits = room.find(FIND_EXIT); // all exit tiles.
-
-		var x, y, p, minExit;
-		for (x = 1; x < 49; x++)
-			for (y = 1; y < 49; y++) {
-				if ((x >= 3 && x <= 46) && (y >= 3 && y <= 46))
-					continue;
-				if (Game.map.getTerrainAt(x, y, room.name) === 'wall')
-					continue;
-				p = room.getPositionAt(x, y);
-				if (p.hasObstacle())
-					continue;
-				minExit = _.min(exits, e => e.getRangeTo(p));
-				if (minExit.getRangeTo(p) !== 2)
-					continue;
-				var color = (x + y) % 2;
-				// console.log('exit found: ' + p);
-				// Command.push("_.create(RoomPosition.prototype, " +  JSON.stringify(p) +  ").createFlag(null, FLAG_CONSTRUCTION, " + color + ")")
-				if (commit) {
-					var type = (color) ? STRUCTURE_WALL : STRUCTURE_RAMPART;
-					if (!p.hasStructure(type))
-						p.createConstructionSite(type);
-				}
-				// Command.push("_.create(RoomPosition.prototype, " +  JSON.stringify(p) +  ").createFlag(null, FLAG_CONSTRUCTION, " + COLOR_WHITE + ")");
-				if (visualize) {
-					if (color)
-						room.visual.circle(p, { fill: 'black' });
-					else
-						room.visual.circle(p, { fill: 'green' });
-				}
-			}
-		var used = Game.cpu.getUsed() - start;
-		console.log(`Planner used ${used} cpu`);
-	}
-
-	/**
 	 * Attempt to obstacle exits. Requires origin point.
 	 *
 	 * Time.measure( () => Planner.exitPlanner('W7N2') )
@@ -1029,6 +730,7 @@ class BuildPlanner {
 		} else {
 			console.log('No room object');
 		}
+		/* eslint no-constant-condition: 0 */
 		while (true) {
 			var { path, incomplete } = PathFinder.search(opts.origin, exits, { roomCallback: () => cm, maxRooms: 1 });
 			if (incomplete)
@@ -1062,16 +764,7 @@ class BuildPlanner {
 			return "You don't have visibility in this room";
 		return _.transform(CONTROLLER_STRUCTURES, (r, v, k) => r[k] = v[room.controller.level]);
 	}
-
-	/**
-	 *
-	 */
-	static clearFlags(plan = PLAN_MARKER) {
-		_(Game.flags)
-			.filter({ color: FLAG_CONSTRUCTION, secondaryColor: plan })
-			.invoke('remove')
-			.commit();
-	}
+	
 }
 
 module.exports = BuildPlanner;
