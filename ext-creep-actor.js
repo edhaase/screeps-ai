@@ -429,7 +429,7 @@ Creep.prototype.scatter = function () {
 Creep.prototype.moveToRoom = function (roomName) {
 	return this.moveTo(new RoomPosition(25, 25, roomName), {
 		reusePath: 5,
-		range: 20,
+		range: 23,
 		ignoreRoads: this.plainSpeed === this.roadSpeed,
 		ignoreCreeps: (this.memory.stuck || 0) < 3,
 		costCallback: (name, cm) => LOGISTICS_MATRIX[name]
