@@ -547,20 +547,21 @@ class BuildPlanner {
 			});
 			var { path, incomplete, cost, ops } = result;
 			if (incomplete || !path || _.isEmpty(path)) {
-				Log.warn('No path to goal ' + JSON.stringify(toPos), 'Planner#planRoad');
-				Log.warn(`cost ${cost} ops ${ops} steps ${path.length}`);
+				Log.warn(`No path to goal ${JSON.stringify(toPos)}, cost ${cost} ops ${ops} steps ${path.length}`, 'Planner');
 				Log.warn(JSON.stringify(fromPos) + ', ' + JSON.stringify(toPos));
 				Log.warn(JSON.stringify(result));
 				Log.warn(opts.cmFn);
 				return ERR_NO_PATH;
 			}
 			path = _.drop(path, opts.rest);
-			if (opts.container) {
+			if (opts.container && path && path.length) {
 				var end = _.last(path);
-				if (!end.hasStructure(STRUCTURE_CONTAINER))
+				if (end && !end.hasStructure(STRUCTURE_CONTAINER))
 					Game.rooms[end.roomName].addToBuildQueue(end, STRUCTURE_CONTAINER);
 			}
 			path = _.dropRight(path, opts.initial);
+			if(!path || !path.length)
+				return Log.debug(`No road needed for ${fromPos} to ${toPos}`, 'Planner');
 			new RoomVisual(path[0].roomName).poly(path);
 			Log.debug(`Road found, cost ${cost} ops ${ops} incomplete ${incomplete}`, 'Planner');
 			if (!opts.dry) {
