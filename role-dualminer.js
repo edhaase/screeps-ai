@@ -73,8 +73,7 @@ module.exports = {
 		}
 
 		// Find stuff in range to fill up
-		// if(creep.carry[RESOURCE_ENERGY] > 25 && ((Game.time & 7) === 0)) {
-		if (Game.time & 1 || creep.carryCapacityAvailable > 0)
+		if (this.ticksToLive & 1 || creep.carryCapacityAvailable > 0)
 			return;
 
 		if (!this.memory.repairPower)

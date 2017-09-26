@@ -56,7 +56,7 @@ module.exports = {
 			return;
 		}
 
-		if (Game.time % 3 || creep.carry[RESOURCE_ENERGY] / creep.carryCapacity > 0.75)
+		if (this.ticksToLive % 3 || creep.carry[RESOURCE_ENERGY] / creep.carryCapacity > 0.75)
 			return;
 		// +1 to range for providers, in case we opt to park them in less obtrusive spots.
 		const provider = this.getTarget(

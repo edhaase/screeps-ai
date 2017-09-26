@@ -12,7 +12,7 @@ module.exports = {
 		if (!creep.pos.isNearTo(source))
 			creep.moveTo(source, { reusePath: 5, range: 1 });
 
-		if (Game.time % 2 === 0) {
+		if (creep.ticksToLive & 1 === 0) {
 			creep.harvest(source);
 		}
 

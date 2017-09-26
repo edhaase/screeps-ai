@@ -28,7 +28,7 @@ module.exports = {
 			// if(container.hitsMax - container.hits > (REPAIR_POWER * 6) && creep.hasActiveBodypart(CARRY))
 			// if(container.hitsMax - container.hits > (REPAIR_POWER * 6) && creep.carry[RESOURCE_ENERGY] > 0)
 			// Split resources between repair and container
-			if ((Game.time & 2) && container.hitsMax - container.hits > (REPAIR_POWER * 6) && creep.carryTotal >= creep.carryCapacity)
+			if ((this.ticksToLive & 2) && container.hitsMax - container.hits > (REPAIR_POWER * 6) && creep.carryTotal >= creep.carryCapacity)
 				creep.repair(container);
 			if (!creep.pos.isEqualTo(container.pos))
 				creep.moveTo(container, { range: 0 });

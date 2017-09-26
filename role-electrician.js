@@ -15,7 +15,7 @@ module.exports = function (creep) {
 	// About to die, bail cargo
 	if (creep.ticksToLive === 1)
 		creep.transfer(creep.room.storage, RESOURCE_ENERGY);
-	if (Game.time % 3 !== 0)
+	if (creep.ticksToLive % 3 !== 0)
 		return creep.say('HOLD');
 
 	const { lid } = creep.memory;
