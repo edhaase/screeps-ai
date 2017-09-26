@@ -33,8 +33,9 @@ function loadModule(name) {
  * Delay imports and requires if under low bucket.
  */
 console.log(`New runtime: ${Game.time}`);
+const BUCKET_MINIMUM = 500;
 module.exports.loop = function () {
-	if (Game.cpu.bucket < Game.cpu.tickLimit) {
+	if (Game.cpu.bucket < BUCKET_MINIMUM) {
 		console.log(`Runtime holding: ${Game.cpu.bucket}/${Game.cpu.tickLimit}`);
 		return;
 	}
@@ -92,7 +93,7 @@ module.exports.loop = function () {
 
 	// Hot swap the loop when we're loaded
 	module.exports.loop = function () {
-		if (Game.cpu.bucket <= Game.cpu.tickLimit)
+		if (Game.cpu.bucket <= BUCKET_MINIMUM)
 			return Log.notify("Bucket empty, skipping tick!", 60);
 		if (Game.cpu.getUsed() > Game.cpu.limit)
 			return Log.warn('Garbage collector ate our tick');
