@@ -46,26 +46,21 @@ module.exports = {
 		const { controller } = creep.room;
 		if (creep.carry[RESOURCE_ENERGY] === 0) {
 			creep.say('\u26FD', true);
-			creep.moveTo(controller, { range: CREEP_UPGRADE_RANGE });
+			const provider = this.getTarget(
+				// +1 to range for providers, in case we opt to park them in less obtrusive spots.
+				() => _.map(controller.lookForNear(LOOK_STRUCTURES, true, CREEP_UPGRADE_RANGE+1), LOOK_STRUCTURES),
+				(c) => Filter.canProvideEnergy(c)
+			);
+			if (!provider)
+				return creep.moveTo(controller, { range: CREEP_UPGRADE_RANGE });;
+			if (this.pull(provider, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE)
+				this.moveTo(provider, { range: 1 });
 		} else if (controller && !controller.upgradeBlocked) {
 			if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE)
 				creep.moveTo(controller, { range: CREEP_UPGRADE_RANGE });
 		} else if (controller && controller.upgradeBlocked > creep.ticksToLive) {
 			Log.warn(`${this.pos.roomName}: Upgrade block exeeds creep ttl, recycling ${this.name}`, 'Creep');
 			creep.setRole('recycle');
-			return;
 		}
-
-		if (this.ticksToLive % 3 || creep.carry[RESOURCE_ENERGY] / creep.carryCapacity > 0.75)
-			return;
-		// +1 to range for providers, in case we opt to park them in less obtrusive spots.
-		const provider = this.getTarget(
-			() => _.map(controller.lookForNear(LOOK_STRUCTURES, true, CREEP_UPGRADE_RANGE+1), LOOK_STRUCTURES),
-			(c) => Filter.canProvideEnergy(c)
-		);
-		if (!provider)
-			return;
-		if (this.pull(provider, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE)
-			this.moveTo(provider, { range: 1 });
 	}
 };
