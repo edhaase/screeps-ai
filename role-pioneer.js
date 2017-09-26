@@ -24,10 +24,10 @@ function canClaimRoom(room) {
 	const { owner, reservation, sign } = controller;
 	if (owner || reservation)
 		return false; // We can't claim it either, it's not ours.
-	if (sign && (Game.time - sign.time < MAX_SIGN_AGE)) {
+	// if (sign && (Game.time - sign.time < MAX_SIGN_AGE)) { // Too canadian
 		// var {username,text,time,datetime} = sign;
-		return false;
-	}
+	//	return false;
+	// }
 	return true;
 }
 
