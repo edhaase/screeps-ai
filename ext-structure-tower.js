@@ -21,6 +21,18 @@ const TOWER_MINIMUM_RESERVE = 0.75;
 // global.TOWER_REPAIR_EFFECT = [800,800,800,800,800,800,760,720,680,640,600,560,520,480,440,400,360,320,280,240,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200];
 // global.TOWER_HEAL_EFFECT = [400,400,400,400,400,400,380,360,340,320,300,280,260,240,220,200,180,160,140,120,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100];
 
+const TOWER_STRATEGY_CHANGE = 100;
+
+global.TOWER_STRATEGY_DISTRIBUTE = 0;	// Distribute damage across hostiles
+global.TOWER_STRATEGY_FOCUS = 1;		// Focus fire on the target with the most damage
+global.TOWER_STRATEGY_RANDOM = 2;		// Random target selection
+global.TOWER_STRATEGY_FIRST = 3;		// First target in the room
+global.TOWER_STRATEGY_CLOSEST = 4;		// Closest to tower
+global.TOWER_STRATEGY_CLOSEST_CTRL = 5;
+global.TOWER_STRATEGY_WEAKEST = 6;		// Most hurt
+global.TOWER_STRATEGY_TOUGHEST = 7;		// Most hits
+const MAX_ATTACK_STRATEGY = 7;
+
 StructureTower.prototype.onWake = function () {
 
 };
@@ -53,65 +65,44 @@ StructureTower.prototype.defer = function (ticks) {
 	return defer.call(this, Math.min(50, ticks));
 };
 
-StructureTower.prototype.distributedAttack = function () {
-	var target = _.min(this.room.hostiles, c => c.damage || 0);
-	if (target === Infinity)
+StructureTower.prototype.getAttackStrategy = function() {
+	if(!this.memory.att) {
+		this.memory.att = TOWER_STRATEGY_CHANGE;
+		this.memory.ats = _.random(0, MAX_ATTACK_STRATEGY);
+		Log.info(`Tower ${this.id} changing attack strategy to ${this.memory.ats}`, 'Tower');
+	} else this.memory.att--;
+	return this.memory.ats;
+};
+
+StructureTower.prototype.minmaxAttack = function (selector=_.min) {
+	var target = selector(this.room.hostiles, c => c.damage || 0);
+	if (target === Infinity || target === -Infinity)
 		return ERR_NOT_FOUND;
-	const status = this.attack(target);
-	if (status === OK) {
-		var range = this.pos.getRangeTo(target);
-		target.damage = (target.damage || 0) + TOWER_DAMAGE_EFFECT[range];
-		this.room.visual.line(this.pos, target.pos);
-	}
-	return status;
+	return this.attack(target);	
 };
 
 StructureTower.prototype.runAttack = function () {
-	// Exploitable still	
-	/* var target = this.getTarget(
-		() => this.room.hostiles,
-		(c) => c.pos.roomName === this.pos.roomName && (c.owner.username == 'Invader' || c.hasActiveNonMovePart()) && this.getDamageMitigation(c) < TOWER_DAMAGE_EFFECT[this.pos.getRangeTo(c)],
-		(candidates) => this.pos.findClosestByRange(candidates)
-	); */
-	return this.distributedAttack() === OK;
-	/* if(_.isEmpty(this.room.hostiles))
+	if(!this.room.hostiles || !this.room.hostiles.length)
 		return false;
-	var target = _.max(this.room.hostiles, c => c.threat / this.pos.getRangeTo(c));	
-	if(target) {
-		return this.attack(target) === OK;
-	} else
-		return false; */
-	/* var threats = this.room.hostiles;
-	if(threats == undefined || threats.length <= 0)
-		return false;
-
-	var targets = _.filter(threats, c => this.getDamageMitigation(c) < this.getDamageCalc(c));
-	var threat = null;
-	if(_.isEmpty(targets)) {
-		// Log.warn('[Tower] ' + this.pos + ', no hostiles valid for attack');
-		// return false;			
-		threat = this.pos.findClosestByRange(threats);
-	} else {
-		threat = _.max(targets, c => c.threat / this.pos.getRangeTo(c));
-	}
-	
-	if(!threat)
-		return false;
-	
-	let status = this.attack(threat);
-	if( status !== OK ) {
-		Log.notify("WARNING: Tower at " + this.pos + " failed to attack target " + threat + " with status " + status);
-		switch(status) {
-			case ERR_NOT_ENOUGH_ENERGY:
-			case ERR_INVALID_ARGS:
-				break;
-			case ERR_RCL_NOT_ENOUGH:
-			default:
-				this.defer(3);
-				break;
-		}			
-	} */
-	return true;
+	switch(this.getAttackStrategy()) {
+	case TOWER_STRATEGY_CLOSEST_CTRL:
+		return this.attack(this.room.controller.pos.findClosestByRange(this.room.hostiles)) === OK;
+	case TOWER_STRATEGY_CLOSEST:
+		return this.attack(this.pos.findClosestByRange(this.room.hostiles)) === OK;
+	default:
+	case TOWER_STRATEGY_DISTRIBUTE:
+		return this.minmaxAttack(_.min) === OK;
+	case TOWER_STRATEGY_FIRST:
+		return this.attack(_.first(this.room.hostiles)) === OK;
+	case TOWER_STRATEGY_FOCUS:
+		return this.minmaxAttack(_.max) === OK;
+	case TOWER_STRATEGY_RANDOM:
+		return this.attack(_.sample(this.room.hostiles)) === OK;
+	case TOWER_STRATEGY_WEAKEST:
+		return this.attack(_.min(this.room.hostiles,'hits')) === OK;
+	case TOWER_STRATEGY_TOUGHEST:
+		return this.attack(_.max(this.room.hostiles,'hits')) === OK;
+	}	
 };
 
 // 2017-04-05: Target locks repair candidate, if it gets low on energy it 
@@ -196,8 +187,10 @@ StructureTower.prototype.heal = function (target) {
 
 StructureTower.prototype.attack = function (target) {
 	const status = attack.call(this, target);
-	if (status === OK)
+	if (status === OK) {
 		this.isBusy = true;
+		target.damage = (target.damage || 0) + TOWER_DAMAGE_EFFECT[this.pos.getRangeTo(target)];
+	}
 	return status;
 };
 
