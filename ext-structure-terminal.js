@@ -115,7 +115,7 @@ StructureTerminal.prototype.updateOrders = function () {
 	// let orders = this.orders; // get orders for this room.
 	// do we care if they haven't sold?
 	const orders = _.filter(this.orders, o => o.type === ORDER_SELL && Game.time - o.created > 10000 && o.price > 0.45); // find old orders first.
-	_.each(orders, function (order) {
+	_.each(orders, (order) => {
 		const newPrice = order.price - 0.01;
 		if (newPrice < 0.25)
 			return;
