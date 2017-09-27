@@ -58,6 +58,10 @@ module.exports = {
 		);
 	},
 
+	estimateInSeconds: function(ticks, tickLength = this.getAvgTickLength()) {
+		return this.tickDelay(ticks, tickLength);
+	},
+
 	measure: function (fn, args = []) {
 		var start = Game.cpu.getUsed();
 		fn.apply(null, args);
