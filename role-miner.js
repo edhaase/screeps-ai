@@ -38,6 +38,7 @@ module.exports = {
 				return creep.moveTo(dest, {
 					reusePath: 25,
 					range: 1,
+					maxRooms: (dest.roomName === creep.pos.roomName)?1:undefined,
 					costCallback: (name, cm) => LOGISTICS_MATRIX[name],
 					ignoreCreeps: ((creep.memory.stuck < 3) ? ignoreCreeps : false)
 				});
