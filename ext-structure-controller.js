@@ -57,7 +57,6 @@ global.BIT_CTRL_REMOTE_MINERL_MINING = (1 << 3);	// Do we enable mineral harvest
 global.BIT_DISABLE_TOWER_REPAIR = (1 << 4);
 global.BIT_DISABLE_TOWER_HEAL = (1 << 5);
 
-const CONTROLLER_DOWNGRADE_SAFEMODE_THRESHOLD = 5000;
 const CONTROLLER_SAFEMODE_MARGIN = 500;
 const EMERGENCY_THRESHOLD = _.mapValues(CONTROLLER_DOWNGRADE, v => v - CONTROLLER_DOWNGRADE_SAFEMODE_THRESHOLD + CONTROLLER_SAFEMODE_MARGIN);
 const MINIMUM_REQUIRED_SAFE_MODE = 300;
@@ -658,12 +657,10 @@ StructureController.prototype.updateRclAvg = function () {
 	this.memory.rclLastTick = this.progress;
 };
 
-/** */
 StructureController.prototype.estimateInTicks = function () {
 	return Math.ceil((this.progressTotal - this.progress) / this.memory.rclAvgTick);
 };
 
-/** */
 StructureController.prototype.estimate = function () {
 	return Time.estimate(this.estimateInTicks());
 };
