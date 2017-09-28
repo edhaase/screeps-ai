@@ -440,7 +440,7 @@ global.GC = function () {
 			groups[Memory.creeps[name].gid] = 1;
 		if (!Game.creeps[name]) {
 			const age = Game.time - Memory.creeps[name].born;
-			const maxAge = _.get(Memory, 'stats.maxAge', 0);
+			const maxAge = _.get(Memory, 'stats.maxAge', CREEP_LIFE_TIME);
 			if (age > CREEP_LIFE_TIME)
 				Log.debug(`Garbage collecting ${name} (age: ${age})`, 'GC');
 			if (age > maxAge)
