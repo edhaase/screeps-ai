@@ -102,22 +102,22 @@ StructureSpawn.prototype.processJobs = function () {
 	}
 
 	var assignedName = job.name || `${job.memory.role}${this.getNextId()}`;
-	var name = this.createCreep(job.body, assignedName, job.memory, job.cost);
-	if (typeof name !== 'string') {
-		Log.error(`${this.pos.roomName}/${this.name} failed to create creep, status: ${name}`, 'Spawn');
-		if (name === ERR_RCL_NOT_ENOUGH)
+	var result = this.spawnCreep(job.body, assignedName, { memory: job.memory, cost: job.cost });
+	if (result !== OK) {
+		Log.error(`${this.pos.roomName}/${this.name} failed to create creep, status: ${result}`, 'Spawn');
+		if (result === ERR_RCL_NOT_ENOUGH)
 			this.defer(50);
 		return false;
 	}
 
-	Memory.creeps[name].born = Game.time + job.ticks;
+	Memory.creeps[assignedName].born = Game.time + job.ticks;
 	var idle = Game.time - (this.memory.lastidle || Game.time);
-	Log.info(`${this.pos.roomName}/${this.name}: New ${job.memory.role} unit: ${name}, cost: ${job.cost}, ticks: ${job.ticks}, priority: ${job.priority}, idle: ${idle}`, 'Spawn');
+	Log.info(`${this.pos.roomName}/${this.name}: New ${job.memory.role} unit: ${assignedName}, cost: ${job.cost}, ticks: ${job.ticks}, priority: ${job.priority}, idle: ${idle}`, 'Spawn');
 	// Log.info(`${this.pos.roomName}/${this.name}: New ${job.memory.role} unit: ${name}, cost ${job.cost}, ticks ${job.ticks}, priority ${job.priority}, idle ${idle}`, 'Spawn');
 	if (job.notify === true)
-		Game.notify(`Tick ${Game.time}: ${this.pos.roomName}/${this.name}: New ${job.memory.role} unit: ${name}, cost: ${job.cost}, ticks: ${job.ticks}, priority: ${job.priority}, idle: ${idle}`);
+		Game.notify(`Tick ${Game.time}: ${this.pos.roomName}/${this.name}: New ${job.memory.role} unit: ${assignedName}, cost: ${job.cost}, ticks: ${job.ticks}, priority: ${job.priority}, idle: ${idle}`);
 	if (job.memory && job.memory.role)
-		_.attempt(() => require(`role-${job.memory.role}`).init(Game.creeps[name]));
+		_.attempt(() => require(`role-${job.memory.role}`).init(Game.creeps[assignedName]));
 	q.shift();
 	this.memory.lastidle = Game.time + job.ticks;
 	this.resetEnergyClock();
@@ -247,11 +247,18 @@ StructureSpawn.prototype.removeExpiredJobs = function () {
 /**
  * Monkey patch createCreep so multiple spawns can operate in the same tick.
  */
-const { createCreep } = StructureSpawn.prototype;
+const { createCreep, spawnCreep } = StructureSpawn.prototype;
 StructureSpawn.prototype.createCreep = function (body, name, memory, cost) {
 	const result = createCreep.apply(this, arguments);
 	if (typeof result === 'string')
 		this.room.energyAvailable -= (cost || _.sum(body, part => BODYPART_COST[part]));
+	return result;
+};
+
+StructureSpawn.prototype.spawnCreep = function (body, name, opts = {}) {
+	const result = spawnCreep.apply(this, arguments);
+	if (result === OK)
+		this.room.energyAvailable -= (opts.cost || _.sum(body, part => BODYPART_COST[part]));
 	return result;
 };
 
