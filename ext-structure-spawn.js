@@ -263,14 +263,14 @@ StructureSpawn.prototype.spawnCreep = function (body, name, opts = {}) {
 	return result;
 };
 
-StructureSpawn.prototype.getProviderCache = function() {
-	if(!this.cache.ext || (Game.time - this.cache.last) > 300) {
+StructureSpawn.prototype.getProviderCache = function () {
+	if (!this.cache.ext || (Game.time - this.cache.last) > 300) {
 		this.cache.last = Game.time;
-		let providers = this.room.find(FIND_MY_STRUCTURES, {filter: s => s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN});
-		if(this.room.storage || this.room.terminal)
+		let providers = this.room.find(FIND_MY_STRUCTURES, { filter: s => s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN });
+		if (this.room.storage || this.room.terminal)
 			providers = _.sortBy(providers, e => e.pos.getRangeTo(this.room.storage || this.room.terminal));
-		this.cache.ext = providers.map(s => ({id: s.id}));
-		Log.info(`${this.name} Recaching providers: ${this.cache.ext}`,'Spawn');
+		this.cache.ext = providers.map(s => ({ id: s.id }));
+		Log.info(`${this.name} Recaching providers: ${this.cache.ext}`, 'Spawn');
 	}
 	// return _.map(this.cache.ext, id => Game.getObjectById(id));
 	return this.cache.ext;
