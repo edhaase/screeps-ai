@@ -31,7 +31,15 @@ module.exports = {
 			creep.memory.state = 'gather';
 
 		if (creep.memory.state === 'gather') {
-			creep.gatherEnergy();
+			if(creep.gatherEnergy() === ERR_INVALID_TARGET)
+				this.setState('harvest');
+		} else if(creep.memory.state === 'harvest') {
+			const source = this.getTarget(
+				({ room }) => room.find(FIND_SOURCES_ACTIVE),
+				(s) => (s instanceof Source) && (s.energy > 0 || s.ticksToRegeneration < this.pos.getRangeTo(s)),
+				(sources) => this.pos.findClosestByPath(sources)
+			);
+			creep.harvestOrMove(source);
 		} else if (creep.memory.state === 'fortify') {
 			var structs = _.map(this.lookForNear(LOOK_STRUCTURES, true, 3), LOOK_STRUCTURES);
 			structs = _.filter(structs, s => s.hits < s.hitsMax && s.hits < BUILDER_MAX_FORTIFY_HITS);
