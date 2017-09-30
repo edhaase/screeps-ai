@@ -45,6 +45,8 @@ Flag.prototype.run = function () {
  */
 const { createFlag } = Room.prototype;
 Room.prototype.createLogicFlagAtXY = function (x, y, name, color, secondaryColor, memory) {
+	if(_.any(this.lookForAt(LOOK_FLAGS,x,y), f => f.color === color && f.secondaryColor === secondaryColor))
+		return ERR_FULL;
 	const result = createFlag.apply(this, arguments);
 	if (typeof result !== 'number')
 		Game.flags[result].memory = memory; // Apparently if the call succeeds, we get a flag immediately.	
