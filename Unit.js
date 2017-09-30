@@ -22,7 +22,8 @@ const MINING_BODIES = [
 const REMOTE_MINING_BODIES = [
 	// [WORK,WORK,WORK,WORK,WORK,WORK,WORK,CARRY,MOVE,MOVE,MOVE],
 	[WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE],
-	[WORK, WORK, WORK, WORK, WORK, MOVE, MOVE]
+	[WORK, WORK, WORK, WORK, WORK, MOVE, MOVE],
+	[WORK,WORK,MOVE]
 ];
 
 global.MAX_MINING_BODY = (amt) => _.find(MINING_BODIES, b => UNIT_COST(b) <= amt);
@@ -123,7 +124,8 @@ module.exports = {
 
 	requestRemoteMiner: function (spawn, pos, expire = DEFAULT_SPAWN_JOB_EXPIRE) {
 		const body = _.find(REMOTE_MINING_BODIES, b => UNIT_COST(b) <= spawn.room.energyCapacityAvailable);
-		spawn.enqueue(body, null, { role: 'miner', dest: pos, travelTime: 0 }, 10, 0, 1, expire);
+		if(body && body.length)
+			spawn.enqueue(body, null, { role: 'miner', dest: pos, travelTime: 0 }, 10, 0, 1, expire);
 	},
 
 	/**
