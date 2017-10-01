@@ -14,8 +14,8 @@
 const EMPIRE_EXPANSION_FREQUENCY = 8191; // Power of 2, minus 1
 const GCL_MOVING_AVG_DURATION = 1000;
 
-if(Memory.empire == null) {
-	Memory.empire = {autoExpand: true};
+if (Memory.empire == null) {
+	Memory.empire = { autoExpand: true };
 }
 
 class Empire {
@@ -46,7 +46,7 @@ class Empire {
 	static cpuAllowsExpansion() {
 		// return (Memory.stats["cpu1000"] < Game.cpu.limit - 10);
 		const estCpuPerRoom = Memory.stats["cpu1000"] / this.ownedRoomCount();
-		Log.debug(`Empire estimated ${estCpuPerRoom} cpu used per room`,'Empire');
+		Log.debug(`Empire estimated ${estCpuPerRoom} cpu used per room`, 'Empire');
 		return (Memory.stats["cpu1000"] + estCpuPerRoom) < Game.cpu.limit - 10;
 	}
 
@@ -81,7 +81,7 @@ class Empire {
 		if (!spawn)
 			Log.error("No available spawn for expansion", "Empire");
 		else
-			spawn.enqueue(body, null, { role: "pioneer", rooms: candidates });
+			spawn.submit({ body, memory: { role: 'pioneer', rooms: candidates }, priority: 50 });
 		// Pick a room!
 		// Verify it isn't owned or reserved. Continue picking.
 		// Launch claimer!
@@ -92,7 +92,7 @@ class Empire {
 	static getAllCandidateRooms() {
 		return _(this.ownedRooms())
 			.reverse()
-			.map(m => this.getCandidateRooms(m.name,5))
+			.map(m => this.getCandidateRooms(m.name, 5))
 			.flatten()
 			.unique()
 			.shuffle()

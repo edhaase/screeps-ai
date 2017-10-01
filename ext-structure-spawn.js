@@ -200,9 +200,11 @@ StructureSpawn.prototype.submit = function (job) {
 		throw new Error(`Enqueue failed, bad body: ${job.body}`);
 	if (job.body.length > MAX_CREEP_SIZE)
 		throw new Error(`Body part may not exceed ${MAX_CREEP_SIZE} parts`);
-	if (!job.expire || job.expire === Infinity)
+	if (job.expire == null)
+		job.expire = Game.time + DEFAULT_SPAWN_JOB_EXPIRE;
+	else if (job.expire === 0 || job.expire === Infinity)
 		Log.warn(`No expiration set on ${job.memory.role}`, 'Spawn');
-	if (job.expire < Game.time)
+	else if (job.expire < Game.time)
 		job.expire += Game.time;
 	if (!job.cost)
 		job.cost = _.sum(job.body, part => BODYPART_COST[part]);

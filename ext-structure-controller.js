@@ -191,8 +191,6 @@ StructureController.prototype.updateNukeDetection = function () {
  * 2017-02-04: Repair units only spawn if we have a use for them
  * 2016-12-13: Increased maximum repair unit energy from 900 to 1800
  */
-// generalization: if(alive + pending < desired) enqueue(); 
-// Run same census function for neighboring rooms, with carefully implemented checks against self-room and remote room values?
 StructureController.prototype.runCensus = function (roomName = this.pos.roomName) {
 	var room = Game.rooms[roomName];
 	var { pos, ticksToDowngrade, level, safeModeAvailable, upgradeBlocked } = this;
@@ -408,9 +406,8 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	}
 
 	// Keep this small, we don't know if the energy capacity is ours or not.
-	if (bulldozer.length < 2 && !_.isEmpty(room.find(FIND_HOSTILE_STRUCTURES))) {
-		spawn.enqueue([WORK, WORK, MOVE, MOVE], null, { role: 'bulldozer', site: roomName }, 10);
-	}
+	if (bulldozer.length < 2 && !_.isEmpty(room.find(FIND_HOSTILE_STRUCTURES)))
+		require('Unit').requestBulldozer(spawn, roomName);
 };
 
 StructureController.prototype.getAssistingSpawn = function () {
