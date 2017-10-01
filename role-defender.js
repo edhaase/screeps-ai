@@ -12,8 +12,8 @@ module.exports = function (creep) {
 	var threat = creep.pos.findClosestByRange(creep.room.hostiles);
 	// var threat = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
 	if (threat == null) {
-		if ((Game.time & 63) === 0)
-			creep.setRole('recycle');
+		if(creep.ticksToLive & 63 === 0)
+			creep.wander();
 		return;
 	}
 
