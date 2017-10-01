@@ -45,7 +45,7 @@ Creep.prototype.run = function run() {
 	}
 
 	try {
-		if (memory.home !== undefined && (this.pos.roomName !== memory.home || !this.pos.isValid())) {
+		if (memory.home !== undefined && (this.pos.roomName !== memory.home || this.pos.isOnRoomBorder())) {
 			if (this.flee(MINIMUM_SAFE_FLEE_DISTANCE))
 				return;
 			this.moveToRoom(memory.home);
