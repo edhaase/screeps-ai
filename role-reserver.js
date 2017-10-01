@@ -62,9 +62,9 @@ class IdleReserveState extends FSM.State {
 
 		var routing = Memory.routing || {};
 		if (_.contains(routing.avoid, pos.roomName))
-			return Log.warn(`Reserver ${target.name} at ${target.pos}, unable to reach target site ${pos}, room is blacklisted`);
+			return Log.warn(`Reserver ${target.name} at ${target.pos}, unable to reach target site ${pos}, room is blacklisted`, 'Creep');
 
-		Log.info(`Reserver ${target.name} idle at ${target.pos}, moving to target site ${pos}`);
+		Log.debug(`Reserver ${target.name} idle at ${target.pos}, moving to target site ${pos}`, 'Creep');
 		if (target.pos.isNearTo(pos)) {
 			tick.transition('reserve');
 		} else {

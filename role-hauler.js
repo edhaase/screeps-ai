@@ -133,11 +133,14 @@ class GatherState extends FSM.State {
 	tick(tick) {
 		const{ fsm, target, store } = tick;
 		const pickup = _.create(RoomPosition.prototype, store.get('site'));
-		if (target.carryCapacityAvailable <= 10)
+		if (target.carryCapacityAvailable <= 10) {
+			if(!store.get('dropoff'))
+				target.suicide();
 			return tick.transition('walk', {
 				dest: { pos: store.get('dropoff'), range: 1 },
 				nextState: 'unload'
 			});
+		}
 
 		if (!target.pos.inRangeTo(pickup, 2))
 			return tick.transition('walk', {
