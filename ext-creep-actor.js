@@ -106,7 +106,7 @@ Creep.prototype.isDeferred = function () {
  * Can we renew this creep?
  * @todo: (Optional) (Cpu) Remove body part check and just mark roles with claim parts.
  */
-var unRenewableRoles = ['recycle', 'filler', 'pilot'];
+var unRenewableRoles = ['recycle', 'filler', 'pilot', 'defender'];
 Creep.prototype.canRenew = function () {
 	if (!this.my)
 		return false;
