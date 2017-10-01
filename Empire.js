@@ -44,7 +44,10 @@ class Empire {
 	}
 
 	static cpuAllowsExpansion() {
-		return (Memory.stats["cpu1000"] < Game.cpu.limit - 10);
+		// return (Memory.stats["cpu1000"] < Game.cpu.limit - 10);
+		const estCpuPerRoom = Memory.stats["cpu1000"] / this.ownedRoomCount();
+		Log.debug(`Empire estimated ${estCpuPerRoom} cpu used per room`,'Empire');
+		return (Memory.stats["cpu1000"] + estCpuPerRoom) < Game.cpu.limit - 10;
 	}
 
 	/**
@@ -68,15 +71,17 @@ class Empire {
 	 * Find a room to take!
 	 */
 	static expand() {
+		const body = [MOVE, CLAIM];
+		const cost = UNIT_COST(body);
 		Log.notify("Expansion in progress!");
 		const candidates = this.getAllCandidateRooms();
 		Log.warn(`Candidate rooms: ${candidates}`, "Empire");
-		const spawns = _.reject(Game.spawns, r => r.isDefunct());
+		const spawns = _.reject(Game.spawns, r => r.isDefunct() || r.room.energyCapacityAvailable < cost);
 		const spawn = _.sample(spawns);
 		if (!spawn)
 			Log.error("No available spawn for expansion", "Empire");
 		else
-			spawn.enqueue([MOVE, CLAIM], null, { role: "pioneer", rooms: candidates });
+			spawn.enqueue(body, null, { role: "pioneer", rooms: candidates });
 		// Pick a room!
 		// Verify it isn't owned or reserved. Continue picking.
 		// Launch claimer!
@@ -87,9 +92,10 @@ class Empire {
 	static getAllCandidateRooms() {
 		return _(this.ownedRooms())
 			.reverse()
-			.map(m => this.getCandidateRooms(m.name))
+			.map(m => this.getCandidateRooms(m.name,5))
 			.flatten()
 			.unique()
+			.shuffle()
 			.value();
 	}
 
@@ -116,7 +122,7 @@ class Empire {
 			|| Room.getType(r) !== "Room"
 			|| !Game.map.isRoomAvailable(r)
 			// || Game.map.getRoomLinearDistance(start, r) <= 1
-			|| !_.inRange(Game.map.findRoute(start, r).length, 1, 3));
+			|| !_.inRange(Game.map.findRoute(start, r).length, 2, 5));
 
 	}
 
