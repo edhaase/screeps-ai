@@ -97,7 +97,8 @@ StructureSpawn.prototype.processJobs = function () {
 	if (job.cost > this.room.energyAvailable) {
 		// Log.warn('Should ignore spawn job, not enough energy!')
 		this.memory.e = (this.memory.e || 0) + 1;
-		this.say(job.cost - this.room.energyAvailable);
+		var role = (job.memory && job.memory.role) || 'Unknown';
+		this.say(`${role} ${job.cost - this.room.energyAvailable}`);
 		return true;
 	}
 
@@ -112,7 +113,7 @@ StructureSpawn.prototype.processJobs = function () {
 
 	Memory.creeps[assignedName].born = Game.time + job.ticks;
 	var idle = Game.time - (this.memory.lastidle || Game.time);
-	Log.info(`${this.pos.roomName}/${this.name}: New ${job.memory.role} unit: ${assignedName}, cost: ${job.cost}, ticks: ${job.ticks}, priority: ${job.priority}, idle: ${idle}`, 'Spawn');
+	Log.info(`${this.pos.roomName}/${this.name}: New ${job.memory.role} unit: ${assignedName}, cost: ${job.cost}, ticks: ${job.ticks}, priority: ${job.priority}, idle: ${idle}, score: ${job.score}`, 'Spawn');
 	// Log.info(`${this.pos.roomName}/${this.name}: New ${job.memory.role} unit: ${name}, cost ${job.cost}, ticks ${job.ticks}, priority ${job.priority}, idle ${idle}`, 'Spawn');
 	if (job.notify === true)
 		Game.notify(`Tick ${Game.time}: ${this.pos.roomName}/${this.name}: New ${job.memory.role} unit: ${assignedName}, cost: ${job.cost}, ticks: ${job.ticks}, priority: ${job.priority}, idle: ${idle}`);
@@ -192,6 +193,7 @@ StructureSpawn.prototype.enqueue = function enqueue(body, name = null, memory = 
 
 /**
  * Similar to enqueue but takes a fully built job object
+ * example: {body,memory,priority,room,expire}
  */
 StructureSpawn.prototype.submit = function (job) {
 	if (!_.isArray(job.body) || job.body.length === 0)
@@ -200,6 +202,8 @@ StructureSpawn.prototype.submit = function (job) {
 		throw new Error(`Body part may not exceed ${MAX_CREEP_SIZE} parts`);
 	if (!job.expire || job.expire === Infinity)
 		Log.warn(`No expiration set on ${job.memory.role}`, 'Spawn');
+	if (job.expire < Game.time)
+		job.expire += Game.time;
 	if (!job.cost)
 		job.cost = _.sum(job.body, part => BODYPART_COST[part]);
 	if (!job.ticks)
@@ -212,7 +216,7 @@ StructureSpawn.prototype.submit = function (job) {
 	var q = this.getQueue();
 	var i = _.sortedLastIndex(q, job, 'score');
 	q.splice(i, 0, job);
-	Log.debug(`${this.pos.roomName}: Requesting new ${job.memory.role}, cost: ${job.cost}, ticks: ${job.ticks}, priority ${job.priority}, expiration: ${job.expire - Game.time} (${job.expire})`, 'Spawn');
+	Log.debug(`${this.pos.roomName}: Requesting new ${job.memory.role}, cost: ${job.cost}, ticks: ${job.ticks}, priority: ${job.priority}, expiration: ${job.expire - Game.time} (${job.expire}), score: ${job.score}`, 'Spawn');
 	return job.ticks;
 };
 
@@ -225,7 +229,7 @@ StructureSpawn.prototype.submit = function (job) {
  * Note: If two tasks are the same priority, go by cost rather than ticks so pilots can take priority.
  */
 StructureSpawn.prototype.scoreTask = function (task) {
-	var home = _.get(task, 'memory.home', this.pos.roomName);
+	var home = task.room || (task.memory && task.memory.home) || this.pos.roomName;
 	var dist = 0;
 	if (home !== this.pos.roomName)
 		dist = Game.map.findRoute(this.pos.roomName, home).length || 1;
