@@ -131,7 +131,6 @@ global.SITE_DUAL_MINER = COLOR_RED;
 global.SITE_STATUS_UNKNOWN = COLOR_PURPLE;
 global.SITE_SKMINE = COLOR_BLUE;				// ? requests guards?
 global.SITE_PICKUP = COLOR_CYAN;				// in use, desginated pickup site for haulers
-global.SITE_NEAR_RC = COLOR_GREEN;				// in use, hapgrader
 global.SITE_LOCAL = COLOR_YELLOW;
 global.SITE_MINERAL = COLOR_ORANGE;				// in use, builds extractors
 global.SITE_LAB = COLOR_BROWN;

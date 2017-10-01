@@ -228,18 +228,18 @@ class WalkState extends State {
 
 		let metric = Math.round(search.ops / search.path.length, 3);
 		if (metric > 10)
-			Log.info('path found in: ' + search.ops + ' (avg ' + metric + ')' + ' operations');
+			Log.info(`path found in: ${search.ops} (avg ${metric}) operations`, 'Creep');
 		/* if(search.ops == 0) {
 			Log.notify('Unusally small path? : ' + target.name + " ==> " + ex(search));
 		} */
 
 		if (metric > 100) {
-			Log.warn("WARNING: Unusually high operations for pathfinder! (" + metric + ") Unit: " + target.name + ' at ' + target.pos);
-			target.memory.defer = Game.time + 3;
+			Log.warn(`Unusually high operations for pathfinder! (${metric}) Unit: ${target.name} at ${target.pos}`, 'Creep');
+			target.defer(7);
 		}
 
 		if (target.ticksToLive < (search.path.length * 2) + 1) {
-			Log.warn('Creep ' + target.name + ' ticks to live (' + target.ticksToLive + ') is less than round trip path! ' + (search.path.length * 2));
+			Log.warn(`Creep ${target.name} ticks to live (${target.ticksToLive}) is less than round trip path! (${search.path.length * 2})`, 'Creep');
 			if (this.onLowTicksToLive)
 				this.onLowTicksToLive(tick, params.nextState);
 		}

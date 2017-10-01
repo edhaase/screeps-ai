@@ -19,6 +19,7 @@ module.exports = {
 		var flag = Game.flags[site];
 		var threat = creep.pos.findClosestByRange(creep.room.hostiles);
 		var noRoomHealer = !_.any(creep.room.find(FIND_MY_CREEPS), c => (c.pos.roomName === creep.pos.roomName && c.hasActiveBodypart(HEAL)));
+		const IDLE_DISTANCE = 3;
 
 		// Perform combat logic.
 		if (creep.hits < creep.hitsMax && creep.canHeal && !creep.canFight) {
@@ -62,8 +63,8 @@ module.exports = {
 			var patient = creep.pos.findClosestByRange(FIND_MY_CREEPS, { filter: c => c.hits < c.hitsMax });
 			// var patient = creep.pos.findClosestByRange(FIND_CREEPS, { filter: c => c.hits < c.hitsMax && !Filter.unauthorizedHostile(c) });
 			if (!patient) {
-				if (flag && !creep.pos.isEqualTo(flag.pos))
-					creep.moveTo(flag);
+				if (flag && !creep.pos.inRangeTo(flag.pos,IDLE_DISTANCE))
+					creep.moveTo(flag, {range: IDLE_DISTANCE});
 			} else if (creep.pos.isNearTo(patient)) {
 				creep.heal(patient);
 			} else {
@@ -81,8 +82,8 @@ module.exports = {
 			if (creep.pos.roomName !== creep.memory.home || creep.pos.isOnRoomBorder()) {
 				creep.moveTo(homeSpawn[0], {range: 1});
 			}
-		} else if (flag && !creep.pos.isNearTo(flag.pos)) {
-			creep.moveTo(flag, {range: 1});
+		} else if (flag && !creep.pos.inRangeTo(flag.pos,IDLE_DISTANCE)) {
+			creep.moveTo(flag, {range: IDLE_DISTANCE});
 		}
 	}
 };

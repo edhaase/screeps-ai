@@ -16,7 +16,7 @@ Source.prototype.getEnergyPerTickGoal = function () {
  *
  */
 Source.prototype.getHarvestPartsGoal = function () {
-	return this.energyCapacity / HARVEST_POWER / ENERGY_REGEN_TIME;
+	return Math.ceil(this.energyCapacity / HARVEST_POWER / ENERGY_REGEN_TIME);
 };
 
 /**

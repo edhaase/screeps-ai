@@ -23,7 +23,9 @@ const REMOTE_MINING_BODIES = [
 	// [WORK,WORK,WORK,WORK,WORK,WORK,WORK,CARRY,MOVE,MOVE,MOVE],
 	[WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE],
 	[WORK, WORK, WORK, WORK, WORK, MOVE, MOVE],
-	[WORK,WORK,MOVE]
+	[WORK, WORK, WORK, WORK, MOVE],
+	[WORK, WORK, WORK, MOVE],
+	[WORK, WORK, MOVE]
 ];
 
 global.MAX_MINING_BODY = (amt) => _.find(MINING_BODIES, b => UNIT_COST(b) <= amt);
@@ -122,10 +124,18 @@ module.exports = {
 		return Arr.repeat(arr, max);
 	},
 
-	requestRemoteMiner: function (spawn, pos, expire = DEFAULT_SPAWN_JOB_EXPIRE) {
-		const body = _.find(REMOTE_MINING_BODIES, b => UNIT_COST(b) <= spawn.room.energyCapacityAvailable);
-		if(body && body.length)
-			spawn.enqueue(body, null, { role: 'miner', dest: pos, travelTime: 0 }, 10, 0, 1, expire);
+	requestRemoteMiner: function (spawn, pos, work = SOURCE_HARVEST_PARTS, room) {
+		const body = _.find(REMOTE_MINING_BODIES, b => UNIT_COST(b) <= spawn.room.energyCapacityAvailable && _.sum(b, bp => bp === WORK) <= work);
+		const cost = UNIT_COST(body);
+		if (!body || !body.length)
+			return;
+		spawn.submit({
+			body,
+			memory: { role: 'miner', dest: pos, travelTime: 0 },
+			priority: 75,
+			room,
+			expire: DEFAULT_SPAWN_JOB_EXPIRE
+		});
 	},
 
 	/**
@@ -134,23 +144,23 @@ module.exports = {
 	requestMiner: function (spawn, dest, prio = 8) {
 		const body = _.find(MINING_BODIES, b => UNIT_COST(b) <= spawn.room.energyCapacityAvailable);
 		spawn.enqueue(body, null, { role: 'miner', dest: dest, home: dest.roomName, travelTime: 0 }, prio, 0, 1, DEFAULT_SPAWN_JOB_EXPIRE);
-	},		
+	},
 
 	/**
 	 * Biggest we can! Limit to 15 work parts
 	 * requestUpgrader(firstSpawn,1,5,49)
-	 */	
+	 */
 	requestUpgrader: function (spawn, home, priority = 3, max = 2500) {
 		var body = [];
 		// energy use is  active work * UPGRADE_CONTROLLER_POWER, so 11 work parts is 11 ept, over half a room's normal production
-		const {controller,storage} = spawn.room;
+		const { controller, storage } = spawn.room;
 		if (controller.level <= 2) {
 			body = [CARRY, MOVE, WORK, WORK];
 		} else {
 			if (controller.level === MAX_ROOM_LEVEL)
 				max = Math.min(max, MAX_RCL_UPGRADER_SIZE);
-			else if(storage)
-				max = Math.min(BODYPART_COST[WORK] * Math.floor(10*storage.stock), max); // Less than 20 ept.
+			else if (storage)
+				max = Math.min(BODYPART_COST[WORK] * Math.floor(10 * storage.stock), max); // Less than 20 ept.
 			// Ignore top 20% of spawn energy (might be in use by renewels)
 			var avail = Math.clamp(250, spawn.room.energyCapacityAvailable - (SPAWN_ENERGY_CAPACITY * 0.20), max);
 			var count = Math.floor((avail - 300) / BODYPART_COST[WORK]);
@@ -188,7 +198,7 @@ module.exports = {
 		const al = Math.min(Math.floor(cost * (partLimit / 2)), avail);
 		// console.log(`Pattern cost: ${cost}, avail: ${avail}, limit: ${al}`);
 		if (body == null)
-			body = this.repeat(pattern, al); // 400 energy gets me 2 work parts.
+			body = Arr.repeat(pattern, al); // 400 energy gets me 2 work parts.
 		if (_.isEmpty(body)) {
 			body = [WORK, CARRY, MOVE, MOVE];
 		}
@@ -230,7 +240,7 @@ module.exports = {
 		const avail = Math.clamp(400, spawn.room.energyCapacityAvailable, maxAvail);
 		// var body = this.repeat([WORK,CARRY,MOVE,MOVE], avail);
 		// var body = this.repeat([WORK,WORK,CARRY,MOVE,MOVE,MOVE], avail);
-		var body = this.repeat([MOVE, MOVE, MOVE, WORK, WORK, CARRY], avail);
+		var body = Arr.repeat([MOVE, MOVE, MOVE, WORK, WORK, CARRY], avail);
 		return spawn.enqueue(body, null, { home: home, role: 'repair' }, prio);
 	},
 
@@ -260,9 +270,9 @@ module.exports = {
 		// var body, avail = Math.clamp(250, capacity, 1500) - BODYPART_COST[WORK];
 		var body, avail = Math.clamp(250, capacity, 1500) - UNIT_COST([WORK, MOVE]);
 		if (hasRoad)
-			body = this.repeat([CARRY, CARRY, MOVE], avail);
+			body = Arr.repeat([CARRY, CARRY, MOVE], avail);
 		else
-			body = this.repeat([CARRY, MOVE], avail);
+			body = Arr.repeat([CARRY, MOVE], avail);
 		body.unshift(WORK);
 		body.unshift(MOVE);
 		if (!body || body.length <= 3) {
@@ -285,19 +295,19 @@ module.exports = {
 	},
 
 	requestScout: function (spawn, memory = { role: 'scout' }) {
-		return spawn.enqueue([MOVE], null, memory);
+		return spawn.enqueue([MOVE], null, memory, 75);
 	},
 
 	requestDefender: function (spawn, roomName, prio = 75) {
-		let body = this.repeat([TOUGH,ATTACK,MOVE,MOVE], spawn.room.energyCapacityAvailable / 2);
+		let body = Arr.repeat([TOUGH, ATTACK, MOVE, MOVE], spawn.room.energyCapacityAvailable / 2);
 		// let body = this.repeat([RANGED_ATTACK, MOVE], spawn.room.energyCapacityAvailable / 2);
 		if (_.isEmpty(body))
 			body = [MOVE, ATTACK];
 		return spawn.enqueue(body, null, { home: roomName, role: 'defender' }, prio);
 	},
 
-	requestRanger: function(spawn, roomName, prio = 75) {
-		const body = this.repeat([RANGED_ATTACK, MOVE], spawn.room.energyCapacityAvailable / 2);
+	requestRanger: function (spawn, roomName, prio = 75) {
+		const body = Arr.repeat([RANGED_ATTACK, MOVE], spawn.room.energyCapacityAvailable / 2);
 		return spawn.enqueue(body, null, { home: roomName, role: 'defender' }, prio);
 	},
 
@@ -309,36 +319,30 @@ module.exports = {
 	},
 
 	requestMineralHarvester(spawn, site, cid, expire) {
-		var body = require('Arr').repeat([WORK, WORK, MOVE], spawn.room.energyCapacityAvailable);
+		var body = Arr.repeat([WORK, WORK, MOVE], spawn.room.energyCapacityAvailable);
 		spawn.enqueue(body, null, { role: 'harvester', site: site, cid: cid }, 10, 0, 1, expire);
 	},
 
-	requestReserver: function (spawn, site, prio = 50) {
-		if (!site) {
-			Log.error("requestReserver expects site!");
-			return;
-		}
-		let avail = spawn.room.energyCapacityAvailable;
-		let body = this.repeat([MOVE, CLAIM], Math.min(avail, 6500));
+	requestReserver: function (spawn, site, prio = 25) {
+		if (!site)
+			throw new Error('site can not be empty!');
+		const avail = spawn.room.energyCapacityAvailable;
+		const body = Arr.repeat([MOVE, CLAIM], Math.min(avail, 6500));
 		if (_.isEmpty(body))
 			return ERR_RCL_NOT_ENOUGH;
 		else
 			return spawn.enqueue(body, null, { role: 'reserver', site: site }, prio, 0, 1, DEFAULT_SPAWN_JOB_EXPIRE);
 	},
 
-	requestHauler: function (spawn, memory, hasRoad = false, reqCarry = Infinity, prio = 10) {
-		let avail = Math.max(300, spawn.room.energyCapacityAvailable) - 250;
+	requestHauler: function (spawn, memory, hasRoad = false, reqCarry = Infinity, priority = 10, room) {
+		var avail = Math.max(300, spawn.room.energyCapacityAvailable) - 250;
+		var body;
 		if (!hasRoad) {
 			let howMuchCanWeBuild = Math.floor(avail / 100); // this.cost([CARRY,MOVE]);
 			let howMuchDoWeWant = Math.ceil(reqCarry);
 			let howCheapCanWeBe = Math.min(howMuchDoWeWant, howMuchCanWeBuild) * 100;
 			howCheapCanWeBe = Math.max(UNIT_COST([WORK, WORK, MOVE, CARRY, MOVE]), howCheapCanWeBe);
-			let body = [WORK, WORK, MOVE].concat(this.repeat([CARRY, MOVE], howCheapCanWeBe));
-			let stats = _.countBy(body);
-			Log.info('No road. Hauler parts avail: ' + ex(stats));
-			Log.info('Total cost: ' + UNIT_COST(body) + ', build time: ' + 3 * body.length);
-			spawn.enqueue(body, null, memory, prio);
-
+			body = [WORK, WORK, MOVE].concat(Arr.repeat([CARRY, MOVE], howCheapCanWeBe));
 		} else {
 			let howMuchCanWeBuild = Math.floor(avail / 150); // this.cost([CARRY,CARRY,MOVE]);
 			let howMuchDoWeWant = Math.ceil(reqCarry);
@@ -346,13 +350,15 @@ module.exports = {
 			let howCheapCanWeBe = Math.min(howMuchDoWeWant, howMuchCanWeBuild) * (150 / 2);
 			howCheapCanWeBe = Math.max(UNIT_COST([WORK, WORK, MOVE, CARRY, CARRY, MOVE]), howCheapCanWeBe);
 			howCheapCanWeBe = Math.min(howCheapCanWeBe, 2200); // capped to 48 parts, and room for work/move
-			let body = [WORK, WORK, MOVE].concat(this.repeat([CARRY, CARRY, MOVE], howCheapCanWeBe));
-			// let stats = _.countBy(body);
-			// Log.info('Have road. Hauler parts avail: ' + ex(stats));
-			Log.info('Total cost: ' + UNIT_COST(body) + ', build time: ' + 3 * body.length);
-			spawn.enqueue(body, null, memory, prio);
+			body = [WORK, WORK, MOVE].concat(Arr.repeat([CARRY, CARRY, MOVE], howCheapCanWeBe));
 		}
-		//
+		spawn.submit({
+			body,
+			memory,
+			priority,
+			room,
+			expire: DEFAULT_SPAWN_JOB_EXPIRE
+		});
 	},
 
 	requestAttacker: function (spawn, body = Util.RLD([23, MOVE, 25, ATTACK, 2, MOVE])) {
@@ -381,7 +387,7 @@ module.exports = {
 
 	requestHealer: function (spawn, roomName, priority = 50) {
 		const body = Arr.repeat([MOVE, HEAL], spawn.room.energyCapacityAvailable / 2);
-		if(_.isEmpty(body))
+		if (_.isEmpty(body))
 			return null;
 		return spawn.enqueue(body, null, { role: 'healer', home: roomName }, priority);
 	},
@@ -399,10 +405,16 @@ module.exports = {
 	// Unit.requestGuard(Game.spawns.Spawn8, 'Flag38', Util.RLD([5,TOUGH,10,MOVE,6,ATTACK]))
 	// Unit.requestGuard(Game.spawns.Spawn4, 'Guard2', Util.RLD([5,TOUGH,20,MOVE,5,RANGED_ATTACK,2,HEAL]))
 	// requestGuard: function(spawn, flag, body=[MOVE,MOVE,RANGED_ATTACK,HEAL]) {
-	requestGuard: function (spawn, flag, body = [TOUGH, TOUGH, MOVE, MOVE, MOVE, ATTACK, MOVE, ATTACK, MOVE, ATTACK]) {
+	requestGuard: function (spawn, flag, body = [TOUGH, TOUGH, MOVE, MOVE, MOVE, ATTACK, MOVE, ATTACK, MOVE, ATTACK], room) {
 		if (!flag || !(Game.flags[flag] instanceof Flag))
 			return "Must specify flag";
-		return spawn.enqueue(body, null, { role: 'guard', site: flag }, 100);
+		spawn.submit({
+			body,
+			memory: { role: 'guard', site: flag },
+			priority: 100,
+			room,
+			expire: DEFAULT_SPAWN_JOB_EXPIRE
+		});
 	},
 
 	requestFaceTank: function (spawn, flag) {
@@ -414,6 +426,6 @@ module.exports = {
 			return "Must specify flag";
 
 		return spawn.enqueue(body, null, { role: 'guard', site: flag, home: spawn.pos.roomName }, 100);
-	}	
+	}
 
 };

@@ -339,11 +339,12 @@ RoomObject.prototype.getAdjacentContainer = function () {
  * @param string prop - key name to store spawn name in (cache or memory)
  */
 RoomObject.prototype.getClosestSpawn = function (prop = 'memory') {
-	if (!this[prop].spawn || !Game.spawns[this[prop].spawn] || Game.spawns[this[prop].spawn].isDefunct()) {
+	if (!this[prop].spawn || !Game.spawns[this[prop].spawn] || Game.spawns[this[prop].spawn].isDefunct() || this[prop].resetSpawn <= Game.time) {
 		const spawn = this.pos.findClosestSpawn();
 		if (!spawn)
 			return null;
 		this[prop].spawn = spawn.name;
+		this[prop].resetSpawn = Game.time + 300;
 		Log.info(`Assigning spawn ${this[prop].spawn} to ${this}`);
 	}
 	return Game.spawns[this[prop].spawn];

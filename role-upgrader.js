@@ -54,10 +54,10 @@ module.exports = {
 			if (!provider)
 				return creep.moveTo(controller, { range: CREEP_UPGRADE_RANGE });;
 			if (this.pull(provider, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE)
-				this.moveTo(provider, { range: 1 });
+				this.moveTo(provider, { range: 1, maxRooms: 1 });
 		} else if (controller && !controller.upgradeBlocked) {
 			if (creep.upgradeController(creep.room.controller) === ERR_NOT_IN_RANGE)
-				creep.moveTo(controller, { range: CREEP_UPGRADE_RANGE });
+				creep.moveTo(controller, { range: CREEP_UPGRADE_RANGE, maxRooms: 1 });
 		} else if (controller && controller.upgradeBlocked > creep.ticksToLive) {
 			Log.warn(`${this.pos.roomName}: Upgrade block exeeds creep ttl, recycling ${this.name}`, 'Creep');
 			creep.setRole('recycle');
