@@ -27,7 +27,7 @@ module.exports = {
 			creep.memory.state = 'gather';
 		if (creep.carry[RESOURCE_ENERGY] >= creep.carryCapacity)
 			creep.memory.state = 'unload';
-		else if (creep.carry[RESOURCE_ENERGY] === 0)
+		else if (creep.carry[RESOURCE_ENERGY] === 0 && creep.memory.state !== 'harvest' && creep.memory.state !== 'gather')
 			creep.memory.state = 'gather';
 
 		if (creep.memory.state === 'gather') {
