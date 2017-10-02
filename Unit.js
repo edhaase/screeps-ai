@@ -150,27 +150,30 @@ module.exports = {
 	 * Biggest we can! Limit to 15 work parts
 	 * requestUpgrader(firstSpawn,1,5,49)
 	 */
-	requestUpgrader: function (spawn, home, priority = 3, max = 2500) {
+	requestUpgrader: function (spawn, home, priority = 3, workDiff) {
 		var body = [];
+		if(workDiff <= 0)
+			return ERR_INVALID_ARGS;
 		// energy use is  active work * UPGRADE_CONTROLLER_POWER, so 11 work parts is 11 ept, over half a room's normal production
+		// let max = 2500;
+		// @todo Are we sure we're sizing this right?
 		const { controller, storage } = spawn.room;
 		if (controller.level <= 2) {
 			body = [CARRY, MOVE, WORK, WORK];
 		} else {
-			if (controller.level === MAX_ROOM_LEVEL)
-				max = Math.min(max, MAX_RCL_UPGRADER_SIZE);
-			else if (storage)
-				max = Math.min(BODYPART_COST[WORK] * Math.floor(10 * storage.stock), max); // Less than 20 ept.
+			// max = Math.min(BODYPART_COST[WORK] * Math.floor(10 * storage.stock), max); // Less than 20 ept.
 			// Ignore top 20% of spawn energy (might be in use by renewels)
-			var avail = Math.clamp(250, spawn.room.energyCapacityAvailable - (SPAWN_ENERGY_CAPACITY * 0.20), max);
-			var count = Math.floor((avail - 300) / BODYPART_COST[WORK]);
+			// var avail = Math.clamp(250, spawn.room.energyCapacityAvailable - (SPAWN_ENERGY_CAPACITY * 0.20), max);
+			var avail = Math.max(250, spawn.room.energyCapacityAvailable - (SPAWN_ENERGY_CAPACITY * 0.20));
+			var count = Math.min(workDiff, 1+Math.floor((avail - 300) / BODYPART_COST[WORK])) || 1;
 			let ccarry = 1;
 			if (count > 5) {
 				ccarry += 2;
 				count -= 2;
 			}
-			body = Util.RLD([ccarry, CARRY, 1, WORK, count, WORK, 3, MOVE]);
+			body = Util.RLD([ccarry, CARRY, count, WORK, 3, MOVE]);
 		}
+		Log.debug(`Workdiff: ${workDiff}, count: ${count}, body: ${body}`);
 		return spawn.submit({ body, memory: { role: 'upgrader', home }, priority });
 	},
 

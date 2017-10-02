@@ -205,6 +205,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 		const creepsFiltered = _.filter(Game.creeps, c => c.ticksToLive == null || c.ticksToLive > c.body.length * CREEP_SPAWN_TIME);
 		Game.census = _.groupBy(creepsFiltered, c => `${c.memory.home || c.pos.roomName}_${c.memory.role}`);
 		Game.creepsByRoom = _.groupBy(creepsFiltered, c => `${c.memory.home || c.pos.roomName}`);
+		Game.censusFlags = _.groupBy(Game.flags, f => `${f.color}_${f.secondaryColor}`);
 		Log.debug(`Generating census report`, 'Controller');
 	}
 
@@ -367,25 +368,24 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 		require('Unit').requestHealer(spawn, roomName);
 	}
 
+	// @todo conflict mode reduce this
+	// @todo did we beak RCL 8 low power mode?
 	if ((!upgradeBlocked || upgradeBlocked < CREEP_SPAWN_TIME * 6)) {
-		// let goal = 10;
-		// if(level >= 8)
-		//	goal = CONTROLLER_MAX_UPGRADE_PER_TICK / UPGRADE_CONTROLLER_POWER;
-		// let desired = Math.clamp(1, 1 + Math.floor(storedEnergy / 300000), 3);
-
-		// Sizing the upgrader based on level and #remotes?
-		// 2016-12-24: Changed to 0, fallback scav code will take over
-		// 2017-03-26: Changed back to 1 at RCL 8 for expansion purposes
-		// desired = Math.floor(1+-Math.log(x/8)))
-		let desired = 1;
-		if (this.level === MAX_ROOM_LEVEL)
-			desired = (ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || storedEnergy > 700000) ? 1 : 0;
-		else if (level <= 3)
-			desired = 3;
-		// if(storedEnergy < 10000 && (!ticksToDowngrade || ticksToDowngrade > CONTROLLER_EMERGENCY_THRESHOLD) )
-		//	desired = 0;
-		if (upgraders.length < desired)
-			require('Unit').requestUpgrader(spawn, roomName, 25);
+		const workAssigned = _.sum(upgraders, c => c.getBodyParts(WORK));
+		let workDesired = 10*(numSources/2);
+		// if(storedEnergy > 700000)
+		//	workDesired+=10;
+		if (this.level === MAX_ROOM_LEVEL) {
+			if(workAssigned < MAX_RCL_UPGRADER_SIZE && (this.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || storedEnergy > 700000))
+				require('Unit').requestUpgrader(spawn, roomName, 90, MAX_RCL_UPGRADER_SIZE - workAssigned);
+		} else {
+			const flags = Game.censusFlags[`${FLAG_MINING}_${SITE_PICKUP}`] || [];
+			const bonus = _.sum(flags, f => _.get(Memory.flags, [f.name,'dropoff','roomName']) === this.pos.roomName && f.memory.capacity / HARVEST_POWER / ENERGY_REGEN_TIME);
+			const workDiff = (workDesired+bonus) - workAssigned;
+			Log.debug(`${this.pos.roomName} Upgraders: ${workAssigned} assigned, ${workDesired}+${bonus} desired (+bonus), ${workDiff} diff`, 'Controller');
+			if (workDiff > 2)
+				require('Unit').requestUpgrader(spawn, roomName, 25, workDiff);
+		}
 	} else if (this.upgradeBlocked) {
 		Log.warn(`${this.pos.roomName} upgrade blocked for ${this.upgradeBlocked} ticks`, 'Controller');
 	}
@@ -398,8 +398,9 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	if (repair.length < desiredRepair && _.any(this.room.structures, s => s.hits / s.hitsMax < 0.90)) {
 		require('Unit').requestRepair(spawn, roomName);
 	} else if (repair.length > desiredRepair) {
-		const target = _.min(repair, 'ticksToLive');
-		if (target) {
+		// const target = _.min(repair, 'ticksToLive');
+		const [target] = repair;
+		if (target && target.ticksToLive) {
 			Log.info(`Request recycle of repairer: ${target} at ${target.pos}`, 'Controller');
 			target.setRole('recycle');
 		}
