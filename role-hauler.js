@@ -144,7 +144,7 @@ class GatherState extends FSM.State {
 
 		if (!target.pos.inRangeTo(pickup, 2))
 			return tick.transition('walk', {
-				dest: { pos: store.get('site'), range: 1 },
+				dest: { pos: store.get('site'), range: 2 },
 				nextState: 'gather'
 			});
 
@@ -154,13 +154,12 @@ class GatherState extends FSM.State {
 				nextState: 'gather'
 			});
 
-		const dropped = target.pos.findInRange(FIND_DROPPED_RESOURCES, 2, { filter: r => r.amount > 100 });
+		const dropped = pickup.findInRange(FIND_DROPPED_RESOURCES, 1, { filter: r => r.amount > 100 });
 		const container = _.find(pickup.lookFor(LOOK_STRUCTURES), s => s.store != undefined);
 		if (dropped && dropped.length) {
 			const d = _.max(dropped, 'amount');
 			if (target.pos.getRangeTo(d) > 1)
 				target.moveTo(d.pos, {range: 1, maxRooms: 1});
-				// target.move(target.pos.getDirectionTo(d.pos));
 			_.any(dropped, r => target.pickup(r) === OK);
 		} else if (container) {
 			/* alloted amount works, but doesn't withdraw multiple types each tick
