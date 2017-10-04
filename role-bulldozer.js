@@ -22,7 +22,7 @@ module.exports = function (creep) {
 	if (avoidRamparts) {
 		target = this.getTarget(
 			({ room }) => room.find(FIND_HOSTILE_STRUCTURES, { filter: s => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_RAMPART }),
-			(s) => Filter.unauthorizedHostile(s) && !s.pos.hasRampart(),
+			(s) => Filter.unauthorizedHostile(s) && !s.pos.hasRampart(r => !r.isPublic),
 			(candidates) => this.pos.findClosestByPath(candidates)
 		);
 	} else {

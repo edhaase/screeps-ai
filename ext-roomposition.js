@@ -152,7 +152,7 @@ RoomPosition.prototype.search = function (goals, opts) {
  * so we can prevent stupid mistakes like getting tricked out of the room.
  */
 RoomPosition.prototype.isOnRoomBorder = function () {
-	return (this.x <= 1 || this.x >= 48 || this.y <= 1 || this.y >= 48);
+	return (this.x <= 0 || this.x >= 49 || this.y <= 0 || this.y >= 49);
 };
 
 /**
@@ -170,8 +170,8 @@ RoomPosition.prototype.hasStructure = function (structureType, validator = () =>
 	return this.getStructure(structureType, validator) != null;
 };
 
-RoomPosition.prototype.hasRampart = function () {
-	return this.hasStructure(STRUCTURE_RAMPART);
+RoomPosition.prototype.hasRampart = function (fn) {
+	return this.hasStructure(STRUCTURE_RAMPART, fn);
 };
 
 RoomPosition.prototype.hasRoad = function () {
@@ -226,16 +226,24 @@ RoomPosition.prototype.getOpenNeighborHorizontal = function () {
  * High-cpu (but _accurate_) step count to destination.
  */
 RoomPosition.prototype.getStepsTo = function (dest, opts = {}) {
+	if(!dest)
+		throw new TypeError('Expected destination');
 	opts = _.defaults(opts, {
 		plainCost: 2,
 		swampCost: 5
 	});
 	if (!opts.roomCallback)
-		opts.roomCallback = r => LOGISTICS_MATRIX[r];
-	const {path,incomplete} = PathFinder.search(this, dest, opts);
-	if (incomplete)
-		return ERR_NO_PATH;
-	return path.length;
+		opts.roomCallback = r => FIXED_OBSTACLE_MATRIX[r];
+	try {
+		const {path,incomplete} = PathFinder.search(this, dest, opts);
+		if (incomplete)
+			return ERR_NO_PATH;
+		return path.length;
+	} catch(e) {
+		Log.error(`getStepsTo failed on: ${JSON.stringify(dest)}`);
+		Log.error(e.stack);
+		throw e;
+	}
 };
 
 /**
@@ -254,6 +262,8 @@ RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = _.identi
 		return { goal: null };
 	const result = PathFinder.search(this, mapping, {
 		maxOps: 16000,
+		swampCost: 5,
+		plainCost: 2,
 		roomCallback: r => FIXED_OBSTACLE_MATRIX[r]
 	});
 	// if(result.incomplete)
