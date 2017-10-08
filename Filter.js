@@ -61,8 +61,8 @@ module.exports = {
 	canReceiveEnergy: function (thing) {
 		if (!thing.my)
 			return 0;
-		if (thing instanceof Creep)
-			return 1.0 - (thing.carryTotal / thing.carryCapacity);
+		if(thing instanceof Creep && thing.carryTotal === 0) // Only target creeps if they're entirely empty (or we'll never break target)
+			return 1.0;
 		else if (thing.energy != null)
 			return (1.0 - thing.energyPct);
 		else if (thing.store != null)
