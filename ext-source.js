@@ -5,19 +5,8 @@
  */
 "use strict";
 
-/**
- *
- */
-Source.prototype.getEnergyPerTickGoal = function () {
-	return this.energyCapacity / ENERGY_REGEN_TIME;
-};
-
-/**
- *
- */
-Source.prototype.getHarvestPartsGoal = function () {
-	return Math.ceil(this.energyCapacity / HARVEST_POWER / ENERGY_REGEN_TIME);
-};
+defineCachedGetter(Source.prototype, 'ept', s => s.energyCapacity / ENERGY_REGEN_TIME);
+defineCachedGetter(Source.prototype, 'harvestParts', s => s.energyCapacity / HARVEST_POWER / ENERGY_REGEN_TIME);
 
 /**
  * Double layer cache?
