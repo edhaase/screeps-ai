@@ -26,13 +26,13 @@ module.exports = {
 			// We're wounded, we can heal but not attack. Just heal, and kite if possible.
 			creep.heal(creep);
 			if (creep.canMove && threat)
-				creep.flee(threat, 10);
+				creep.flee(10);
 		} else if (threat && creep.canFight) {
 			if (creep.canRanged && creep.pos.inRangeTo(threat, 3)) {
 				// We're ranged and in range, shoot them in the face.
 				creep.rangedAttack(threat);
 				// @todo: or massAttack?
-				creep.flee(threat);
+				creep.flee(CREEP_RANGED_ATTACK_RANGE);
 				if (creep.hits < creep.hitsMax)
 					creep.heal(creep);
 			} else if (creep.canAttack && creep.pos.isNearTo(threat)) {
