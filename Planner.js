@@ -328,6 +328,7 @@ class BuildPlanner {
 		if (level >= 3) {
 			this.buildSourceRoads(room, pos, room.controller.level === 3);
 			this.buildControllerWall(pos, room.controller);
+			this.planRoad(pos, {pos: room.controller.pos, range: CREEP_UPGRADE_RANGE+1}, {container: false} );
 		}
 		if (level >= MINIMUM_LEVEL_FOR_LINKS)
 			this.buildLinks(pos,level);
