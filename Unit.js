@@ -205,7 +205,8 @@ module.exports = {
 	},
 
 	requestBulldozer: function (spawn, roomName) {
-		const body = [WORK, WORK, MOVE, MOVE];
+		// const body = [WORK, WORK, MOVE, MOVE];
+		const body = Arr.repeat([WORK,MOVE], spawn.room.energyAvailable);
 		return spawn.submit({ body, memory: { role: 'bulldozer', site: roomName }, priority: 10 });
 	},
 
@@ -290,8 +291,9 @@ module.exports = {
 		return spawn.submit({ body, memory: { role: 'claimer', } });
 	},
 
-	requestScout: function (spawn, memory = { role: 'scout' }) {
-		return spawn.submit({ body: [MOVE], memory, priority: 75 });
+	requestScout: function (spawn, memory={}, priority=75) {
+		memory.role = 'scout';
+		return spawn.submit({ body: [MOVE], memory, priority });
 	},
 
 	requestDefender: function (spawn, roomName, priority = 75) {
@@ -335,11 +337,13 @@ module.exports = {
 		var avail = Math.max(SPAWN_ENERGY_START, spawn.room.energyCapacityAvailable) - 250;
 		var body;
 		if (!hasRoad) {
-			const howMuchCanWeBuild = Math.floor(avail / 100); // this.cost([CARRY,MOVE]);
+			const cost = UNIT_COST([MOVE, CARRY]);
+			const howMuchCanWeBuild = Math.floor(avail / cost);
 			const howMuchDoWeWant = Math.ceil(reqCarry);
-			let howCheapCanWeBe = Math.min(howMuchDoWeWant, howMuchCanWeBuild) * 100;
-			howCheapCanWeBe = Math.max(UNIT_COST([WORK, WORK, MOVE, CARRY, MOVE]), howCheapCanWeBe);
-			body = [WORK, WORK, MOVE].concat(Arr.repeat([CARRY, MOVE], howCheapCanWeBe));
+			let howCheapCanWeBe = Math.min(howMuchDoWeWant, howMuchCanWeBuild) * cost;
+			howCheapCanWeBe = Math.max(cost, howCheapCanWeBe);
+			Log.info(`Want: ${howMuchDoWeWant}, Avail: ${howMuchCanWeBuild}, How Cheap: ${howCheapCanWeBe}, Build: ${howCheapCanWeBe/cost}`, 'Creep');
+			body = Arr.repeat([CARRY, MOVE], howCheapCanWeBe);
 		} else {
 			const cost = UNIT_COST([CARRY, CARRY, MOVE]);
 			const howMuchCanWeBuild = Math.floor(avail / cost); // this.cost([CARRY,CARRY,MOVE]);
@@ -396,9 +400,18 @@ module.exports = {
 	// Unit.requestGuard(Game.spawns.Spawn8, 'Flag38', Util.RLD([5,TOUGH,10,MOVE,6,ATTACK]))
 	// Unit.requestGuard(Game.spawns.Spawn4, 'Guard2', Util.RLD([5,TOUGH,20,MOVE,5,RANGED_ATTACK,2,HEAL]))
 	// requestGuard: function(spawn, flag, body=[MOVE,MOVE,RANGED_ATTACK,HEAL]) {
-	requestGuard: function (spawn, flag, body = [TOUGH, TOUGH, MOVE, MOVE, MOVE, ATTACK, MOVE, ATTACK, MOVE, ATTACK], room) {
+	requestGuard: function (spawn, flag, body, room) {
 		if (!flag || !(Game.flags[flag] instanceof Flag))
 			throw new TypeError("Expected flag");
+		if(body == null || !body.length) {
+			body = [HEAL];
+			const avail = spawn.room.energyCapacityAvailable - BODYPART_COST[HEAL];
+			if(Math.random() < 0.5) {
+				body = body.concat(Arr.repeat([TOUGH,RANGED_ATTACK,MOVE,MOVE], avail*0.75));
+			} else {
+				body = body.concat(Arr.repeat([TOUGH,ATTACK,MOVE,MOVE], avail*0.75));
+			}
+		}
 		return spawn.submit({ body, memory: { role: 'guard', site: flag }, priority: 100, room	});
 	}
 };
