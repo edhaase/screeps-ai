@@ -8,6 +8,11 @@ defineCachedGetter(Structure.prototype, 'energyPct', s => s.energy / s.energyCap
 defineCachedGetter(Structure.prototype, 'hitPct', s => s.hits / s.hitsMax);
 defineCachedGetter(Structure.prototype, 'storedTotal', s => _.sum(s.store));
 
+StructureRampart.prototype.upkeep = RAMPART_UPKEEP;
+defineCachedGetter(StructureRoad.prototype, 'upkeep', r => (Game.map.getTerrainAt(r.pos) === 'swamp') ? ROAD_UPKEEP_SWAMP : ROAD_UPKEEP );
+defineCachedGetter(StructureContainer.prototype, 'upkeep', c => c.room.my ? CONTAINER_UPKEEP : REMOTE_CONTAINER_UPKEEP);
+
+
 /* Object.defineProperty(Structure.prototype, "dismantleReturn", {
 	get: function() {
 		return (this.hits / DISMANTLE_POWER) * DISMANTLE_COST;
