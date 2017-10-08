@@ -73,15 +73,15 @@ class Empire {
 	static expand() {
 		const body = [MOVE, CLAIM];
 		const cost = UNIT_COST(body);
-		Log.notify("Expansion in progress!");
-		const candidates = this.getAllCandidateRooms();
-		Log.warn(`Candidate rooms: ${candidates}`, "Empire");
 		const spawns = _.reject(Game.spawns, r => r.isDefunct() || r.room.energyCapacityAvailable < cost);
 		const spawn = _.sample(spawns);
 		if (!spawn)
-			Log.error("No available spawn for expansion", "Empire");
-		else
-			spawn.submit({ body, memory: { role: 'pioneer', rooms: candidates }, priority: 50 });
+			return Log.error("No available spawn for expansion", "Empire");
+		Log.notify("Expansion in progress!");
+
+		const candidates = this.getAllCandidateRooms();
+		Log.warn(`Candidate rooms: ${candidates}`, "Empire");
+		spawn.submit({ body, memory: { role: 'pioneer', rooms: candidates }, priority: 50 });
 		// Pick a room!
 		// Verify it isn't owned or reserved. Continue picking.
 		// Launch claimer!
