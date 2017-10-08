@@ -227,10 +227,13 @@ class FixedObstacleMatrix extends CostMatrix {
 		// don't forget enemy non-public ramparts!
 		room
 			.find(FIND_STRUCTURES, { filter: require('Filter').isObstacle })
-			.forEach(s => this.set(s.pos.x, s.pos.y, 0xFF));
+			.forEach(s => this.set(s.pos.x, s.pos.y, 255));
+		room
+			.find(FIND_STRUCTURES, { filter: {structureType: STRUCTURE_ROAD} })
+			.forEach(s => this.set(s.pos.x, s.pos.y, 1));
 		room
 			.find(FIND_MY_CONSTRUCTION_SITES, { filter: require('Filter').isObstacle })
-			.forEach(s => this.set(s.pos.x, s.pos.y, 0xFF));
+			.forEach(s => this.set(s.pos.x, s.pos.y, 255));
 
 		// Disable while SK mining, until we find a better way.
 		room
@@ -270,25 +273,13 @@ class LogisticsMatrix extends FixedObstacleMatrix {
 		if (!room)
 			return;
 
-		// This needs a patch, remparts on spawns and storage are being incorrectly set to walkable
-		_.each(room.structuresByType[STRUCTURE_ROAD], s => this.set(s.pos.x, s.pos.y, 1));
-		_.each(room.structuresByType[STRUCTURE_RAMPART], s => this.set(s.pos.x, s.pos.y, (s.my) ? 1 : 255));
-		/* room
-			.find(FIND_STRUCTURES, {filter: s => s.structureType == STRUCTURE_ROAD} )
-			// .find(FIND_STRUCTURES, {filter: s => s.structureType == STRUCTURE_ROAD || s.structureType == STRUCTURE_CONTAINER || (s.structureType == STRUCTURE_RAMPART && s.my)} )
-			.forEach(s => this.set(s.pos.x, s.pos.y, 1));	*/
-
 		room
 			.find(FIND_CONSTRUCTION_SITES, { filter: c => c.structureType === STRUCTURE_ROAD })
 			.forEach(c => this.set(c.pos.x, c.pos.y, 1));
 
 		room
-			// .find(FIND_MY_CREEPS, { filter: c => _.get(c.memory, 'stuck', 0) > 3 })
 			.find(FIND_MY_CREEPS, { filter: c => c.memory.stuck > 3 })
 			.forEach(c => this.set(c.pos.x, c.pos.y, 255));
-		/* room
-			.find(FIND_CREEPS)
-			.forEach(c => this.set(c.pos.x, c.pos.y, (_.get(c.memory, 'stuck',0) > 3)?0xff:15 )); */
 	}
 }
 
