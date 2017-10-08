@@ -322,11 +322,13 @@ module.exports = {
 		return spawn.submit({ body, memory, priority: 10 });
 	},
 
-	requestReserver: function (spawn, site, priority = 25) {
+	requestReserver: function (spawn, site, priority = 25, size = Infinity) {
 		if (!site)
 			throw new Error('site can not be empty!');
-		const avail = spawn.room.energyCapacityAvailable;
-		const body = Arr.repeat([MOVE, CLAIM], Math.min(avail, 6500));
+		const cost = UNIT_COST([MOVE,CLAIM]);
+		const canBuild = Math.floor(spawn.room.energyCapacityAvailable / cost);
+		const building = Math.min(size,canBuild) * cost;
+		const body = Arr.repeat([MOVE, CLAIM], building);
 		if (_.isEmpty(body))
 			return ERR_RCL_NOT_ENOUGH;
 		else

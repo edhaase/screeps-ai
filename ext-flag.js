@@ -222,7 +222,8 @@ Flag.prototype.runLogic = function () {
 		}
 
 		if (this.secondaryColor === STRATEGY_RESERVE) {
-			if (_.get(Memory.rooms, [this.pos.roomName, 'reservation']) - Game.time > MINIMUM_RESERVATION)
+			const clock = _.get(Memory.rooms, [this.pos.roomName, 'reservation']) - Game.time;
+			if (clock > MINIMUM_RESERVATION)
 				return;
 			if (this.room) {
 				const { controller } = this.room;
@@ -242,8 +243,11 @@ Flag.prototype.runLogic = function () {
 			if (reserver && ((reserver.ticksToLive - _.get(reserver, 'travelTime', 0)) > DEFAULT_SPAWN_JOB_EXPIRE))
 				return;
 			const spawn = this.getClosestSpawn();
+			const travelTime = 0;
+			const size = Math.floor((CONTROLLER_RESERVE_MAX - clock) / (CREEP_CLAIM_LIFE_TIME - travelTime));
+			// Log.info(`${this.name} wants to build reserver of size ${size} for room ${this.pos.roomName}`,'Flag')
 			if (spawn && !spawn.hasJob({ memory: { role: 'reserver', site: this.pos } }) && !spawn.spawning)
-				require('Unit').requestReserver(spawn, this.pos);
+				require('Unit').requestReserver(spawn, this.pos, 25, size);
 			this.defer(DEFAULT_SPAWN_JOB_EXPIRE);
 			return;
 		}
@@ -429,7 +433,7 @@ Flag.prototype.runLogic = function () {
 		}
 		if (this.room) {
 			const [source] = this.pos.lookFor(LOOK_SOURCES);
-			this.memory.work = (source && source.getHarvestPartsGoal()) || SOURCE_HARVEST_PARTS;
+			this.memory.work = (source && source.harvestParts) || SOURCE_HARVEST_PARTS;
 			Log.debug(`${this.name} setting capacity to ${this.memory.work}`, 'Flag');
 		}
 		var miner = this.getAssignedUnit(c => c.getRole() === 'miner' && this.pos.isEqualToPlain(c.memory.dest) && (c.ticksToLive > UNIT_BUILD_TIME(c.body) || c.spawning));
