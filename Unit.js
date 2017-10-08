@@ -356,9 +356,11 @@ module.exports = {
 			body = [WORK, WORK, MOVE].concat(Arr.repeat([CARRY, CARRY, MOVE], howCheapCanWeBe));
 		}
 		const cost = UNIT_COST(body);
-		if (cost > spawn.room.energyCapacityAvailable)
-			return;
-		return spawn.submit({ body, memory, priority, room });
+		const carry = _.sum(body, p => p === CARRY) * CARRY_CAPACITY;
+		memory.ept = carry / memory.steps / 2; // For round trip
+		memory.eptNet = memory.ept - cost / CREEP_LIFE_TIME; // Account for expense
+		if (cost <= spawn.room.energyCapacityAvailable)
+			spawn.submit({ body, memory, priority, room });
 	},
 
 	requestFireTeam: function (s1, s2) {
@@ -412,6 +414,6 @@ module.exports = {
 				body = body.concat(Arr.repeat([TOUGH,ATTACK,MOVE,MOVE], avail*0.75));
 			}
 		}
-		return spawn.submit({ body, memory: { role: 'guard', site: flag }, priority: 100, room	});
+		return spawn.submit({ body, memory: { role: 'guard', site: flag, origin: spawn.pos.roomName }, priority: 100, room });
 	}
 };
