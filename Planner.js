@@ -515,27 +515,7 @@ class BuildPlanner {
 		// if(toPos.pos)
 		//	toPos = toPos.pos;
 		if (opts.cmFn === undefined)
-			opts.cmFn = function (roomName) {
-				// return (new CostMatrix.FixedObstacleMatrix(roomName)).setRoad();
-				var cm = new PathFinder.CostMatrix;
-				Game.rooms[roomName]
-					.find(FIND_STRUCTURES)
-					.forEach(function (s) {
-						if (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER)
-							cm.set(s.pos.x, s.pos.y, 1);
-						else if (OBSTACLE_OBJECT_TYPES.includes(s.structureType))
-							cm.set(s.pos.x, s.pos.y, 255);
-					});
-				return cm;
-			};
-		/* opts.cmFn = function(roomName) {
-			let cm = new CostMatrix.FixedObstacleMatrix(roomName); // .setRoad());
-			// cm.setRoad(roomName);
-			return cm;
-		} */
-		// if(toPos.pos)
-		//	toPos = toPos.pos;
-		// Use transport for this?
+			opts.cmFn = (rN) => FIXED_OBSTACLE_MATRIX[rN];
 		try {
 			// if(_.isObject(toPos) && !(toPos instanceof RoomPosition))
 			//	toPos = [toPos];
@@ -551,7 +531,6 @@ class BuildPlanner {
 				Log.warn(`No path to goal ${JSON.stringify(toPos)}, cost ${cost} ops ${ops} steps ${path.length}`, 'Planner');
 				Log.warn(JSON.stringify(fromPos) + ', ' + JSON.stringify(toPos));
 				Log.warn(JSON.stringify(result));
-				Log.warn(opts.cmFn);
 				return ERR_NO_PATH;
 			}
 			path = _.drop(path, opts.rest);
