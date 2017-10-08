@@ -74,14 +74,8 @@ module.exports = {
 			}
 		} else if (noRoomHealer && (creep.hits < creep.hitsMax) && !creep.memory.noflee) {
 			// No threats (or can't fight) and wounded. Limp home for tower repairs.
-			var homeRoom = Game.rooms[creep.memory.home];
-			if (!homeRoom) return;
-			var homeSpawn = homeRoom.find(FIND_MY_SPAWNS);
-			if (!homeSpawn || homeSpawn.length <= 0) return;
-
-			if (creep.pos.roomName !== creep.memory.home || creep.pos.isOnRoomBorder()) {
-				creep.moveTo(homeSpawn[0], {range: 1});
-			}
+			if (creep.memory.origin && (creep.pos.roomName !== creep.memory.origin || creep.pos.isOnRoomBorder()))
+				creep.moveToRoom(creep.memory.origin);
 		} else if (flag && !creep.pos.inRangeTo(flag.pos,IDLE_DISTANCE)) {
 			creep.moveTo(flag, {range: IDLE_DISTANCE});
 		}
