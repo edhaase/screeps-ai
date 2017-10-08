@@ -21,6 +21,18 @@ defineCachedGetter(Creep.prototype, 'canRanged', (c) => c.hasActiveBodypart(RANG
 defineCachedGetter(Creep.prototype, 'canHeal', (c) => c.hasActiveBodypart(HEAL));
 defineCachedGetter(Creep.prototype, 'canFight', (c) => c.canAttack || c.canRanged);
 
+/** Scores */
+defineCachedGetter(Creep.prototype, 'harvestPower', (c) => c.calcEffective(HARVEST_POWER, WORK, 'harvest'));
+defineCachedGetter(Creep.prototype, 'repairPower', (c) => c.calcEffective(DISMANTLE_POWER, WORK, 'repair'));
+defineCachedGetter(Creep.prototype, 'dismantlePower', (c) => c.calcEffective(DISMANTLE_POWER, WORK, 'dismantle'));
+defineCachedGetter(Creep.prototype, 'buildPower', (c) => c.calcEffective(BUILD_POWER, WORK, 'build'));
+defineCachedGetter(Creep.prototype, 'attackPower', (c) => c.calcEffective(ATTACK_POWER, ATTACK, 'attack'));
+defineCachedGetter(Creep.prototype, 'upgradePower', (c) => c.calcEffective(UPGRADE_CONTROLLER_POWER, WORK, 'upgradeController'));
+defineCachedGetter(Creep.prototype, 'rangedAttackPower', (c) => c.calcEffective(RANGED_ATTACK_POWER, RANGED_ATTACK, 'rangedAttack'));
+defineCachedGetter(Creep.prototype, 'rangedMassAttackPower', (c) => c.calcEffective(RANGED_ATTACK_POWER, RANGED_ATTACK, 'rangedMassAttack'));
+defineCachedGetter(Creep.prototype, 'healPower', (c) => c.calcEffective(HEAL_POWER, HEAL, 'heal'));
+defineCachedGetter(Creep.prototype, 'rangedHealPower', (c) => c.calcEffective(RANGED_HEAL_POWER, HEAL, 'rangedHeal'));
+
 
 /**
  *
@@ -155,25 +167,6 @@ Creep.prototype.getRangedMassAttackPotential = function () {
 	dmg += _.sum(this.pos.findInRange(FIND_HOSTILE_CREEPS, 3), c => this.getRangedMassAttackPotentialToTarget(c, power));
 	dmg += _.sum(this.pos.findInRange(FIND_HOSTILE_STRUCTURES, 3), s => this.getRangedMassAttackPotentialToTarget(s, power));
 	return dmg;
-};
-
-/**
- * The damage this creep can do if we attack.
- */
-Creep.prototype.getAttackPower = function () {
-	return this.sumActiveBodyparts(({ boost }) => ATTACK_POWER * (!boost) ? 1 : (BOOSTS[ATTACK][boost]['attack'] || 1), ATTACK);
-};
-
-Creep.prototype.getRangedAttackPower = function () {
-	return this.calcEffective(RANGED_ATTACK_POWER, RANGED_ATTACK, 'rangedAttack');
-};
-
-Creep.prototype.getRangedHealPower = function () {
-	return this.calcEffective(RANGED_HEAL_POWER, HEAL, 'rangedHeal');
-};
-
-Creep.prototype.getHealPower = function () {
-	return this.calcEffective(HEAL_POWER, HEAL, 'heal');
 };
 
 /**
