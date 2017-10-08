@@ -181,6 +181,14 @@ class UnloadState extends FSM.State {
 		super('unload');
 	}
 
+	enter(tick) {
+		const { fsm, target, store } = tick;
+		const dropoff = store.get('dropoff');
+		if(!dropoff || !dropoff.roomName)
+			return;
+		store.set('origin', dropoff.roomName);
+	}
+
 	tick(tick) {
 		const { fsm, target, store } = tick;
 		// if we're empty..
@@ -201,16 +209,14 @@ class UnloadState extends FSM.State {
 		// look for targets (prefer designated)
 		const container = _.find(rp.lookFor(LOOK_STRUCTURES), s => s.store !== undefined);
 		// if( container ) { // && (_.sum(container.store) < CONTAINER_CAPACITY) ) {		
-		if (container && (_.sum(container.store) < container.storeCapacity - 50)) {
-			// return _.each(target.carry, (amt,type) => target.transfer(container, type));
-			return target.transferAny(container);
-		}
+		if (container && (_.sum(container.store) < container.storeCapacity - 50) && target.transferAny(container))
+			return;
 
 		// otherwise look for stuff nearby
 		var adj = _.map(target.lookForNear(LOOK_STRUCTURES, true), LOOK_STRUCTURES);
 		const link = _.find(adj, s => s.structureType === STRUCTURE_LINK); // || s.structureType === STRUCTURE_CONTAINER);
-		if (link && target.carry[RESOURCE_ENERGY])
-			target.transfer(link, RESOURCE_ENERGY);
+		if (link && target.carry[RESOURCE_ENERGY] && target.transfer(link, RESOURCE_ENERGY) === OK)
+			return;
 		// return target.transfer(link, RESOURCE_ENERGY);
 
 
