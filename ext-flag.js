@@ -3,7 +3,9 @@
  *
  * @todo: Squad flags? Doubles as memory and flag goals for most stuff.
  */
-"use strict";
+'use strict';
+
+/* eslint-disable consistent-return */
 
 if (!Memory.flags)
 	Memory.flags = {};
@@ -134,7 +136,7 @@ Flag.prototype.remove = function () {
 Flag.prototype.assignNearbySpot = function (limit = CREEP_LIFE_TIME) {
 	const { path, cost } = PathFinder.search(
 		this.pos,
-		_.map(Game.spawns, s => ({ pos: s.pos, range: 7 }))
+		_.map(Game.spawns, s => ({ pos: s.pos, range: 5 }))
 	);
 	if (cost > limit) {
 		Log.warn('cost exceeds limit, no target set', 'Flag');
@@ -201,7 +203,7 @@ Flag.prototype.runLogic = function () {
 		if (this.secondaryColor === STRATEGY_RESPOND) {
 			if (this.room == null) // We can't see the room, we can't act. Maybe request observer?
 				return;
-			const hostiles = this.room.hostiles;
+			const {hostiles} = this.room;
 			if (_.isEmpty(hostiles))
 				return this.defer(_.random(25, 50));
 			// @todo: 1 or more, guard body based on enemy body and boost.
@@ -212,7 +214,8 @@ Flag.prototype.runLogic = function () {
 					return this.defer(15);
 				// @todo: Find correct guard to respond.
 				Log.warn(`Requesting guard to ${this.pos}`, "Flag");
-				Unit.requestGuard(spawn, this.name, [TOUGH, TOUGH, MOVE, RANGED_ATTACK, MOVE, RANGED_ATTACK, MOVE, MOVE, MOVE, ATTACK, MOVE, ATTACK, MOVE, ATTACK, MOVE, HEAL, MOVE, HEAL]);
+				// Unit.requestGuard(spawn, this.name, [TOUGH, TOUGH, MOVE, RANGED_ATTACK, MOVE, RANGED_ATTACK, MOVE, MOVE, MOVE, ATTACK, MOVE, ATTACK, MOVE, ATTACK, MOVE, HEAL, MOVE, HEAL]);
+				Unit.requestGuard(spawn, this.name, this.memory.body, this.pos.roomName);
 				return this.defer(DEFAULT_SPAWN_JOB_EXPIRE);
 			}
 			return this.defer(15);
@@ -254,7 +257,7 @@ Flag.prototype.runLogic = function () {
 			if (spawn && spawn.hasJob({ memory: { role: 'scout', flag: this.name } }))
 				return;
 			Log.info('Requesting new scout');
-			return Unit.requestScout(spawn, { role: 'scout', flag: this.name });
+			return Unit.requestScout(spawn, { flag: this.name });
 		}
 
 	}
@@ -362,27 +365,40 @@ Flag.prototype.runLogic = function () {
 			Log.notify(`[Mining] Cannot mine in ${this.pos.roomName}, deferring.`);
 			return this.defer(5000);
 		}
-		if (!this.memory.dropoff)
-			this.assignNearbySpot();
 		if (this.room && !BUCKET_LIMITER && this.memory.dropoff != null && this.room.isBuildQueueEmpty())
 			this.throttle(300, 'clk', () => {
-				require('Planner').planRoad(this.pos, { pos: _.create(RoomPosition.prototype, this.memory.dropoff), range: 1 });
+				const {roomName} = this.memory.dropoff;
+				if(Game.rooms[roomName] && Game.rooms[roomName].my && Game.rooms[roomName].controller.level >= 4)
+					require('Planner').planRoad(this.pos, { pos: _.create(RoomPosition.prototype, this.memory.dropoff), range: 1 });
 				this.memory.dropoff = undefined; // reset dropoff
 			});
+		if (this.room && (!this.memory.dropoff || (this.memory.step == null || this.memory.step < 0))) {
+			this.memory.steps = undefined;
+			const storages = _.filter(Game.structures, s => [STRUCTURE_LINK,STRUCTURE_STORAGE,STRUCTURE_TERMINAL].includes(s.structureType));
+			const {goal} = this.pos.findClosestByPathFinder(storages, s => ({ pos: s.pos, range: 1 }));
+			if(goal) {
+				this.memory.dropoff = goal.pos;
+				Log.info(`${this.name} found dropoff goal: ${goal}`, 'Flag');
+			} else
+				this.assignNearbySpot();
+			this.memory.steps = this.pos.getStepsTo({pos: this.memory.dropoff, range: 1});
+		}
+		if(!this.memory.dropoff) {
+			Log.warn(`No dropoff point for ${this.name}`, 'Flag');
+			return this.defer(150);
+		}		
 		if (this.room) {
 			const [source] = this.pos.lookFor(LOOK_SOURCES);
 			this.memory.capacity = (source && source.energyCapacity) || SOURCE_ENERGY_CAPACITY;
 			Log.debug(`${this.name} setting capacity to ${this.memory.capacity}`, 'Flag');
 		}
 		const creeps = _.filter(Game.creeps, c => c.memory.role === 'hauler' && this.pos.isEqualToPlain(c.memory.site));
-		const assigned = _.sum(creeps, c => c.getBodyParts(CARRY));
-		if (!this.memory.steps)
-			this.memory.steps = this.pos.getStepsTo(this.memory.dropoff); // should account for road mixture?
+		const assigned = _.sum(creeps, c => c.getBodyParts(CARRY));		
 		const { steps, capacity = SOURCE_ENERGY_CAPACITY } = this.memory;
 		const estCarry = CARRY_PARTS(capacity, steps);
 		const reqCarry = Math.ceil(estCarry + 2); // flat 1 + 2 extra carry
 		const remaining = Math.max(0, reqCarry - assigned);
-		Log.info(`${this.pos} assigned: ${assigned}, requested: ${reqCarry}, remaining: ${remaining}`, 'Flag');
+		// Log.info(`${this.pos} assigned: ${assigned}, requested: ${reqCarry}, remaining: ${remaining}`, 'Flag');
 		if (!creeps || remaining > 2) {
 			/** high cpu - run sparingly */
 			// move out of if, cache steps, reqCarry - sum of carry parts assigned
@@ -392,7 +408,7 @@ Flag.prototype.runLogic = function () {
 			// Log.success(`Requesting new hauler to site: ${this.pos} from spawn ${spawn}`, 'Flag');
 			if (spawn && !spawn.hasJob({ memory: { role: 'hauler', site: this.pos, dropoff: this.memory.dropoff } })) {
 				const priority = Math.min(80, 100 - Math.ceil(100 * (assigned / reqCarry))); // Cap at 80%
-				Unit.requestHauler(spawn, { role: 'hauler', site: this.pos, dropoff: this.memory.dropoff }, true, remaining, priority, this.pos.roomName);
+				Unit.requestHauler(spawn, { role: 'hauler', site: this.pos, dropoff: this.memory.dropoff }, this.memory.hasRoad, remaining, priority, this.pos.roomName);
 			}
 		} else if (reqCarry - assigned < 0) {
 			Log.warn(`${this.name}/${this.pos} Reporting excess hauler capacity: ${(reqCarry - assigned)}`, 'Flag');
