@@ -173,7 +173,7 @@ module.exports = {
 			}
 			body = Util.RLD([ccarry, CARRY, count, WORK, 3, MOVE]);
 		}
-		Log.debug(`Workdiff: ${workDiff}, count: ${count}, body: ${body}`);
+		// Log.debug(`Workdiff: ${workDiff}, count: ${count}, body: ${body}`);
 		return spawn.submit({ body, memory: { role: 'upgrader', home }, priority });
 	},
 
@@ -408,12 +408,13 @@ module.exports = {
 		if (!flag || !(Game.flags[flag] instanceof Flag))
 			throw new TypeError("Expected flag");
 		if(body == null || !body.length) {
-			body = [HEAL];
-			const avail = spawn.room.energyCapacityAvailable - BODYPART_COST[HEAL];
+			body = [HEAL,MOVE];
+			const cost = UNIT_COST(body);
+			const avail = Math.floor((spawn.room.energyCapacityAvailable - cost)*0.75);
 			if(Math.random() < 0.5) {
-				body = body.concat(Arr.repeat([TOUGH,RANGED_ATTACK,MOVE,MOVE], avail*0.75));
+				body = body.concat(Arr.repeat([RANGED_ATTACK,MOVE], avail));
 			} else {
-				body = body.concat(Arr.repeat([TOUGH,ATTACK,MOVE,MOVE], avail*0.75));
+				body = body.concat(Arr.repeat([ATTACK,MOVE], avail));
 			}
 		}
 		return spawn.submit({ body, memory: { role: 'guard', site: flag, origin: spawn.pos.roomName }, priority: 100, room });
