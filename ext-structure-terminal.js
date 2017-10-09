@@ -135,7 +135,7 @@ StructureTerminal.prototype.moderateEnergy = function () {
 		const order = _.find(this.orders, { type: ORDER_BUY, resourceType: RESOURCE_ENERGY });
 		const total = TERMINAL_MIN_ENERGY * 1.25;
 		if (ENABLE_ORDER_MANAGEMENT && !order) {
-			const competition = Game.market.getAllOrders({ type: ORDER_BUY, resourceType: RESOURCE_ENERGY });
+			const competition = this.getAllOrders({ type: ORDER_BUY, resourceType: RESOURCE_ENERGY });
 			const highest = _.isEmpty(competition) ? 1.0 : (_.max(competition, 'price').price);
 			const price = highest + 0.01;
 			const amount = Math.min(total, this.getMaximumBuyOrder(price));
@@ -188,7 +188,7 @@ StructureTerminal.prototype.runAutoSell = function (resource = RESOURCE_THIS_TIC
 	// On first overage sell, place a sell order
 	if (ENABLE_ORDER_MANAGEMENT && this.creditsAvailable > 0 && !_.any(this.orders, o => o.type === ORDER_SELL && o.resourceType === resource)) {
 		// Place order first
-		const orders = Game.market.getAllOrders({ type: ORDER_SELL, resourceType: resource });
+		const orders = this.getAllOrders({ type: ORDER_SELL, resourceType: resource });
 		let price = 0.25;
 		const { roomName } = this.pos;
 		if (!_.isEmpty(orders)) {
@@ -250,7 +250,7 @@ StructureTerminal.prototype.isActive = function() {
  * @todo: Avoid rooms in cache by opponent.
  */
 StructureTerminal.prototype.sell = function (resource, amt = Infinity, limit = TERMINAL_MINIMUM_SELL_PRICE) {
-	var orders = Game.market.getAllOrders({ type: ORDER_BUY, resourceType: resource });
+	var orders = this.getAllOrders({ type: ORDER_BUY, resourceType: resource });
 	orders = _.filter(orders, o => o.price >= limit && o.remainingAmount > 1 && o.amount > 1);
 	if (orders == null || !orders.length) {
 		Log.info(`${this.pos.roomName}: No orders to fill for ${resource}`, 'Terminal');
@@ -282,7 +282,7 @@ StructureTerminal.prototype.sell = function (resource, amt = Infinity, limit = T
 StructureTerminal.prototype.buy = function (res, amount = Infinity, maxRange = Infinity) {
 	if (amount <= 0)
 		return ERR_INVALID_ARGS;
-	var orders = Game.market.getAllOrders({ type: ORDER_SELL, resourceType: res });
+	var orders = this.getAllOrders({ type: ORDER_SELL, resourceType: res });
 	orders = _.reject(orders, o => (Game.rooms[o.roomName] && Game.rooms[o.roomName].my) || o.price > TERMINAL_MAXIMUM_BUY_PRICE || o.amount <= 1);
 	if (maxRange !== Infinity)
 		orders = _.filter(orders, o => Game.map.getRoomLinearDistance(o.roomName, this.pos.roomName, true) < maxRange);
@@ -307,6 +307,19 @@ StructureTerminal.prototype.buyUpTo = function (res, goal) {
 
 StructureTerminal.prototype.isFull = function () {
 	return _.sum(this.store) >= this.storeCapacity;
+};
+
+/**
+ * @param Object base - Base filter ({ type: ORDER_SELL, resourceType: res })
+ * @param Function filter - Secondary filter to pass through
+ */
+StructureTerminal.prototype.getAllOrders = function(base) {
+	try {
+		return Game.market.getAllOrders(base);
+	} catch(e) {
+		Log.error(`${this.pos.roomName}: ${e.message}`, 'Terminal');
+		return [];
+	}
 };
 
 /**
@@ -413,7 +426,7 @@ StructureTerminal.prototype.sendAllEnergy = function (dest) {
  */
 const TERMINAL_MIN_ARBITRAGE_PROFIT = 0.04;
 StructureTerminal.prototype.findArbitrageOrders = function (resource = RESOURCE_ENERGY, minProfit = TERMINAL_MIN_ARBITRAGE_PROFIT) {
-	const orders = _.reject(Game.market.getAllOrders({ resourceType: resource }), o => o.amount < 10 || _.get(Game.rooms[o.roomName], 'controller.my', false));
+	const orders = _.reject(this.getAllOrders({ resourceType: resource }), o => o.amount < 10 || _.get(Game.rooms[o.roomName], 'controller.my', false));
 	const ordersByType = _.groupBy(orders, 'type');
 	// const inbound = _.reject(ordersByType[ORDER_SELL], o => o.remainingAmount > 10 && o.amount > 10 && );
 	// const outbound = _.filter(ordersByType[ORDER_BUY], o => o.remainingAmount > 10 && o.amount > 10);
