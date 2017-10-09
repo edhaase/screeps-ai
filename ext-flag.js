@@ -371,9 +371,9 @@ Flag.prototype.runLogic = function () {
 		}
 		if (this.room && !BUCKET_LIMITER && this.memory.dropoff != null && this.room.isBuildQueueEmpty())
 			this.throttle(300, 'clk', () => {
-				const {roomName} = this.memory.dropoff;
-				if(Game.rooms[roomName] && Game.rooms[roomName].my && Game.rooms[roomName].controller.level >= 4)
-					require('Planner').planRoad(this.pos, { pos: _.create(RoomPosition.prototype, this.memory.dropoff), range: 1 });
+				// const {roomName} = this.memory.dropoff;
+				// if(Game.rooms[roomName] && Game.rooms[roomName].my && Game.rooms[roomName].controller.level >= 4)
+				//	require('Planner').planRoad(this.pos, { pos: _.create(RoomPosition.prototype, this.memory.dropoff), range: 1 });
 				this.memory.dropoff = undefined; // reset dropoff
 			});
 		if (this.room && (!this.memory.dropoff || (this.memory.step == null || this.memory.step < 0))) {
