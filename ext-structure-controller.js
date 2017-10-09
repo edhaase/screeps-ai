@@ -99,6 +99,8 @@ StructureController.prototype.run = function () {
 				var defer = Math.min(MAX_CREEP_SPAWN_TIME, nuke.timeToLand + 1);
 				Log.warn(`Census holding for ${defer} ticks, nuke inbound`, 'Controller');
 				this.room.find(FIND_MY_SPAWNS).forEach(s => s.defer(defer));
+			} else if(_.all(this.room.find(FIND_MY_SPAWNS), s => s.spawning && s.spawning.remainingTime > DEFAULT_SPAWN_JOB_EXPIRE)) {
+				Log.info(`${this.pos.roomName}: All spawns busy, skipping census`,'Controller');
 			} else {
 				this.runCensus();
 				/* _.each(Game.map.describeExits(this.pos.roomName), rn => {
@@ -201,8 +203,8 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 		throw new Error(`No visibility on ${roomName}`);
 	if(roomName !== this.pos.roomName && room.my)
 		throw new Error("This room under acting under another controller");
-	var { hostiles, energyCapacityAvailable } = room;
-	var [spawn] = this.room.find(FIND_MY_SPAWNS);
+	var spawns = this.room.find(FIND_MY_SPAWNS);
+	var [spawn] = spawns;
 	const terminalEnergy = _.get(this.room, 'terminal.store.energy', 0);
 	const storedEnergy = _.get(this.room, 'storage.store.energy', 0);
 	var prio = 50;
@@ -216,6 +218,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 		Log.debug(`Generating census report`, 'Controller');
 	}
 
+	// Creeps
 	const creeps = Game.creepsByRoom[roomName];
 	const { census } = Game;
 
@@ -229,17 +232,24 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	const scav = census[`${roomName}_scav`] || [];
 	const bulldozer = census[`${roomName}_bulldozer`] || [];
 	const scouts = census[`${roomName}_scout`] || [];
-
+	const miners = census[`${roomName}_miner`] || [];
+	const dualminers = census[`${roomName}_dualminer`] || [];
 	const assistingSpawn = this.getAssistingSpawn();
 
 	var resDecay = _.sum(room.resources, 'decay');
 
-	/* const income = 0;
+	// Income
+	const sources = this.room.find(FIND_SOURCES);
+	const base = Math.min( _.sum(sources,'ept'), _.sum(miners,'harvestPower')+_.sum(dualminers,'harvestPower'));
+	const remote = Math.floor(_.sum(haulers, 'memory.ept')) || 0;
+	const reactor = (this.room.energyAvailable >= SPAWN_ENERGY_START) ? 0 : spawns.length;
+	const income = base+remote+reactor;
+
+	const upkeep = _.sum(creeps, 'cpt') + _.sum(this.room.structures, 'upkeep');
 	const expense = 0;
-	const upkeep = _.sum(creeps, 'cpt') + this.room.getUpkeep();
 	const net = income-(expense+upkeep);
 	const avail = income - upkeep;
-	Log.info(`${this.pos.roomName}: Income ${income}, Expense: ${expense}, Upkeep: ${upkeep}, Net: ${net}, Banked: ${storedEnergy}`,'Controller'); */
+	Log.info(`${this.pos.roomName}: Income ${income}, Expense: ${expense}, Upkeep: ${_.round(upkeep,3)}, Net: ${_.round(net,3)}, Banked: ${storedEnergy}`,'Controller');
 
 	/**
 	 * Emergency conditions - Should probably be detected elsewhere
@@ -275,7 +285,6 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 		Log.debug(`${this.pos.roomName} Controller using spawn ${spawn.name}/${spawn.pos} and ${assistingSpawn.name}/${assistingSpawn.pos} `, 'Controller');
 
 
-	var sources = this.getSources();
 	// var sourcesByRoom = _.groupBy(sources, 'pos.roomName');
 	var numSources = sources.length;
 	var dual = false;
@@ -343,8 +352,8 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	if( (this.safeMode || 0) < SAFE_MODE_IGNORE_TIMER) {
 		const towers = _.size(room.find(FIND_MY_STRUCTURES, { filter: Filter.loadedTower }));
 		// if (!_.isEmpty(hostiles) && room.my && (towers <= 0 || hostiles.length > towers)) {
-		if (towers <= 0 || hostiles.length > towers) {
-			const desired = Math.clamp(1, hostiles.length * 2, 8);
+		if (towers <= 0 || room.hostiles.length > towers) {
+			const desired = Math.clamp(1, room.hostiles.length * 2, 8);
 			for (var di = defenders.length; di < desired; di++) {
 				prio = Math.max(50, 100 - Math.ceil(100 * (di / desired)));
 				const supplier = _.sample(['requestDefender', 'requestRanger']);
@@ -407,7 +416,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 				require('Unit').requestUpgrader(spawn, roomName, 90, MAX_RCL_UPGRADER_SIZE - workAssigned);
 		} else {
 			if(this.room.storage)
-				workDesired = Math.floor(workDesired, this.room.storage.stock);
+				workDesired = Math.floor(workDesired * this.room.storage.stock);
 			const bonus = Math.floor(_.sum(haulers, 'memory.eptNet')) || 0;
 			const workDiff = (workDesired+bonus) - workAssigned;
 			Log.debug(`${this.pos.roomName} Upgraders: ${workAssigned} assigned, ${workDesired}+${bonus} desired (+bonus), ${workDiff} diff`, 'Controller');
@@ -452,18 +461,6 @@ StructureController.prototype.getSafeModeGoal = function () {
 	return (CONTROLLER_LEVELS[2] - this.progress) / this.safeMode;
 };
 
-/**
- * Mining operations - Move to empire level, or check if another controller owns this source.
- * At empire level we could periodically update closest dropoff points.
- */
-StructureController.prototype.getSources = function () {
-	if (!this.memory.sources || this.memory.sources.length === 0) {
-		Log.info(`Initilizing list of sources for ${this.pos.roomName}`, 'Controller');
-		this.memory.sources = this.room.find(FIND_SOURCES).map(s => _.pick(s, ['id', 'pos', 'energyCapacity']));
-	}
-	return this.memory.sources;
-};
-
 /* StructureController.prototype.pushSource = function({id,pos}) {
 	if(!this.isValidSource({id,pos}))
 		return false;
@@ -479,14 +476,6 @@ StructureController.prototype.getSources = function () {
 StructureController.prototype.isValidSource = function(s) {
 	return s.pos.roomName === this.pos.roomName || (Game.rooms[s.pos.roomName] && !Game.rooms[s.pos.roomName].my) || !Game.rooms[s.pos.roomName];
 } */
-
-/**
- * Calculate the room's estimated income-per-tick average.
- * @todo: Adjust for size of miner?
- */
-StructureController.prototype.getProjectedIncome = function () {
-	return _.sum(this.getSources(), s => s.energyCapacity / ENERGY_REGEN_TIME);
-};
 
 /**
  * Neighbor considerations.
