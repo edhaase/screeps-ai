@@ -368,10 +368,14 @@ Creep.prototype.flee = function (min = MINIMUM_SAFE_FLEE_DISTANCE, all = false, 
 		return false;
 
 	const b = _.map(hostiles, c => ({ pos: c.pos, range: min }));
-	let opts = {
+	let plainCost = this.plainSpeed;
+	let swampCost = this.swampSpeed;
+	if(swampCost <= plainCost)
+		plainCost = swampCost*2;	// If we can move equally across both, prefer swamps
+	const opts = {
 		flee: true,
-		plainCost: this.plainSpeed,
-		swampCost: this.swampSpeed,
+		plainCost,
+		swampCost,
 		maxOps: 500, // this might determine where we flee to.
 		maxRooms: 1
 	};
