@@ -548,15 +548,16 @@ global.storage = function () {
 	var output = '<table>';
 	// border under headers, alternate color
 	// Game.getObjectById('579faa680700be0674d30ef3').progressTotal - Game.getObjectById('579faa680700be0674d30ef3').progress
-	let rooms = _.filter(Game.rooms, r => (_.get(r, 'controller.my', false) && r.storage != undefined));
-	let sts = _.map(rooms, 'storage');
+	const rooms = _.filter(Game.rooms, r => (_.get(r, 'controller.my', false) && r.storage != undefined));
+	const sts = _.map(rooms, 'storage');
 	// let terminals = _.map(rooms, r => Game.rooms[r].terminal);
-	let headers = ['res'].concat(_.map(rooms, 'name'));
+	const headers = ['res'].concat(_.map(rooms, 'name'));
 	let rows = _.map(RESOURCES_ALL, function (res) {
-		let stored = _.map(sts, t => _.get(t, 'store.' + res, 0));
+		const stored = _.map(sts, t => _.get(t, `store.${res}`, 0));
 		return [res].concat(stored);
 	});
-	let totals = _.map(sts, 'total');
+	rows = _.filter(rows, r => _.any(r,(v,k) => v > 0));
+	const totals = _.map(sts, 'total');
 	rows.unshift(['total'].concat(totals));
 	output += '</table>';
 	console.log(Log.table(headers, rows));
