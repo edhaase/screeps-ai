@@ -34,6 +34,7 @@ Flag.prototype.run = function () {
 		this.runLogic();
 	} catch (e) {
 		Log.error(`Error on ${this.name} at ${this.pos}`, 'Flag');
+		Log.error(e, 'Flag');
 		Log.error(e.stack, 'Flag');
 	}
 };
@@ -222,7 +223,7 @@ Flag.prototype.runLogic = function () {
 		}
 
 		if (this.secondaryColor === STRATEGY_RESERVE) {
-			const clock = _.get(Memory.rooms, [this.pos.roomName, 'reservation']) - Game.time;
+			const clock = _.get(Memory.rooms, [this.pos.roomName, 'reservation'], Game.time) - Game.time;
 			if (clock > MINIMUM_RESERVATION)
 				return;
 			if (this.room) {
@@ -369,6 +370,8 @@ Flag.prototype.runLogic = function () {
 			Log.notify(`[Mining] Cannot mine in ${this.pos.roomName}, deferring.`);
 			return this.defer(5000);
 		}
+		if(this.room && this.room.my)
+			return this.remove();
 		if (this.room && !BUCKET_LIMITER && this.memory.dropoff != null && this.room.isBuildQueueEmpty())
 			this.throttle(300, 'clk', () => {
 				// const {roomName} = this.memory.dropoff;
@@ -426,18 +429,20 @@ Flag.prototype.runLogic = function () {
 	 */
 	// Move to module?
 	if (this.color === FLAG_MINING && !BUCKET_LIMITER && this.secondaryColor === SITE_REMOTE) {
-		if (this.room && !this.room.canMine) {
-			Log.notify(`Cannot mine in ${this.pos.roomName} deferring.`, 'Flag');
-			this.defer(5000);
-			return;
-		}
-		if (this.room) {
-			const [source] = this.pos.lookFor(LOOK_SOURCES);
-			this.memory.work = (source && source.harvestParts) || SOURCE_HARVEST_PARTS;
-			Log.debug(`${this.name} setting capacity to ${this.memory.work}`, 'Flag');
+		if (this.room){
+			if(this.room.my) {
+				return this.remove();
+			} else if(!this.room.canMine) {
+				Log.notify(`Cannot mine in ${this.pos.roomName} deferring.`, 'Flag');
+				this.defer(5000);
+				return;
+			} else {
+				const [source] = this.pos.lookFor(LOOK_SOURCES);
+				this.memory.work = (source && source.harvestParts) || SOURCE_HARVEST_PARTS;
+				Log.debug(`${this.name} setting capacity to ${this.memory.work}`, 'Flag');
+			}
 		}
 		var miner = this.getAssignedUnit(c => c.getRole() === 'miner' && this.pos.isEqualToPlain(c.memory.dest) && (c.ticksToLive > UNIT_BUILD_TIME(c.body) || c.spawning));
-
 		if (!miner) {
 			var spawn = this.getClosestSpawn();
 			if (!spawn) {
