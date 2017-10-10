@@ -418,5 +418,13 @@ module.exports = {
 			}
 		}
 		return spawn.submit({ body, memory: { role: 'guard', site: flag, origin: spawn.pos.roomName }, priority: 100, room });
+	},
+
+	requestSwampGuard: function(spawn, flag, body, room) {
+		body = [MOVE,MOVE,MOVE,MOVE,MOVE,HEAL];
+		const cost = UNIT_COST(body);
+		const avail = Math.floor((spawn.room.energyCapacityAvailable - cost)*0.75);
+		body = body.concat(Arr.repeat([MOVE,MOVE,MOVE,MOVE,MOVE,RANGED_ATTACK], avail));
+		return spawn.submit({ body, memory: { role: 'guard', site: flag, origin: spawn.pos.roomName }, priority: 100, room });
 	}
 };
