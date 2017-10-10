@@ -327,7 +327,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	}
 
 	const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
-	if (!_.isEmpty(sites) && builders.length < (numSources || 1)) { // && (this.room.energyAvailable > 200 || storedEnergy > 110000)) {
+	if (sites && sites.length && builders.length < (numSources || 1)) { // && (this.room.energyAvailable > 200 || storedEnergy > 110000)) {
 		const buildRemaining = _.sum(sites, s => s.progressTotal - s.progress);	// Total energy required to finish all builds
 		const score = Math.ceil(buildRemaining / CREEP_LIFE_TIME / BUILD_POWER);
 		// console.log('build remaining in room: ' + score);
@@ -338,7 +338,6 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 			useSpawn = assistingSpawn;
 		if (!useSpawn)
 			Log.warn(`No spawn available to request builders for ${this.pos.roomName}`, 'Controller');
-
 		prio = Math.clamp(0, 100 - Math.ceil(100 * (builders.length / numSources)), 90);
 		var elimit = (storedEnergy > 10000) ? Infinity : (10 * numSources);
 		require('Unit').requestBuilder(useSpawn, { elimit, home: roomName, priority: prio });
