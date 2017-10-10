@@ -579,6 +579,9 @@ StructureController.prototype.onUpgrade = function (level, prev) {
 		}
 		this.memory['RCL3ReachedIn'] = Game.time - this.memory.claimedAt;
 	}
+
+	if(this.level === 2 && !this.safeMode)
+		this.activateSafeMode();
 };
 
 /**
