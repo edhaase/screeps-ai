@@ -99,8 +99,6 @@ StructureController.prototype.run = function () {
 				var defer = Math.min(MAX_CREEP_SPAWN_TIME, nuke.timeToLand + 1);
 				Log.warn(`Census holding for ${defer} ticks, nuke inbound`, 'Controller');
 				this.room.find(FIND_MY_SPAWNS).forEach(s => s.defer(defer));
-			} else if(_.all(this.room.find(FIND_MY_SPAWNS), s => s.spawning && s.spawning.remainingTime > DEFAULT_SPAWN_JOB_EXPIRE)) {
-				Log.info(`${this.pos.roomName}: All spawns busy, skipping census`,'Controller');
 			} else {
 				this.runCensus();
 				/* _.each(Game.map.describeExits(this.pos.roomName), rn => {
@@ -421,7 +419,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 			const workDiff = (workDesired+bonus) - workAssigned;
 			Log.debug(`${this.pos.roomName} Upgraders: ${workAssigned} assigned, ${workDesired}+${bonus} desired (+bonus), ${workDiff} diff`, 'Controller');
 			if (workDiff > 2)
-				require('Unit').requestUpgrader(spawn, roomName, 25, workDiff);
+				require('Unit').requestUpgrader(spawn, roomName, 25, (workDesired+bonus) );
 		}
 	} else if (this.upgradeBlocked) {
 		Log.warn(`${this.pos.roomName} upgrade blocked for ${this.upgradeBlocked} ticks`, 'Controller');
