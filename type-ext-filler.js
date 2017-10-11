@@ -23,11 +23,10 @@ class CreepExtFiller extends Creep {
 		state = this.transition(STATE_UNLOAD, () => this.carryTotal <= 0, STATE_GATHER, () => this.clearTarget() );
 		// state = this.getState();
 		*/
-		state = this.transitions([
-			['I', () => true, STATE_GATHER],
-			[STATE_GATHER, () => this.carryTotal >= this.carryCapacity, STATE_UNLOAD, () => this.clearTarget()],
-			[STATE_UNLOAD, () => this.carryTotal <= 0, STATE_GATHER, () => this.clearTarget()]
-		]);
+		state = this.transitions({
+			[STATE_GATHER]: [[() => this.carryTotal >= this.carryCapacity, STATE_UNLOAD, () => this.clearTarget()]],
+			[STATE_UNLOAD]: [[() => this.carryTotal <= 0, STATE_GATHER, () => this.clearTarget()]]
+		}, STATE_GATHER);
 
 		if (state === STATE_GATHER)
 			this.gather();
@@ -190,6 +189,7 @@ class CreepExtFiller extends Creep {
 		// goal = this.room.controller;
 		if (!goal) {
 			this.say('No goal');
+			console.log(`No goal, tid? ${this.memory.tid}`)
 			//if( this.moveTo(this.room.storage, {range: 2, ignoreCreeps: true}) == ERR_NO_PATH )
 			this.defer(3);
 			if (this.carry[RESOURCE_ENERGY] / this.carryCapacity < 0.25)
