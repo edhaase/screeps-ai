@@ -6,37 +6,7 @@
  * var mod = require('role-upgrader');
  * mod.thing == 'a thing'; // true
  */
-"use strict";
-
-/* module.exports = function run(creep) {
-    if(!creep.memory.state)
-        creep.memory.state = 'gather';
-    
-    if(creep.carry.energy >= creep.carryCapacity) {
-        creep.memory.state = 'unload';
-		this.clearTarget();
-	}
-    if(creep.carry.energy == 0)
-        creep.memory.state = 'gather';
-        
-	var {controller} = creep.room;
-	if(controller.memory.rclAvgTick)
-		creep.say(_.round(controller.memory.rclAvgTick,2));
-		
-    if(creep.memory.state == 'gather') { // || creep.carry.energy < creep.carryCapacity) {
-		creep.gatherEnergy();       
-    } else {
-		var status = creep.upgradeController(creep.room.controller);
-		switch( status ) {
-			case ERR_NOT_IN_RANGE:
-				creep.moveTo(creep.room.controller, { reusePath: 5, ignoreCreeps: (creep.memory.stuck < 3), range: CREEP_UPGRADE_RANGE, maxRooms: 1});
-				break;
-			case ERR_NOT_ENOUGH_RESOURCES:
-				creep.memory.state = 'gather';
-				break;			
-		}
-    }		
-}; */
+'use strict';
 
 module.exports = {
 	init: function (creep) {

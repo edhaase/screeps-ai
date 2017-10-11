@@ -29,9 +29,9 @@ module.exports = {
 					this.room.controller.pos.createLogicFlag(null, FLAG_MILITARY, STRATEGY_RESERVE);
 					this.room.controller.pos.createLogicFlag(null, FLAG_MILITARY, STRATEGY_RESPOND);
 				}
-				Log.info(`Scout wants ${this.pos.roomName} as it's near our empire`);
+				Log.info(`Scout wants ${this.pos.roomName} as it's near our empire`,'Creep');
 			}
 		}
-		Log.debug(`${this.name} picked room ${roomName}`);
+		Log.debug(`${this.name} picked room ${roomName}`,'Creep');
 	}
 };

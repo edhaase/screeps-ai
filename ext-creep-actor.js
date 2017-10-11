@@ -45,28 +45,22 @@ Creep.prototype.run = function run() {
 	}
 
 	try {
-		if (memory.home !== undefined && (this.pos.roomName !== memory.home || this.pos.isOnRoomBorder())) {
-			if (this.flee(MINIMUM_SAFE_FLEE_DISTANCE))
-				return;
-			this.moveToRoom(memory.home);
-			return;
+		if(this.invokeState() === false) {
+			if (memory.home !== undefined && (this.pos.roomName !== memory.home || this.pos.isOnRoomBorder())) {
+				if (this.flee(MINIMUM_SAFE_FLEE_DISTANCE))
+					return;
+				this.moveToRoom(memory.home);
+			} else {
+				this.runRTSactions();
+				// Single-pass extension of types
+				if (memory.type) {
+					Object.setPrototypeOf(this, require(`type-${memory.type}`).prototype);
+					// var dt = Time.measure( () => Object.setPrototypeOf(this, require('type-' + memory.type).prototype) );
+				}
+				this.runRole();
+			}
 		}
-
-		this.runRTSactions();
-
-		/* if(memory._move !== undefined && Game.time > memory._move.time + 100) {
-			// Log.warn('[Creep] Cleaning up old moveTo data on ' + this.name);
-			delete this.memory._move;
-		} */
-
-		// Single-pass extension of types
-		if (memory.type) {
-			Object.setPrototypeOf(this, require(`type-${memory.type}`).prototype);
-			// var dt = Time.measure( () => Object.setPrototypeOf(this, require('type-' + memory.type).prototype) );
-		}
-
 		this.updateStuck();
-		this.runRole();
 	} catch (e) {
 		// console.log('Exception on creep ' + this.name + ' at ' + this.pos);
 		// console.log(e);
@@ -371,7 +365,7 @@ Creep.prototype.flee = function (min = MINIMUM_SAFE_FLEE_DISTANCE, all = false, 
 	let plainCost = this.plainSpeed;
 	let swampCost = this.swampSpeed;
 	if(swampCost <= plainCost)
-		plainCost = swampCost*2;	// If we can move equally across both, prefer swamps
+		plainCost = swampCost*5;	// If we can move equally across both, prefer swamps
 	const opts = {
 		flee: true,
 		plainCost,
@@ -575,3 +569,108 @@ Creep.prototype.repair = function (target) {
 		 return status;
 	 }
  }); */
+
+
+/**
+ * Stack machine actions
+ */
+/* eslint-disable consistent-return */
+
+/**
+ * Escape a room, either from a nuke or invasion
+ * @todo - Flee hostiles as well
+ * @todo - Blocked rooms
+ *
+ * example: Game.spawns.Spawn1.submit({body: [MOVE], memory: {role: 'noop',stack:[['runFleeRoom','W7N2']]}, priority: 100})
+ */
+Creep.prototype.runFleeRoom = function (scope) {
+	Log.debug(`${this.name} fleeing room ${scope}`, 'Creep');
+	var pos = new RoomPosition(25, 25, scope);
+	var range = 30;
+	var { path, incomplete } = PathFinder.search(this.pos, { pos, range }, {
+		flee: true,
+		plainCost: this.plainSpeed,
+		swampCost: this.swampSpeed,
+		maxOps: 8000,
+		roomCallback: (r) => LOGISTICS_MATRIX[r]
+	});
+	if (!path || path.length <= 0 || incomplete) {
+		this.popState();
+	} else {
+		this.move(this.pos.getDirectionTo(path[0]));
+	}
+};
+
+/**
+ * Move to a position and a range
+ * @todo - Double check that exit condition
+ * @todo - Route
+ * @todo - Opts
+ */
+Creep.prototype.runGoto = function (scope) {
+	var { pos, range = 1 } = scope;
+	var roomPos = _.create(RoomPosition.prototype, pos);
+	if (this.moveTo(roomPos, { range: range }) === ERR_NO_PATH)
+		this.popState();
+};
+
+/** ex: goto, claim, recycle */
+Creep.prototype.runSetRole = function(scope) {
+	this.setRole(scope);
+	this.popState();
+};
+
+/** ex: goto, runMethod(claim), recycle */
+Creep.prototype.runMethod = function() {
+
+};
+
+/** Run away and heal */
+Creep.prototype.runHealSelf = function () {
+	if (this.hits >= this.hitsMax)
+		return this.popState();
+	if (this.hasActiveBodypart(HEAL)) {
+		this.heal(this);
+		this.flee(10);
+		return;
+	} else if (this.room.controller && !this.room.controller.my && this.room.controller.owner && Player.status(this.room.controller.owner.username) === PLAYER_HOSTILE) {
+		Log.debug(`${this.name}#runHealSelf is fleeing hostile owned room ${this.room.name}`, 'Creep');
+		return this.pushState('FleeRoom', this.room.name);
+	} else if(this.hitPct < 0.25 && this.room.hostiles && this.room.hostiles.length) {
+		Log.debug(`${this.name}#runHealSelf is fleeing hostile creeps in ${this.room.name}`, 'Creep');
+		return this.pushState('FleeRoom', this.room.name);
+	}
+	// Rather than pushing a state, let's actively adjust for changing targets and current health
+	var target = this.getTarget(
+		() => _.values(Game.creeps).concat(_.values(Game.structures)),
+		(c) => Filter.loadedTower(c) || c.getRole && (c.getRole() === 'healer' || c.getRole() === 'guard') && c.hasActiveBodypart(HEAL),
+		(candidates) => {
+			var answer = this.pos.findClosestByPathFinder(candidates, (x) => ({
+				pos: x.pos, range: (x instanceof StructureTower) ? TOWER_OPTIMAL_RANGE : CREEP_RANGED_HEAL_RANGE
+			})).goal;
+			Log.debug(`${this.name}#runHealSelf is moving to friendly healer ${answer}`, 'Creep');
+			return answer;
+		}
+	);
+	if (!target) {
+		// We have a problem.
+		Log.debug(`${this.name}#runHealSelf has no target for heal`, 'Creep');
+		this.flee(10);
+	} else {
+		var range = (target instanceof StructureTower) ? TOWER_OPTIMAL_RANGE : CREEP_RANGED_HEAL_RANGE; 
+		var status = this.moveTo(target, {
+			range,
+			plainCost: this.plainSpeed,
+			swampCost: this.swampSpeed,
+			maxOps: 16000,
+			costCallback: (r) => LOGISTICS_MATRIX[r]
+		});
+		if(status !== OK)
+			Log.debug(`Moving to target ${target} range ${range}, status ${status}`,'Creep');
+	}
+};
+
+/** Tower drain */
+Creep.prototype.runBorderHop = function() {
+	// If hurt, stop and push heal
+};

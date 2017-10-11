@@ -310,23 +310,96 @@ RoomObject.prototype.transitions = function (obj,def) {
 };
 
 /**
- * Hash lookup: Far more performant than just scanning an array
- * ex: transitions({
- *  STATE_GATHER: [
- *		[() => this.carryTotal >= this.carryCapacity, STATE_UNLOAD, () => this.clearTarget() ]
- *	],
- * 	STATE_UNLOAD: [
- *		[() => this.carryTotal <= 0, STATE_GATHER, () => this.clearTarget()]
- *	]})
+ * Pushdown automata state machine
  */
-RoomObject.prototype.getState = function (defaultState = 'I') {
-	return this.memory.state || defaultState;
+RoomObject.prototype.invokeState = function() {
+	if(!this.memory.stack || !this.memory.stack.length)
+		return false;
+	var [[state,scope]] = this.memory.stack;
+	var method = `run${state}`;
+	if(!this[method])
+		return false;
+	Log.debug(`Invoking action ${state} (${method}) for ${this}`, 'RoomObject');
+	this[method](scope);
+	return true;
 };
 
-RoomObject.prototype.setState = function (state) {
-	if(state != null)
-		this.memory.state = state;
-	return this.memory.state;
+// Get current state on the stack
+RoomObject.prototype.getState = function (defaultState = 'I') {
+	if(!this.memory.stack)
+		return defaultState;
+	return this.memory.stack[0][0] || defaultState;
+};
+
+// Set the current state
+RoomObject.prototype.setState = function (state, scope) {
+	if (state == null)
+		throw new TypeError('State can not be null');
+	if (!this.memory.stack)
+		this.memory.stack = [[]];
+	this.memory.stack[0] = [state, scope];
+	return state;
+};
+
+// Push a new state to the top of the stack
+RoomObject.prototype.pushState = function (state, scope) {
+	if (!this.memory.stack)
+		this.memory.stack = [];
+	var method = `run${state}`;
+	if (this[method] == null)
+		throw new Error(`No such state or action ${method}`);
+	if (this.memory.stack.length >= 100)
+		throw new Error('Automata stack limit exceeded');
+	Log.debug(`Pushing state ${state} to ${this}`, 'RoomObject');
+	this.memory.stack.unshift([state, scope]);
+	return state;
+};
+
+// Pop a state off the top of the stack
+RoomObject.prototype.popState = function () {
+	if (!this.memory.stack || !this.memory.stack.length)
+		return;
+	const [state] = this.memory.stack.shift();
+	Log.debug(`Popping state ${state} from ${this}`, 'RoomObject');
+	if (!this.memory.stack.length)
+		this.memory.stack = undefined;
+};
+
+// Reset all state
+RoomObject.prototype.clearState = function() {
+	this.memory.stack = undefined;
+};
+
+/**
+ * Programmable steps!
+ * ex: Game.spawns.Spawn1.submit({body: [MOVE], memory: {role: 'noop',stack:[['Eval',{script:'this.move(TOP)'}]]}, priority: 100})
+ */
+RoomObject.prototype.runEval = function (scope) {
+	var {script,exit} = scope;
+	if(exit && eval(exit))
+		this.popState();
+	else
+		eval(script);
+};
+
+// Cycle through states
+RoomObject.prototype.runCycle = function (scope) {
+
+};
+
+// Repeat another state indefinitely
+RoomObject.prototype.runRepeat = function (scope) {
+	return this.pushState(scope);
+};
+
+// Conditional
+RoomObject.prototype.runIIF = function(scope) {
+
+};
+
+RoomObject.prototype.runWait = function(scope) {
+	if(Game.time > scope)
+		this.popState();
 };
 
 /**

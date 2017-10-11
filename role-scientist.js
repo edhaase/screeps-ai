@@ -4,6 +4,10 @@
  */
 "use strict";
 
+const STATE_LOAD = 'l';
+const STATE_RESET = 'r';
+const STATE_DEFAULT = STATE_LOAD;
+
 module.exports = function (creep) {
 	let { site, lab1, lab2, r1, r2, lab3 } = creep.memory;
 	let terminal = creep.room.terminal;
@@ -15,14 +19,14 @@ module.exports = function (creep) {
 	let r3 = REACTIONS[r1][r2];
 
 	// Clear all the labs
-	if (creep.memory.state === 'reset') {
+	if (creep.getState() === STATE_RESET) {
 		creep.withdraw(lab3, lab3.mineralType, Math.min(limit, lab3.mineralAmount));
 		creep.withdraw(lab2, lab2.mineralType, Math.min(limit, lab2.mineralAmount));
 		creep.withdraw(lab1, lab1.mineralType, Math.min(limit, lab1.mineralAmount));
 		let res = _.findKey(creep.carry, (v, key) => v > 0);
 		creep.transfer(terminal, res);
 		if (lab1.mineralAmount === 0 && lab2.mineralAmount === 0 && lab3.mineralAmount === 0) {
-			creep.memory.state = 'load';
+			creep.setState(STATE_LOAD);
 			creep.say('Loading!');
 			Log.info('[SCIENTIST] Switching to load at ' + creep.pos);
 		}

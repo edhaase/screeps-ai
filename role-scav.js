@@ -91,6 +91,10 @@ module.exports = {
 			this.wander();
 			return;
 		}		
+		if(this.hitPct < 0.50) {
+			this.pushState('HealSelf');
+			return;
+		}
 		const state = this.transitions(TRANSITIONS, STATE_DEFAULT);
 		const { terminal, storage, controller } = this.room;
 		if (state === STATE_GATHER) {

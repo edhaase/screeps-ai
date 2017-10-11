@@ -24,6 +24,8 @@ class HaulerRole extends ScreepsFSM.Role {
 		creep.flee(5);
 		if (controller && controller.my && controller.level >= 3)
 			return;
+		if (creep.hitsMax < 0.25)
+			creep.pushState('HealSelf');
 		// let work = creep.getActiveBodyparts(WORK);
 		const work = (creep.hits === creep.hitsMax) ? 2 : 0;
 		const repairPower = REPAIR_POWER * work;

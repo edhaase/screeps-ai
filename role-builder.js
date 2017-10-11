@@ -12,6 +12,13 @@ var ignoreCreeps = false;
  */
 const BUILDER_MAX_FORTIFY_HITS = 10000;
 
+
+const STATE_GATHER = 'g';
+const STATE_UNLOAD = 'u';
+const STATE_HARVEST = 'h';
+const STATE_FORTIFY = 'f';
+const STATE_DEFAULT = STATE_GATHER;
+
 module.exports = {
 	// Called once on new creep.
 	init: function (creep) {
@@ -23,28 +30,27 @@ module.exports = {
 	},
 	// Role function
 	run: function run(creep) {
-		if (!creep.memory.state)
-			creep.memory.state = 'gather';
+		var state = creep.getState(STATE_DEFAULT);
 		if (creep.carry[RESOURCE_ENERGY] >= creep.carryCapacity)
-			creep.memory.state = 'unload';
-		else if (creep.carry[RESOURCE_ENERGY] === 0 && creep.memory.state !== 'harvest' && creep.memory.state !== 'gather')
-			creep.memory.state = 'gather';
-
-		if (creep.memory.state === 'gather') {
+			creep.setState(STATE_UNLOAD);
+		else if (creep.carry[RESOURCE_ENERGY] === 0 && state !== STATE_HARVEST && state !== STATE_GATHER)
+			creep.setState(STATE_GATHER);
+		state = creep.getState(STATE_DEFAULT);
+		if (state === STATE_GATHER) {
 			if(creep.gatherEnergy() === ERR_INVALID_TARGET)
-				this.setState('harvest');
-		} else if(creep.memory.state === 'harvest') {
+				this.setState(STATE_HARVEST);
+		} else if(state === STATE_HARVEST) {
 			const source = this.getTarget(
 				({ room }) => room.find(FIND_SOURCES_ACTIVE),
 				(s) => (s instanceof Source) && (s.energy > 0 || s.ticksToRegeneration < this.pos.getRangeTo(s)),
 				(sources) => this.pos.findClosestByPath(sources)
 			);
 			creep.harvestOrMove(source);
-		} else if (creep.memory.state === 'fortify') {
+		} else if (state === STATE_FORTIFY) {
 			var structs = _.map(this.lookForNear(LOOK_STRUCTURES, true, 3), LOOK_STRUCTURES);
 			structs = _.filter(structs, s => s.hits < s.hitsMax && s.hits < BUILDER_MAX_FORTIFY_HITS);
 			if(_.isEmpty(structs)) {
-				this.memory.state = 'unload';
+				this.setState(STATE_UNLOAD);
 				return;
 			}
 			var target = _.min(structs, 'hits');
@@ -74,7 +80,7 @@ module.exports = {
 					this.defer(15);
 				} else if (site.structureType === STRUCTURE_RAMPART || site.structureType === STRUCTURE_WALL) {
 					this.say('Fortify!');
-					this.memory.state = 'fortify';
+					this.setState(STATE_FORTIFY);
 				}
 			} else if (this.room.isBuildQueueEmpty()) {
 				creep.setRole('recycle');

@@ -19,6 +19,9 @@ module.exports = {
 			site = creep.pos.roomName;
 		}
 
+		if (this.hitPct < 0.75)
+			return this.pushState('HealSelf');
+
 		// If we're not in the room, move to the room.
 		if (creep.pos.roomName !== site)
 			return creep.moveToRoom(site);
