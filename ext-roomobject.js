@@ -398,8 +398,18 @@ RoomObject.prototype.runIIF = function(scope) {
 };
 
 RoomObject.prototype.runWait = function(scope) {
-	if(Game.time > scope)
-		this.popState();
+	switch (typeof scope) {
+	case 'number':
+		if (Game.time > scope)
+			this.popState();
+		break;
+	case 'string':
+		if(eval(scope))
+			this.popState();
+		break;
+	case 'object':
+		break;
+	}
 };
 
 /**

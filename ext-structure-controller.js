@@ -99,7 +99,7 @@ StructureController.prototype.run = function () {
 				var defer = Math.min(MAX_CREEP_SPAWN_TIME, nuke.timeToLand + 1);
 				Log.warn(`Census holding for ${defer} ticks, nuke inbound`, 'Controller');
 				this.room.find(FIND_MY_SPAWNS).forEach(s => s.defer(defer));
-				this.evacuate(n.timeToLand+1);
+				this.evacuate(Game.time+nuke.timeToLand+1);
 			} else {
 				this.runCensus();
 				/* _.each(Game.map.describeExits(this.pos.roomName), rn => {
@@ -357,6 +357,8 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 				const supplier = _.sample(['requestDefender', 'requestRanger']);
 				require('Unit')[supplier](spawn, roomName, prio);
 			}
+			if(_.all(this.room.hostiles, 'owner.username', INVADER_USERNAME))
+				this.evacuate(`Game.rooms['${this.pos.roomName}'].hostiles.length <= 0`);
 		}
 	}
 
@@ -460,9 +462,13 @@ StructureController.prototype.getSafeModeGoal = function () {
 	return (CONTROLLER_LEVELS[2] - this.progress) / this.safeMode;
 };
 
-StructureController.prototype.evacuate = function (ticks=1) {
+/**
+ * Push a flee state for all creeps
+ * @param {String|Number} condition - Tick to end wait, or eval condition
+ */
+StructureController.prototype.evacuate = function (condition) {
 	this.room.find(FIND_MY_CREEPS).forEach(c => {
-		c.pushState('Wait', Game.time+ticks);
+		c.pushState('Wait', condition);
 		c.pushState('FleeRoom', this.room.name);
 	});
 };
