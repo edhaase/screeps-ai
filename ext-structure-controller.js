@@ -416,8 +416,9 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 				workDesired = Math.floor(workDesired * this.room.storage.stock);
 			const bonus = Math.floor(_.sum(haulers, 'memory.eptNet')) || 0;
 			const workDiff = (workDesired+bonus) - workAssigned;
-			Log.debug(`${this.pos.roomName} Upgraders: ${workAssigned} assigned, ${workDesired}+${bonus} desired (+bonus), ${workDiff} diff`, 'Controller');
-			if (workDiff > 2)
+			const pctWork = _.round(workAssigned / (workDesired+bonus),3);
+			Log.debug(`${this.pos.roomName} Upgraders: ${workAssigned} assigned, ${workDesired}+${bonus} desired (+bonus), ${workDiff} diff (${pctWork})`, 'Controller');
+			if (pctWork < 0.80)
 				require('Unit').requestUpgrader(spawn, roomName, 25, (workDesired+bonus) );
 		}
 	} else if (this.upgradeBlocked) {
