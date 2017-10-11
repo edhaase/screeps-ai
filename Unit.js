@@ -171,6 +171,8 @@ module.exports = {
 				ccarry += 2;
 				count -= 2;
 			}
+			if(ccarry+count+3 > MAX_CREEP_SIZE)
+				count = MAX_CREEP_SIZE - (ccarry+3);
 			body = Util.RLD([ccarry, CARRY, count, WORK, 3, MOVE]);
 		}
 		// Log.debug(`Workdiff: ${workDiff}, count: ${count}, body: ${body}`);
