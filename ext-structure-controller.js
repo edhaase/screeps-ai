@@ -99,6 +99,7 @@ StructureController.prototype.run = function () {
 				var defer = Math.min(MAX_CREEP_SPAWN_TIME, nuke.timeToLand + 1);
 				Log.warn(`Census holding for ${defer} ticks, nuke inbound`, 'Controller');
 				this.room.find(FIND_MY_SPAWNS).forEach(s => s.defer(defer));
+				this.evacuate(n.timeToLand+1);
 			} else {
 				this.runCensus();
 				/* _.each(Game.map.describeExits(this.pos.roomName), rn => {
@@ -459,21 +460,12 @@ StructureController.prototype.getSafeModeGoal = function () {
 	return (CONTROLLER_LEVELS[2] - this.progress) / this.safeMode;
 };
 
-/* StructureController.prototype.pushSource = function({id,pos}) {
-	if(!this.isValidSource({id,pos}))
-		return false;
-	if(_(Memory.structures)
-		.filter('sources')
-		.map('sources')
-		.flatten()
-		.findWhere({id}))
-		return false;
-	return this.getSourceList().push({id,pos});
-}
-
-StructureController.prototype.isValidSource = function(s) {
-	return s.pos.roomName === this.pos.roomName || (Game.rooms[s.pos.roomName] && !Game.rooms[s.pos.roomName].my) || !Game.rooms[s.pos.roomName];
-} */
+StructureController.prototype.evacuate = function (ticks=1) {
+	this.room.find(FIND_MY_CREEPS).forEach(c => {
+		c.pushState('Wait', Game.time+ticks);
+		c.pushState('FleeRoom', this.room.name);
+	});
+};
 
 /**
  * Neighbor considerations.
