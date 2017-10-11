@@ -253,7 +253,6 @@ module.exports = {
 	requestScav: function (spawn, home = null, canRenew = true, priority = 50, hasRoad = true) {
 		var memory = {
 			role: 'scav',
-			type: 'ext-filler',
 			eca: spawn.room.energyCapacityAvailable
 		};
 		if (canRenew === false)
