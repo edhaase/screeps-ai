@@ -417,6 +417,8 @@ module.exports = {
 				body = body.concat(Arr.repeat([ATTACK,MOVE], avail));
 			}
 		}
+		if(body.length <= 2)
+			body = [RANGED_ATTACK,MOVE];
 		return spawn.submit({ body, memory: { role: 'guard', site: flag, origin: spawn.pos.roomName }, priority: 100, room });
 	},
 
