@@ -225,7 +225,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	const builders = census[`${roomName}_builder`] || [];
 	const upgraders = census[`${roomName}_upgrader`] || [];
 	const defenders = census[`${roomName}_defender`] || [];
-	const healers = census[`${roomName}_healers`] || [];
+	const healers = census[`${roomName}_healer`] || [];
 	const repair = census[`${roomName}_repair`] || [];
 	const scav = census[`${roomName}_scav`] || [];
 	const bulldozer = census[`${roomName}_bulldozer`] || [];
