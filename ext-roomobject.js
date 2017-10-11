@@ -33,9 +33,9 @@ RoomObject.prototype.getTarget = function (selector, validator = _.identity, cho
 	var target, tid = this.memory[prop];
 	if (tid != null) // Sanity check for cassandra migration
 		target = Game.getObjectById(tid);
-	if (target == null || !validator(target)) {
+	if (target == null || !validator(target,this)) {
 		this.room.visual.circle(this.pos, { fill: 'red' });
-		var candidates = _.filter(selector.call(this, this), validator);
+		var candidates = _.filter(selector.call(this, this), x => validator(x,this));
 		if (candidates && candidates.length)
 			target = chooser(candidates, this);
 		else
@@ -86,11 +86,11 @@ RoomObject.prototype.getTargetDeep = function (selector, validator = _.identity,
 RoomObject.prototype.getUniqueTarget = function (selector, restrictor, validator = _.identity, chooser = _.first, prop = 'tid') {
 	var tid = this.memory[prop];
 	var target = Game.getObjectById(tid);
-	if (tid == null || target == null || !validator(target)) {
+	if (tid == null || target == null || !validator(target,this)) {
 		this.room.visual.circle(this.pos, { fill: 'red' });
 		this.clearTarget(prop);
 		var invalid = restrictor.call(this, this) || [];
-		var candidates = _.filter(selector.call(this, this), x => validator(x) && !invalid.includes(x.id));
+		var candidates = _.filter(selector.call(this, this), x => validator(x,this) && !invalid.includes(x.id));
 		if (candidates && candidates.length)
 			target = chooser(candidates, this);
 		else
@@ -101,6 +101,23 @@ RoomObject.prototype.getUniqueTarget = function (selector, restrictor, validator
 	// if(target && target.pos.roomName == this.pos.roomName)
 	//	target.room.visual.line(this.pos, target.pos, {lineStyle: 'dashed', opacity: 0.5});	
 	return target;
+};
+
+/**
+ * Function wrapper version - Should optimize better.
+ *
+ * @param function selector - Gets a list of target candidates
+ * @param function restrictor - Called at start of target selection, expected to return array of invalid targets
+ * @param function validator - Check if a target is still valid
+ * @param function chooser - Pick the best target from the list
+ * @param string prop - Property name in memory to store the target id
+ *
+ * @return function - Return function to call
+ */
+global.createUniqueTargetSelector = function (selector, restrictor, validator = _.identity, chooser = _.first, prop = 'tid') {
+	return function(roomObject) {
+		return RoomObject.prototype.getUniqueTarget.call(roomObject, selector, restrictor, validator, chooser, prop);
+	};
 };
 
 /**
@@ -267,30 +284,28 @@ RoomObject.prototype.transition = function (start, condition, end, onEnter) {
 };
 
 /**
- * 
  *
- * ex: transitions([
- *   [STATE_GATHER, () => this.carryTotal >= this.carryCapacity, STATE_UNLOAD, () => this.clearTarget() ],
- * 	 [STATE_UNLOAD, () => this.carryTotal <= 0, STATE_GATHER, () => this.clearTarget() ]
- * ])
+ *
  */
-RoomObject.prototype.transitions = function (arr) {
+RoomObject.prototype.transitions = function (obj,def) {
 	var state = this.getState();
-	var enter, prev = state;
-	for (var i = 0; i < arr.length; i++) {
-		var [start, condition, end, onEnter] = arr[i];
-		if (state === start && condition.call(this, this)) {
+	if(!obj)
+		throw new TypeError('Expected transitions object');
+	// Log.warn(`Transitions for ${this.name} state ${state}`,'Creep')
+	if(!obj[state] || !obj[state].length) {
+		Log.warn(`No transitions for ${this.name} state ${state} [${Object.keys(obj)}]`,'Creep');
+		return this.setState(def);
+	}
+	for (var i = 0; i < obj[state].length; i++) {
+		var [condition, end, onEnter=null] = obj[state][i];
+		if (condition.call(this, this)) {
 			state = end;
-			enter = onEnter;
-			// Test: save time by exit early
-			if (enter) enter();
-			return this.setState(state);
+			if(onEnter)
+				onEnter.call(this,this);
+			this.setState(state);
+			break;
 		}
 	}
-	if (enter)
-		enter();
-	if (state !== prev)
-		this.setState(state);
 	return state;
 };
 
@@ -309,8 +324,9 @@ RoomObject.prototype.getState = function (defaultState = 'I') {
 };
 
 RoomObject.prototype.setState = function (state) {
-	this.memory.state = state;
-	return state;
+	if(state != null)
+		this.memory.state = state;
+	return this.memory.state;
 };
 
 /**
