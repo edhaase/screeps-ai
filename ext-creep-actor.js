@@ -601,6 +601,13 @@ Creep.prototype.runFleeRoom = function (scope) {
 	}
 };
 
+Creep.prototype.runWait = function(scope) {
+	RoomObject.prototype.runWait.call(this,scope);
+	if(this.hits < this.hitsMax && this.hasActiveBodypart(HEAL))
+		this.heal(this);
+	this.flee(10);
+};
+
 /**
  * Move to a position and a range
  * @todo - Double check that exit condition
