@@ -357,7 +357,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 				const supplier = _.sample(['requestDefender', 'requestRanger']);
 				require('Unit')[supplier](spawn, roomName, prio);
 			}
-			if(_.all(this.room.hostiles, 'owner.username', INVADER_USERNAME))
+			if(this.room.hostiles.length && _.all(this.room.hostiles, 'owner.username', INVADER_USERNAME))
 				this.evacuate(`Game.rooms['${this.pos.roomName}'].hostiles.length <= 0`);
 		}
 	}
