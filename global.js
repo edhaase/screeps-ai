@@ -5,6 +5,8 @@
 
 global.WHOAMI = _.find(Game.structures).owner.username;
 global.PREVENT_UNCLAIM = ['E59S39', 'E58S41'];
+global.INVADER_USERNAME = 'Invader';
+global.SOURCE_KEEPER_USERNAME = 'Source Keeper';
 
 global.RUNTIME_ID = Game.time;
 
