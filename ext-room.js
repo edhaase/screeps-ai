@@ -252,16 +252,20 @@ Room.prototype.updateBuild = function () {
 	var pos = this.getPositionAt(x, y);
 	var status = pos.createConstructionSite(structureType);
 	switch (status) {
-		case OK:
-			break;
-		case ERR_INVALID_TARGET:
-			_.remove(this.memory.bq, _.matches(job));
-			break;
-		case ERR_RCL_NOT_ENOUGH:
-			_.remove(this.memory.bq, j => j.structureType === structureType);
-			break;
-		default:
-			Log.error(`Placing ${structureType} site at ${pos} status ${status}`, 'Room');
+	case OK: {
+		if(structureType === STRUCTURE_SPAWN && _.isEmpty(this.find(FIND_MY_SPAWNS))) {
+			const smStatus = this.controller.activateSafeMode();
+			Log.notify(`${this.name}: Activating safe mode to protect critical construction, status ${smStatus}`);
+		}
+		break;
+	} case ERR_INVALID_TARGET:
+		_.remove(this.memory.bq, _.matches(job));
+		break;
+	case ERR_RCL_NOT_ENOUGH:
+		_.remove(this.memory.bq, j => j.structureType === structureType);
+		break;
+	default:
+		Log.error(`Placing ${structureType} site at ${pos} status ${status}`, 'Room');
 	}
 	return OK;
 };
@@ -399,26 +403,26 @@ Room.prototype.findOne = function(c, opts={}) {
  * The built-in findPath is kind of a problem.
  */
 Room.prototype.findPath = function (fromPos, toPos, opts = {}) {
-	// Log.debug(`findPath called ${fromPos} ${toPos} --> ${fromPos.getRangeTo(toPos)}`);
 	if (fromPos.roomName !== this.name)
 		return opts.serialize ? '' : [];
 	if (fromPos.isEqualTo(toPos))
 		return opts.serialize ? '' : [];
 	var resultPath = [];
 	var { path } = PathFinder.search(fromPos, { range: Math.max(1, opts.range || 1), pos: toPos }, {
-		roomCallback: opts.costCallback || ((rN) => logisticsMatrix[rN]),
-		maxOpts: opts.maxOps || 20000,
+		roomCallback: opts.costCallback || ((rN) => LOGISTICS_MATRIX[rN]),
+		maxOps: opts.maxOps || 20000,
 		maxRooms: opts.maxRooms,
 		plainCost: opts.ignoreRoads ? 1 : 2,
-		swampCost: opts.ignoreRoads ? 5 : 10
+		swampCost: opts.ignoreRoads ? 5 : 10,
+		heuristicWeight: 0.9 + (Math.random() * 0.6)
 	});
 	if (!opts.range && (path && path.length && path[path.length - 1].isNearTo(toPos) && !path[path.length - 1].isEqualTo(toPos)
 		|| !path.length && fromPos.isNearTo(toPos)))
 		path.push(toPos);
 	var curX = fromPos.x, curY = fromPos.y;
 	var i, len = path.length, pos;
-	if(opts.reusePath)
-		len = Math.min(path.length, opts.reusePath+1);
+	if (opts.reusePath)
+		len = Math.min(path.length, opts.reusePath + 1);
 	for (i = 0; i < len; i++) {
 		pos = path[i];
 		if (pos.roomName !== this.name)
@@ -437,30 +441,6 @@ Room.prototype.findPath = function (fromPos, toPos, opts = {}) {
 		return Room.serializePath(resultPath);
 	return resultPath;
 };
-
-// Room.prototype.findPath = _.memoize(Room.prototype.findPath, function () { return JSON.stringify(arguments); });
-/* const fpc = {};
-const { findPath } = Room.prototype;
-Room.prototype.findPath = function () {
-	var key = JSON.stringify(arguments);
-	if (fpc[key] == null)
-		fpc[key] = findPath.apply(this, arguments);
-	return fpc[key];
-}; */
-
-/* 
-Room.prototype.findPath = function() {
-	var pathA = findPath.apply(this,arguments);
-	var pathB = Room.prototype.findPathNew.apply(this,arguments);
-	var a = JSON.stringify(pathA);
-	var b = JSON.stringify(pathB);
-	if(a !== b) {
-		Log.warn(`New path function mismatch in ${this.name} for ${JSON.stringify(arguments)}`);
-		Log.warn(a);
-		Log.warn(b);
-	}
-	return pathB;
-}; */
 
 // Fuckkk this part
 defineCachedGetter(Room.prototype, 'stored', function () {
