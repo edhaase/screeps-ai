@@ -17,6 +17,8 @@ module.exports = {
 	},
 
 	status: function (name) {
+		if (name === WHOAMI)
+			return PLAYER_ALLY;
 		if (!Memory.players || !Memory.players[name])
 			return PLAYER_HOSTILE;
 		return Memory.players[name];
