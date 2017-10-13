@@ -92,13 +92,12 @@ class ReserveState extends FSM.State {
 
 		try {
 			if (target.pos.inRangeTo(target.room.controller, 1)
-				&& target.room.controller.owner
-				&& target.room.controller.owner.username
-				&& !target.room.controller.my
+				&& ((target.room.controller.owner && target.room.controller.owner.username && !target.room.controller.my)
+				|| _.has(target.room, 'controller.reservation.username') && Player.status(target.room.controller.reservation.username === PLAYER_HOSTILE))
 				&& target.hasActiveBodypart(CLAIM))
 				return target.attackController(target.room.controller);
 
-			if ((status = target.reserveController(target.room.controller)) != OK) {
+			if ((status = target.reserveController(target.room.controller)) !== OK) {
 				Log.warn(`ReserveState: ${status} at ${target.pos}`);
 				if (status === ERR_NOT_IN_RANGE)
 					tick.transition('walk', {
