@@ -53,6 +53,7 @@
 
 
 global.DEFAULT_SPAWN_JOB_EXPIRE = 60;
+global.DEFAULT_SPAWN_JOB_PRIORITY = 50;
 global.MAX_CREEP_SPAWN_TIME = MAX_CREEP_SIZE * CREEP_SPAWN_TIME;
 global.MAX_PARTS_PER_GENERATION = CREEP_LIFE_TIME / CREEP_SPAWN_TIME;
 
@@ -212,6 +213,8 @@ StructureSpawn.prototype.submit = function (job) {
 		job.ticks = job.body.length * CREEP_SPAWN_TIME;
 	if (job.cost > this.room.energyCapacityAvailable)
 		throw new Error("Unit cost would exceed room energy capacity");
+	if(job.priority == null)
+		job.priority = DEFAULT_SPAWN_JOB_PRIORITY;
 	job.body = require('Unit').tailSort(job.body);
 	if (!job.score)
 		job.score = this.scoreTask(job);
@@ -233,9 +236,10 @@ StructureSpawn.prototype.submit = function (job) {
 StructureSpawn.prototype.scoreTask = function (task) {
 	var home = task.room || (task.memory && task.memory.home) || this.pos.roomName;
 	var dist = 0;
+	var ownedRoom = !!(Game.rooms[home] && Game.rooms[home].my);
 	if (home !== this.pos.roomName)
 		dist = Game.map.findRoute(this.pos.roomName, home).length || 1;
-	return (dist << 24) | ((100 - task.priority) << 16) | task.cost;
+	return (!ownedRoom << 30) | (Math.min(dist,63) << 24) | ((100 - task.priority) << 16) | Math.min(task.cost,65535);
 };
 
 // 2017-04-14: Back to just expiration. Bad jobs should never make it into the queue.
