@@ -161,7 +161,7 @@ module.exports = {
 				Log.error(`${this.name} ext-fill: status: ${status} on ${goal} at ${this.pos}`, 'Creep');
 		} else if (state === STATE_SHIP) {
 			if (this.transferAny(this.room.terminal) === ERR_NOT_IN_RANGE)
-				this.moveTo(goal, {
+				this.moveTo(this.room.terminal, {
 					range: 1,
 					ignoreRoads: (this.carryTotal <= (this.carryCapacity / 2)),
 					ignoreCreeps: this.memory.stuck < 3,
