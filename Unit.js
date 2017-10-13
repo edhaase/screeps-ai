@@ -152,7 +152,7 @@ module.exports = {
 	 */
 	requestUpgrader: function (spawn, home, priority = 3, workDiff) {
 		var body = [];
-		if(workDiff <= 0)
+		if (workDiff <= 0)
 			return ERR_INVALID_ARGS;
 		// energy use is  active work * UPGRADE_CONTROLLER_POWER, so 11 work parts is 11 ept, over half a room's normal production
 		// let max = 2500;
@@ -165,14 +165,14 @@ module.exports = {
 			// Ignore top 20% of spawn energy (might be in use by renewels)
 			// var avail = Math.clamp(250, spawn.room.energyCapacityAvailable - (SPAWN_ENERGY_CAPACITY * 0.20), max);
 			var avail = Math.max(250, spawn.room.energyCapacityAvailable - (SPAWN_ENERGY_CAPACITY * 0.20));
-			var count = Math.min(workDiff, 1+Math.floor((avail - 300) / BODYPART_COST[WORK])) || 1;
+			var count = Math.min(workDiff, 1 + Math.floor((avail - 300) / BODYPART_COST[WORK])) || 1;
 			let ccarry = 1;
 			if (count > 5) {
 				ccarry += 2;
 				count -= 2;
 			}
-			if(ccarry+count+3 > MAX_CREEP_SIZE)
-				count = MAX_CREEP_SIZE - (ccarry+3);
+			if (ccarry + count + 3 > MAX_CREEP_SIZE)
+				count = MAX_CREEP_SIZE - (ccarry + 3);
 			body = Util.RLD([ccarry, CARRY, count, WORK, 3, MOVE]);
 		}
 		// Log.debug(`Workdiff: ${workDiff}, count: ${count}, body: ${body}`);
@@ -208,7 +208,7 @@ module.exports = {
 
 	requestBulldozer: function (spawn, roomName) {
 		// const body = [WORK, WORK, MOVE, MOVE];
-		const body = Arr.repeat([WORK,MOVE], spawn.room.energyAvailable);
+		const body = Arr.repeat([WORK, MOVE], spawn.room.energyAvailable);
 		return spawn.submit({ body, memory: { role: 'bulldozer', site: roomName }, priority: 10 });
 	},
 
@@ -223,12 +223,12 @@ module.exports = {
 			Math.ceil((1 + size) / 2), MOVE
 		]);
 		if (body.length > 50) {
-			Log.warn('[Controller] Body of creep would be too big to build');
+			Log.warn('Body of creep would be too big to build', 'Controller');
 			return false;
 		}
 		const cost = UNIT_COST(body);
 		if (spawn.room.energyCapacityAvailable < cost) {
-			Log.warn('[Controller] Body of creep is too expensive for the closest spawn');
+			Log.warn('Body of creep is too expensive for the closest spawn', 'Controller');
 			return false;
 		}
 		var priority = (spawn.pos.roomName === home) ? 50 : 10;
@@ -292,7 +292,7 @@ module.exports = {
 		return spawn.submit({ body, memory: { role: 'claimer', } });
 	},
 
-	requestScout: function (spawn, memory={}, priority=75) {
+	requestScout: function (spawn, memory = {}, priority = 75) {
 		memory.role = 'scout';
 		return spawn.submit({ body: [MOVE], memory, priority });
 	},
@@ -326,9 +326,9 @@ module.exports = {
 	requestReserver: function (spawn, site, priority = 25, size = Infinity) {
 		if (!site)
 			throw new Error('site can not be empty!');
-		const cost = UNIT_COST([MOVE,CLAIM]);
+		const cost = UNIT_COST([MOVE, CLAIM]);
 		const canBuild = Math.floor(spawn.room.energyCapacityAvailable / cost);
-		const building = Math.min(size,canBuild) * cost;
+		const building = Math.min(size, canBuild) * cost;
 		const body = Arr.repeat([MOVE, CLAIM], building);
 		if (_.isEmpty(body))
 			return ERR_RCL_NOT_ENOUGH;
@@ -345,7 +345,7 @@ module.exports = {
 			const howMuchDoWeWant = Math.ceil(reqCarry);
 			let howCheapCanWeBe = Math.min(howMuchDoWeWant, howMuchCanWeBuild) * cost;
 			howCheapCanWeBe = Math.max(cost, howCheapCanWeBe);
-			Log.info(`Want: ${howMuchDoWeWant}, Avail: ${howMuchCanWeBuild}, How Cheap: ${howCheapCanWeBe}, Build: ${howCheapCanWeBe/cost}`, 'Creep');
+			Log.info(`Want: ${howMuchDoWeWant}, Avail: ${howMuchCanWeBuild}, How Cheap: ${howCheapCanWeBe}, Build: ${howCheapCanWeBe / cost}`, 'Creep');
 			body = Arr.repeat([CARRY, MOVE], howCheapCanWeBe);
 		} else {
 			const cost = UNIT_COST([CARRY, CARRY, MOVE]);
@@ -408,26 +408,26 @@ module.exports = {
 	requestGuard: function (spawn, flag, body, room) {
 		if (!flag || !(Game.flags[flag] instanceof Flag))
 			throw new TypeError("Expected flag");
-		if(body == null || !body.length) {
-			body = [HEAL,MOVE];
+		if (body == null || !body.length) {
+			body = [HEAL, MOVE];
 			const cost = UNIT_COST(body);
-			const avail = Math.floor((spawn.room.energyCapacityAvailable - cost)*0.75);
-			if(Math.random() < 0.5) {
-				body = body.concat(Arr.repeat([RANGED_ATTACK,MOVE], avail));
+			const avail = Math.floor((spawn.room.energyCapacityAvailable - cost) * 0.50);
+			if (Math.random() < 0.5) {
+				body = body.concat(Arr.repeat([RANGED_ATTACK, MOVE], avail));
 			} else {
-				body = body.concat(Arr.repeat([ATTACK,MOVE], avail));
+				body = body.concat(Arr.repeat([ATTACK, MOVE], avail));
 			}
 		}
-		if(body.length <= 2)
-			body = [RANGED_ATTACK,MOVE];
+		if (body.length <= 2)
+			body = [RANGED_ATTACK, MOVE];
 		return spawn.submit({ body, memory: { role: 'guard', site: flag, origin: spawn.pos.roomName }, priority: 100, room });
 	},
 
-	requestSwampGuard: function(spawn, flag, body, room) {
-		body = [MOVE,MOVE,MOVE,MOVE,MOVE,HEAL];
+	requestSwampGuard: function (spawn, flag, body, room) {
+		body = [MOVE, MOVE, MOVE, MOVE, MOVE, HEAL];
 		const cost = UNIT_COST(body);
-		const avail = Math.floor((spawn.room.energyCapacityAvailable - cost)*0.75);
-		body = body.concat(Arr.repeat([MOVE,MOVE,MOVE,MOVE,MOVE,RANGED_ATTACK], avail));
+		const avail = Math.floor((spawn.room.energyCapacityAvailable - cost) * 0.75);
+		body = body.concat(Arr.repeat([MOVE, MOVE, MOVE, MOVE, MOVE, RANGED_ATTACK], avail));
 		return spawn.submit({ body, memory: { role: 'guard', site: flag, origin: spawn.pos.roomName }, priority: 100, room });
 	}
 };

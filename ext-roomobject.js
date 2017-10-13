@@ -444,7 +444,7 @@ RoomObject.prototype.getClosestSpawn = function (prop = 'memory') {
 			return null;
 		this[prop].spawn = spawn.name;
 		this[prop].resetSpawn = Game.time + 300;
-		Log.info(`Assigning spawn ${this[prop].spawn} to ${this}`);
+		Log.debug(`Assigning spawn ${this[prop].spawn} to ${this}`, 'RoomObject');
 	}
 	return Game.spawns[this[prop].spawn];
 };
