@@ -20,11 +20,11 @@ class HaulerRole extends ScreepsFSM.Role {
 	tick(creep) {
 		super.tick(creep);
 		// find damaged road under us to repair
-		const {controller} = creep.room;
+		const { controller } = creep.room;
 		creep.flee(5);
 		if (controller && controller.my && controller.level >= 3)
 			return;
-		if (creep.hitsPct < 0.25)
+		if (creep.hitPct < 0.25)
 			creep.pushState('HealSelf');
 		// let work = creep.getActiveBodyparts(WORK);
 		const work = (creep.hits === creep.hitsMax) ? 2 : 0;
@@ -63,7 +63,7 @@ class HaulerWalkState extends ScreepsFSM.WalkState {
 		// console.log('next? ' + nextState);
 		if (tick.target.carryTotal <= 0 && nextState == 'unload')
 			return tick.transition('walk', {
-				dest: { pos: tick.store.get('site'), range: 1 },
+				dest: { pos: tick.store.get('site'), range: 2 },
 				nextState: 'gather'
 			});
 
@@ -96,7 +96,7 @@ class IdleState extends FSM.State {
 			tick.transition('gather');
 		} else {
 			// avoid rooms under threat?
-			const {roomName} = store.get('site');
+			const { roomName } = store.get('site');
 			if (roomName !== target.pos.roomName
 				&& Game.rooms[roomName]
 				&& Game.rooms[roomName].controller != null
@@ -133,10 +133,10 @@ class GatherState extends FSM.State {
 
 
 	tick(tick) {
-		const{ fsm, target, store } = tick;
+		const { fsm, target, store } = tick;
 		const pickup = _.create(RoomPosition.prototype, store.get('site'));
 		if (target.carryCapacityAvailable <= 10) {
-			if(!store.get('dropoff'))
+			if (!store.get('dropoff'))
 				target.suicide();
 			return tick.transition('walk', {
 				dest: { pos: store.get('dropoff'), range: 1 },
@@ -156,13 +156,13 @@ class GatherState extends FSM.State {
 				nextState: 'gather'
 			});
 
-		const dropped = pickup.findInRange(FIND_DROPPED_RESOURCES, 1, { filter: r => r.amount > 100 });
-		const structures = _.map(target.lookForNear(LOOK_STRUCTURES,true,1), LOOK_STRUCTURES);
+		const dropped = pickup.findInRange(FIND_DROPPED_RESOURCES, 2, { filter: r => r.amount > 100 });
+		const structures = _.map(target.lookForNear(LOOK_STRUCTURES, true, 2), LOOK_STRUCTURES);
 		const container = _.find(structures, s => s.store != null);
 		if (dropped && dropped.length) {
 			const d = _.max(dropped, 'amount');
 			if (target.pos.getRangeTo(d) > 1)
-				target.moveTo(d.pos, {range: 1, maxRooms: 1});
+				target.moveTo(d.pos, { range: 1, maxRooms: 1 });
 			_.any(dropped, r => target.pickup(r) === OK);
 		} else if (container) {
 			target.withdrawAny(container);
@@ -182,7 +182,7 @@ class UnloadState extends FSM.State {
 	enter(tick) {
 		const { fsm, target, store } = tick;
 		const dropoff = store.get('dropoff');
-		if(!dropoff || !dropoff.roomName)
+		if (!dropoff || !dropoff.roomName)
 			return;
 		store.set('origin', dropoff.roomName);
 	}
@@ -192,7 +192,7 @@ class UnloadState extends FSM.State {
 		// if we're empty..
 		if (target.carryTotal <= 0)
 			return tick.transition('walk', {
-				dest: { pos: store.get('site'), range: 1 },
+				dest: { pos: store.get('site'), range: 2 },
 				nextState: 'gather'
 			});
 
@@ -207,7 +207,7 @@ class UnloadState extends FSM.State {
 		// look for targets (prefer designated)
 		const container = _.find(rp.lookFor(LOOK_STRUCTURES), s => s.store !== undefined);
 		// if( container ) { // && (_.sum(container.store) < CONTAINER_CAPACITY) ) {		
-		if (container && (_.sum(container.store) < container.storeCapacity - 50) && target.transferAny(container))
+		if (container && (_.sum(container.store) < container.storeCapacity - 50) && target.transferAny(container) === OK)
 			return;
 
 		// otherwise look for stuff nearby
