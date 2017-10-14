@@ -237,6 +237,10 @@ Flag.prototype.runLogic = function () {
 					Log.warn(`Controller owned by ${JSON.stringify(controller.owner)} else, unable to reserve`, 'Flag');
 					this.remove();
 					return;
+				} else if(controller && controller.reservation && Player.status(controller.reservation.username) >= PLAYER_NEUTRAL && controller.reservation.username !== WHOAMI) {
+					Log.warn(`Controller reserved by friendly player ${controller.reservation.username}`, 'Flag');
+					this.defer(controller.reservation.ticksToEnd);
+					return;
 				} else if (this.room.isOnHighAlert())
 					return;
 			}

@@ -3,8 +3,9 @@
  */
 "use strict";
 
-global.PLAYER_HOSTILE = 0;
-global.PLAYER_TRUSTED = 2;
+global.PLAYER_HOSTILE = 0;		// REMOVE THEM.
+global.PLAYER_NEUTRAL = 1;		// IGNORE THEM.
+global.PLAYER_TRUSTED = 2;		// Maybe they aren't so bad.
 global.PLAYER_ALLY = 3;
 
 module.exports = {
