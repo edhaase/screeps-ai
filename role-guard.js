@@ -9,11 +9,11 @@
 "use strict";
 
 module.exports = {
-	init: function(creep) {
+	init: function (creep) {
 
 	},
 	run: function (creep) {
-		var {site} = creep.memory;
+		var { site } = creep.memory;
 		if (!site) return;
 
 		var flag = Game.flags[site];
@@ -28,17 +28,21 @@ module.exports = {
 			if (creep.canMove && threat)
 				creep.flee(10);
 		} else if (threat && creep.canFight) {
-			if (creep.canRanged && creep.pos.inRangeTo(threat, 3)) {
+			if (creep.canAttack && creep.pos.isNearTo(threat)) {
+				// We're melee and adjacent, smack them in their stupid face.
+				creep.attack(threat);
+				if (creep.canRanged)
+					creep.flee(CREEP_RANGED_ATTACK_RANGE);
+			} else if (creep.canRanged && creep.pos.inRangeTo(threat, CREEP_RANGED_ATTACK_RANGE)) {
 				// We're ranged and in range, shoot them in the face.
 				creep.rangedAttack(threat);
 				// @todo: or massAttack?
-				creep.flee(CREEP_RANGED_ATTACK_RANGE);
+				if (creep.canAttack && !threat.canFight)
+					creep.moveTo(threat, { rangee: 1 });
+				else
+					creep.flee(CREEP_RANGED_ATTACK_RANGE);
 				if (creep.hits < creep.hitsMax)
 					creep.heal(creep);
-			} else if (creep.canAttack && creep.pos.isNearTo(threat)) {
-				// We're melee and adjacent, smack them in their stupid face.
-				creep.attack(threat);
-				// if ( canHeal && creep.hits < creep.hitsMax ) creep.heal(creep);
 			} else {
 				// We're able to fight but out of any form of range. DRIVE ME CLOSER SO I CAN HIT THEM WITH MY SWORD.
 				if (creep.canFight) {
@@ -63,8 +67,8 @@ module.exports = {
 			var patient = creep.pos.findClosestByRange(FIND_MY_CREEPS, { filter: c => c.hits < c.hitsMax });
 			// var patient = creep.pos.findClosestByRange(FIND_CREEPS, { filter: c => c.hits < c.hitsMax && !Filter.unauthorizedHostile(c) });
 			if (!patient) {
-				if (flag && !creep.pos.inRangeTo(flag.pos,IDLE_DISTANCE))
-					creep.moveTo(flag, {range: IDLE_DISTANCE});
+				if (flag && !creep.pos.inRangeTo(flag.pos, IDLE_DISTANCE))
+					creep.moveTo(flag, { range: IDLE_DISTANCE });
 			} else if (creep.pos.isNearTo(patient)) {
 				creep.heal(patient);
 			} else {
@@ -76,8 +80,8 @@ module.exports = {
 			// No threats (or can't fight) and wounded. Limp home for tower repairs.
 			if (creep.memory.origin && (creep.pos.roomName !== creep.memory.origin || creep.pos.isOnRoomBorder()))
 				creep.moveToRoom(creep.memory.origin);
-		} else if (flag && !creep.pos.inRangeTo(flag.pos,IDLE_DISTANCE)) {
-			creep.moveTo(flag, {range: IDLE_DISTANCE});
+		} else if (flag && !creep.pos.inRangeTo(flag.pos, IDLE_DISTANCE)) {
+			creep.moveTo(flag, { range: IDLE_DISTANCE });
 		}
 	}
 };

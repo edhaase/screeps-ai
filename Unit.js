@@ -411,12 +411,15 @@ module.exports = {
 		if (body == null || !body.length) {
 			body = [HEAL, MOVE];
 			const cost = UNIT_COST(body);
-			const avail = Math.floor((spawn.room.energyCapacityAvailable - cost) * 0.50);
-			if (Math.random() < 0.5) {
+			const avail = Math.floor((spawn.room.energyCapacityAvailable - cost) * 0.80);
+			if(spawn.room.energyCapacityAvailable > 1260) {
+				body = Arr.repeat([HEAL,RANGED_ATTACK,ATTACK,MOVE,MOVE,MOVE],avail);
+			} else if (Math.random() < 0.80) {
 				body = body.concat(Arr.repeat([RANGED_ATTACK, MOVE], avail));
 			} else {
 				body = body.concat(Arr.repeat([ATTACK, MOVE], avail));
 			}
+			// body = body.concat(Arr.repeat([RANGED_ATTACK, MOVE], avail));
 		}
 		if (body.length <= 2)
 			body = [RANGED_ATTACK, MOVE];
