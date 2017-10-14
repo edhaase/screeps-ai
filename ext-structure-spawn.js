@@ -215,6 +215,8 @@ StructureSpawn.prototype.submit = function (job) {
 		throw new Error("Unit cost would exceed room energy capacity");
 	if(job.priority == null)
 		job.priority = DEFAULT_SPAWN_JOB_PRIORITY;
+	if(job.priority > 0 && job.priority < 1)
+		job.priority = Math.ceil(100*job.priority);
 	job.body = require('Unit').tailSort(job.body);
 	if (!job.score)
 		job.score = this.scoreTask(job);
