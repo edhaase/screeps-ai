@@ -198,7 +198,7 @@ StructureSpawn.prototype.enqueue = function enqueue(body, name = null, memory = 
  */
 StructureSpawn.prototype.submit = function (job) {
 	if (!_.isArray(job.body) || job.body.length === 0)
-		throw new Error(`Enqueue failed, bad body: ${job.body}`);
+		throw new Error(`${this.pos.roomName} Enqueue failed, bad body: ${job.body}`);
 	if (job.body.length > MAX_CREEP_SIZE)
 		throw new Error(`Body part may not exceed ${MAX_CREEP_SIZE} parts`);
 	if (job.expire == null)
@@ -212,7 +212,7 @@ StructureSpawn.prototype.submit = function (job) {
 	if (!job.ticks)
 		job.ticks = job.body.length * CREEP_SPAWN_TIME;
 	if (job.cost > this.room.energyCapacityAvailable)
-		throw new Error("Unit cost would exceed room energy capacity");
+		throw new Error(`${this.pos.roomName}: Unit cost would exceed room energy capacity`);
 	if(job.priority == null)
 		job.priority = DEFAULT_SPAWN_JOB_PRIORITY;
 	if(job.priority > 0 && job.priority < 1)
