@@ -240,13 +240,15 @@ Flag.prototype.runLogic = function () {
 					return;
 			}
 
-			const reserver = this.getAssignedUnit(c => this.pos.isEqualToPlain(c.memory.site));
-			if (reserver && ((reserver.ticksToLive - _.get(reserver, 'travelTime', 0)) > DEFAULT_SPAWN_JOB_EXPIRE))
-				return;
 			const spawn = this.getClosestSpawn();
-			const travelTime = 0;
+			if(this.memory.steps == null && spawn)
+				this.memory.steps = this.pos.getStepsTo({pos: spawn.pos, range: 1});
+			const travelTime = this.memory.steps || 0;
+			const reserver = this.getAssignedUnit(c => this.pos.isEqualToPlain(c.memory.site) && (c.spawning || (c.ticksToLive - travelTime > DEFAULT_SPAWN_JOB_EXPIRE)));
+			if(reserver)
+				return;
 			const size = Math.floor((CONTROLLER_RESERVE_MAX - clock) / (CREEP_CLAIM_LIFE_TIME - travelTime));
-			// Log.info(`${this.name} wants to build reserver of size ${size} for room ${this.pos.roomName}`,'Flag')
+			Log.info(`${this.name} wants to build reserver of size ${size} for room ${this.pos.roomName}`,'Flag')
 			if (spawn && !spawn.hasJob({ memory: { role: 'reserver', site: this.pos } }) && !spawn.spawning)
 				require('Unit').requestReserver(spawn, this.pos, 25, size);
 			this.defer(DEFAULT_SPAWN_JOB_EXPIRE);
@@ -392,7 +394,7 @@ Flag.prototype.runLogic = function () {
 		}
 		if(!this.memory.dropoff) {
 			Log.warn(`No dropoff point for ${this.name}`, 'Flag');
-			return this.defer(150);
+			return this.defer(MAX_CREEP_SPAWN_TIME);
 		}		
 		if (this.room) {
 			const [source] = this.pos.lookFor(LOOK_SOURCES);
@@ -452,8 +454,10 @@ Flag.prototype.runLogic = function () {
 			}
 			const parts = this.memory.work || SOURCE_HARVEST_PARTS;
 			require('Unit').requestRemoteMiner(spawn, this.pos, this.memory.work, this.pos.roomName);
+		} else {
+			this.defer(Math.ceil((miner.ticksToLive || CREEP_LIFE_TIME) / 2));
 		}
-		this.defer(DEFAULT_SPAWN_JOB_EXPIRE);
+		this.defer(MAX_CREEP_SPAWN_TIME);
 		return;
 	}
 
