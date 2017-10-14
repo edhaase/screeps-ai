@@ -224,6 +224,7 @@ Flag.prototype.runLogic = function () {
 
 		if (this.secondaryColor === STRATEGY_RESERVE) {
 			const clock = _.get(Memory.rooms, [this.pos.roomName, 'reservation'], Game.time) - Game.time;
+			// @todo if clock is above minimum and below max, random chance of sending a reserver anyways.
 			if (clock > MINIMUM_RESERVATION)
 				return;
 			if (this.room) {
@@ -249,8 +250,10 @@ Flag.prototype.runLogic = function () {
 				return;
 			const size = Math.floor((CONTROLLER_RESERVE_MAX - clock) / (CREEP_CLAIM_LIFE_TIME - travelTime));
 			Log.info(`${this.name} wants to build reserver of size ${size} for room ${this.pos.roomName}`,'Flag')
-			if (spawn && !spawn.hasJob({ memory: { role: 'reserver', site: this.pos } }) && !spawn.spawning)
-				require('Unit').requestReserver(spawn, this.pos, 25, size);
+			if (spawn && !spawn.hasJob({ memory: { role: 'reserver', site: this.pos } }) && !spawn.spawning) {
+				const prio = Math.clamp(1, Math.ceil(100 * (1-(clock / MINIMUM_RESERVATION))), 100);
+				require('Unit').requestReserver(spawn, this.pos, prio, size);
+			}
 			this.defer(DEFAULT_SPAWN_JOB_EXPIRE);
 			return;
 		}
