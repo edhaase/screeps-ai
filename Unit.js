@@ -88,7 +88,7 @@ module.exports = {
 	 */
 	tailSort(body) {
 		var first = {};
-		var order = [TOUGH, MOVE, WORK, CARRY, RANGED_ATTACK, ATTACK, CLAIM, HEAL];
+		var order = [TOUGH, WORK, CARRY, RANGED_ATTACK, ATTACK, CLAIM, MOVE, HEAL];
 		return _.sortBy(body, function (part) {
 			if (part !== TOUGH && first[part] === undefined) {
 				first[part] = false;
