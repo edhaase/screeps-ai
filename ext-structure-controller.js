@@ -253,6 +253,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	/**
 	 * Emergency conditions - Should probably be detected elsewhere
 	 */
+	let assistCost = 0;
 	if (roomName === this.pos.roomName && (!creeps || !creeps.length)) { // Nothing alive, nothing about to spawn.
 		Log.notify(`Emergency: No creeps in room ${roomName}!`, 'Controller');
 		if (!spawn)
@@ -270,7 +271,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 		// Log.warn('No spawn or spawn is defunct, failover to assisting spawn', 'Controller');
 		spawn = assistingSpawn;
 		if (!spawn)
-			[spawn] = this.getClosestSpawn();
+			[spawn, assistCost = 0] = this.getClosestSpawn({ plainCost: 2 });
 		if (!spawn)
 			[spawn] = _.values(Game.spawns);
 	}
@@ -428,7 +429,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 				if (pctWork < 0.80)
 					require('Unit').requestUpgrader(spawn, roomName, 25, (workDesired));
 			} else {
-				Log.debug(`${this.pos.roomName} Upgraders: No upgraders desired`, 'Controller');
+				Log.debug(`${this.pos.roomName} Upgraders: No upgraders desired, ${workAssigned} assigned.`, 'Controller');
 			}
 		}
 	} else if (this.upgradeBlocked) {
