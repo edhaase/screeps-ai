@@ -78,3 +78,24 @@ StructureLab.prototype.run = function() {
 	configurable: true,
 	enumerable: false
 }); */
+
+const { runReaction, boostCreep } = StructureLab.prototype;
+
+StructureLab.prototype.runReaction = function (lab1, lab2) {
+	if (this.busy)
+		return ERR_BUSY;
+	const status = runReaction.apply(this, arguments);
+	if (status === OK) {
+		this.busy = true;
+	}
+	return status;
+};
+
+StructureLab.prototype.boostCreep = function (creep, bodyPartsCount) {
+	if (this.busy)
+		return ERR_BUSY;
+	const status = boostCreep.apply(this, arguments);
+	if (status === OK)
+		this.busy = true;
+	return status;
+};
