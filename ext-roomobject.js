@@ -319,7 +319,7 @@ RoomObject.prototype.invokeState = function() {
 	var method = `run${state}`;
 	if(!this[method])
 		return false;
-	Log.debug(`Invoking action ${state} (${method}) for ${this}`, 'RoomObject');
+	// Log.debug(`Invoking action ${state} (${method}) for ${this}`, 'RoomObject');
 	this[method](scope);
 	return true;
 };
@@ -342,7 +342,7 @@ RoomObject.prototype.setState = function (state, scope) {
 };
 
 // Push a new state to the top of the stack
-RoomObject.prototype.pushState = function (state, scope) {
+RoomObject.prototype.pushState = function (state, scope={}) {
 	if (!this.memory.stack)
 		this.memory.stack = [];
 	var method = `run${state}`;

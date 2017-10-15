@@ -49,7 +49,7 @@ Creep.prototype.run = function run() {
 			if (this.hitPct < 0.75)
 				this.pushState('HealSelf');
 			if (memory.home !== undefined && (this.pos.roomName !== memory.home || this.pos.isOnRoomBorder())) {
-				if (this.flee(MINIMUM_SAFE_FLEE_DISTANCE))
+				if (this.flee(MINIMUM_SAFE_FLEE_DISTANCE) === OK)
 					return;
 				this.moveToRoom(memory.home);
 			} else {
@@ -358,45 +358,48 @@ Creep.prototype.getCostMatrix = function (roomName) {
  * 2016-11-02: Reintroduced the arena matrix in a way that makes sense. 
  */
 global.ARENA_MATRIX = new CostMatrix.ArenaMatrix;
-Creep.prototype.flee = function (min = MINIMUM_SAFE_FLEE_DISTANCE, all = false, cm) {
-	if (!min || typeof min !== "number") // !_.isNumber(min))
-		throw new Error(`Unacceptable minimum distance: ${min}`);
+const DEFAULT_FLEE_PLAN_AHEAD = 5;
+const DEFAULT_FLEE_OPTS = { maxRooms: 1, maxOps: 2500, flee: true, planAhead: DEFAULT_FLEE_PLAN_AHEAD, heuristicWeight: 0.8 };
+Creep.prototype.flee = function (min = MINIMUM_SAFE_FLEE_DISTANCE, all = false, opts = {}) {
+	if (!min || typeof min !== "number" || min <= 1)
+		throw new TypeError(`Unacceptable minimum distance: ${min}, must be postive integer greater than 1`);
+	if(this.fatigue)
+		return ERR_TIRED;
 	// let hostiles = this.pos.findInRange(FIND_HOSTILE_CREEPS, min, {filter: Filter.unauthorizedHostile});
 	var hostiles;
 	if (all)
-		hostiles = this.pos.findInRange(FIND_CREEPS, min);
+		hostiles = this.pos.findInRange(FIND_CREEPS, min - 1);
 	else
-		hostiles = this.pos.findInRange(this.room.hostiles, min, { filter: Filter.unauthorizedCombatHostile });
+		hostiles = this.pos.findInRange(this.room.hostiles, min - 1, { filter: Filter.unauthorizedCombatHostile });
 
-	// if(!hostiles || hostiles.length <=0)
-	if (_.isEmpty(hostiles))
-		return false;
+	if (hostiles == null || hostiles.length <= 0)
+		return ERR_NOT_FOUND;
 
-	const b = _.map(hostiles, c => ({ pos: c.pos, range: min }));
-	let plainCost = this.plainSpeed;
-	let swampCost = this.swampSpeed;
-	// if(swampCost <= plainCost)
-	//	plainCost = swampCost*5;	// If we can move equally across both, prefer swamps
-	const opts = {
-		flee: true,
-		plainCost,
-		swampCost,
-		maxOps: 2500, // this might determine where we flee to.
-		maxRooms: 1
-	};
-
-	opts.roomCallback = (r) => Game.rooms[r] ? Game.rooms[r].fleeMatrix : ARENA_MATRIX;
-	const { path } = PathFinder.search(this.pos, b, opts);
-	if (!path || path.length <= 0) {
-		this.log(`Unable to flee (${plainCost} ${swampCost})`, Log.LEVEL_ERROR);
-		this.say("EEK!");
-		return false;
+	_.defaults(opts, DEFAULT_FLEE_OPTS);
+	const goals = _.map(hostiles, c => ({ pos: c.pos, range: min + opts.planAhead }));
+	// Smarter flee via cost fixing.
+	// If we can move equally across both, prefer swamps
+	if (opts.swampCost == null || opts.plainCost == null) {
+		let plainCost = this.plainSpeed;
+		const swampCost = this.swampSpeed;
+		if (swampCost <= plainCost || _.all(hostiles, h => this.swampSpeed <= h.swampSpeed))
+			plainCost = swampCost + 5;
+		opts.plainCost = plainCost;
+		opts.swampCost = swampCost;
 	}
-	const dir = this.pos.getDirectionTo(path[0]);
-	this.move(dir);
+	if (opts.roomCallback == null)
+		opts.roomCallback = (r) => Game.rooms[r] ? Game.rooms[r].fleeMatrix : ARENA_MATRIX;
+	const { path, ops, cost, incomplete } = PathFinder.search(this.pos, goals, opts);
+	if (!path || path.length <= 0) {
+		this.log(`Unable to flee`, Log.LEVEL_ERROR);
+		this.say("EEK!");
+		return ERR_NO_PATH;
+	}
+	// this.log(`flee: incomplete ${incomplete}, ops ${ops}, cost ${cost}`, Log.LEVEL_INFO);
+	this.room.visual.poly(path);
 	if (this.carry[RESOURCE_ENERGY])
 		this.drop(RESOURCE_ENERGY);
-	return true;
+	return this.move(this.pos.getDirectionTo(path[0]));
 };
 
 /**
@@ -655,10 +658,19 @@ Creep.prototype.runMethod = function () {
 };
 
 /** Run away and heal */
-Creep.prototype.runHealSelf = function () {
-	if (this.hits >= this.hitsMax)
+Creep.prototype.runHealSelf = function (scope) {
+	if (this.hits >= this.hitsMax) {
+		this.clearTarget();
 		return this.popState();
+	}
 	if (this.hasActiveBodypart(HEAL)) {
+		if(scope.hits != null) {
+			scope.hma = Math.mmAvg(this.hits - scope.hits, scope.hma || 0, 3);
+			if(scope.hma < 0)
+				this.pushState('FleeRoom', this.room.name);
+			this.log(`hit move avg: ${scope.hma}`, Log.LEVEL_INFO);
+		}
+		scope.hits = this.hits;
 		this.heal(this);
 		this.flee(10);
 		return;
