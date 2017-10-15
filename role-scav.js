@@ -40,10 +40,14 @@ function getAmt(thing) {
 
 const getPickupSiteWithTerminal = createUniqueTargetSelector(
 	function ({ room }) {
+		var col = [...room.containers, ...room.resources];
 		if (room.energyAvailable / room.energyCapacityAvailable < 0.5)
-			return [...room.containers, ...room.links, room.storage, room.terminal, ...room.resources];
-		else
-			return [...room.containers, ...room.resources];
+			col = col.concat([...room.links, room.storage, room.terminal]);
+		if (room.terminal && room.storage && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_RESOURCE_LIMIT && room.storage.stock < 1)
+			col.push(room.terminal);
+		if (room.storage && room.storage.stock > 1)
+			col.push(room.storage);
+		return col;
 	},
 	({ room }) => room.find(FIND_MY_CREEPS, { filter: c => c.getRole() === 'scav' && c.memory.tid }).map(c => c.memory.tid),
 	t => Filter.canProvideEnergy(t, TERMINAL_MIN_ENERGY) || Filter.droppedResources(t) || ((t instanceof StructureContainer) && t.storedTotal > 100),

@@ -248,7 +248,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	const expense = 0;
 	const net = income - (expense + upkeep);
 	const avail = income - upkeep;
-	Log.info(`${this.pos.roomName}: Income ${income}, Expense: ${expense}, Upkeep: ${_.round(upkeep, 3)}, Net: ${_.round(net, 3)}, Banked: ${storedEnergy}`, 'Controller');
+	Log.info(`${this.pos.roomName}: Income ${income}, Expense: ${expense}, Upkeep: ${_.round(upkeep, 3)}, Net: ${_.round(net, 3)}, Avail ${_.round(avail,3)}, Banked: ${storedEnergy}`, 'Controller');
 
 	/**
 	 * Emergency conditions - Should probably be detected elsewhere
@@ -413,19 +413,23 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	// @todo did we beak RCL 8 low power mode?
 	if ((!this.upgradeBlocked || this.upgradeBlocked < CREEP_SPAWN_TIME * 6)) {
 		const workAssigned = _.sum(upgraders, c => c.getBodyParts(WORK));
-		let workDesired = 10 * (numSources / 2);
+		// let workDesired = 10 * (numSources / 2);
+		let workDesired = avail;
 		if (this.level === MAX_ROOM_LEVEL) {
 			if (workAssigned < MAX_RCL_UPGRADER_SIZE && (this.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || storedEnergy > 700000))
 				require('Unit').requestUpgrader(spawn, roomName, 90, MAX_RCL_UPGRADER_SIZE - workAssigned);
 		} else {
 			if (this.room.storage)
 				workDesired = Math.floor(workDesired * this.room.storage.stock);
-			const bonus = Math.floor(_.sum(haulers, 'memory.eptNet')) || 0;
-			const workDiff = (workDesired + bonus) - workAssigned;
-			const pctWork = _.round(workAssigned / (workDesired + bonus), 3);
-			Log.debug(`${this.pos.roomName} Upgraders: ${workAssigned} assigned, ${workDesired}+${bonus} desired (+bonus), ${workDiff} diff (${pctWork})`, 'Controller');
-			if (pctWork < 0.80)
-				require('Unit').requestUpgrader(spawn, roomName, 25, (workDesired + bonus));
+			if(workDesired > 1) {
+				const workDiff = workDesired - workAssigned;
+				const pctWork = _.round(workAssigned / workDesired, 3);
+				Log.debug(`${this.pos.roomName} Upgraders: ${workAssigned} assigned, ${workDesired} desired, ${workDiff} diff (${pctWork})`, 'Controller');
+				if (pctWork < 0.80)
+					require('Unit').requestUpgrader(spawn, roomName, 25, (workDesired));
+			} else {
+				Log.debug(`${this.pos.roomName} Upgraders: No upgraders desired`, 'Controller');
+			}
 		}
 	} else if (this.upgradeBlocked) {
 		Log.warn(`${this.pos.roomName} upgrade blocked for ${this.upgradeBlocked} ticks`, 'Controller');
