@@ -445,7 +445,7 @@ Flag.prototype.runLogic = function () {
 				Log.debug(`${this.name} setting capacity to ${this.memory.work}`, 'Flag');
 			}
 		}
-		const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 2 });
+		const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 3 });
 		var miner = this.getAssignedUnit(c => c.getRole() === 'miner' && this.pos.isEqualToPlain(c.memory.dest) && (c.spawning || c.ticksToLive > UNIT_BUILD_TIME(c.body)+cost));
 		if (!miner) {
 			if (!spawn) {
