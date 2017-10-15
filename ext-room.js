@@ -67,7 +67,7 @@ defineCachedGetter(Room.prototype, 'controllerStructures', room => CONTROLLER_ST
 defineCachedGetter(Room.prototype, 'canMine', function ({ controller }) {
 	if (controller == null)
 		return true;
-	if (controller.reserveration && controller.reserveration.username !== WHOAMI)
+	if (controller.reservation && controller.reservation.username !== WHOAMI)
 		return false;
 	if (controller.owner && controller.owner.username !== WHOAMI)
 		return false;
