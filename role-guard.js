@@ -17,6 +17,7 @@ module.exports = {
 		if (!site) return;
 
 		var flag = Game.flags[site];
+		var threats = creep.pos.findInRange(creep.room.hostiles, CREEP_RANGED_ATTACK_RANGE);
 		var threat = creep.pos.findClosestByRange(creep.room.hostiles);
 		var noRoomHealer = !_.any(creep.room.find(FIND_MY_CREEPS), c => (c.pos.roomName === creep.pos.roomName && c.hasActiveBodypart(HEAL)));
 		const IDLE_DISTANCE = 3;
@@ -35,7 +36,10 @@ module.exports = {
 					creep.flee(CREEP_RANGED_ATTACK_RANGE);
 			} else if (creep.canRanged && creep.pos.inRangeTo(threat, CREEP_RANGED_ATTACK_RANGE)) {
 				// We're ranged and in range, shoot them in the face.
-				creep.rangedAttack(threat);
+				if(threats && threats.length > 1)
+					creep.rangedMassAttack();
+				else
+					creep.rangedAttack(threat);
 				// @todo: or massAttack?
 				if (creep.canAttack && !threat.canFight)
 					creep.moveTo(threat, { rangee: 1 });
