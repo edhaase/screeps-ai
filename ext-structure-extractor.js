@@ -12,75 +12,75 @@ const EXTRACTOR_DELAY = 50;
 
 defineCachedGetter(StructureExtractor.prototype, 'mineral', s => _.first(s.pos.lookFor(LOOK_MINERALS)));
 
-StructureExtractor.prototype.onWake = function() {
-	var {mineral} = this;
+StructureExtractor.prototype.onWake = function () {
+	var { mineral } = this;
 	// if mineral density changed, notify
-	if(mineral.density && mineral.density !== this.memory.density) {
+	if (mineral.density && mineral.density !== this.memory.density) {
 		Log.info(`Mineral density in ${this.pos.roomName} changed to ${mineral.density}`, 'Extractor');
 		this.memory.density = mineral.density;
 	}
 };
 
-StructureExtractor.prototype.run = function() {
-	if(this.isDeferred())
+StructureExtractor.prototype.run = function () {
+	if (this.isDeferred())
 		return;
-	
+
 	// We don't need to run very often, and if we've downgraded, don't bother runnng.
-	if(Game.time%5 || !this.isActive() || BUCKET_LIMITER)
+	if (Game.time % 5 || !this.isActive() || BUCKET_LIMITER)
 		return;
-	
+
 	// (Optional) if we don't have a terminal in the room, don't run.
-	var {terminal} = this.room;
-	if(terminal == null) {
-		Log.warn(`No terminal in ${this.pos.roomName}, operations disabled.`, 'Extractor');		
+	var { terminal } = this.room;
+	if (terminal == null) {
+		Log.warn(`No terminal in ${this.pos.roomName}, operations disabled.`, 'Extractor');
 		this.defer(EXTRACTOR_DELAY);
 		return;
 	}
 
 	// If exhausted, defer	
-	var {mineral} = this;
-	if(mineral && mineral.mineralAmount === 0 && mineral.ticksToRegeneration > MAX_CREEP_SPAWN_TIME) {
-		Log.info(`Mineral site at ${this.pos} empty. Going to sleep for ${mineral.ticksToRegeneration} ticks`, 'Extractor');			
+	var { mineral } = this;
+	if (mineral && mineral.mineralAmount === 0 && mineral.ticksToRegeneration > MAX_CREEP_SPAWN_TIME) {
+		Log.info(`Mineral site at ${this.pos} empty. Going to sleep for ${mineral.ticksToRegeneration} ticks`, 'Extractor');
 		// this.memory.defer = Game.time + mineral.ticksToRegeneration;
 		this.defer(mineral.ticksToRegeneration - MAX_CREEP_SPAWN_TIME);
 		return;
-	} 		
-	
-	// Do we have a miner?
-	var miner = _.find(Game.creeps, c => c.memory.role === 'harvester' && c.memory.site === this.mineral.id);
-	if(miner) {
-		this.defer(Math.min(miner.ticksToLive, EXTRACTOR_DELAY));
-		return;
 	}
-	
-	if(terminal && mineral && terminal.store[mineral.mineralType] > TERMINAL_RESOURCE_LIMIT) {
+
+	if (terminal && mineral && terminal.store[mineral.mineralType] > TERMINAL_RESOURCE_LIMIT) {
 		Log.warn(`Terminal ${this.pos.roomName} at capacity for ${mineral.mineralType}, deferring harvester`, 'Extractor');
 		this.defer(EXTRACTOR_DELAY);
 		return;
 	}
-	
+
+	// Do we have a miner?
+	var [spawn, cost = 0] = this.getClosestSpawn();
+	var miner = _.find(Game.creeps, c => c.memory.role === 'harvester' && c.memory.site === this.mineral.id && (c.spawning || c.ticksToLive > UNIT_BUILD_TIME(c.body) + cost));
+	if (miner) {
+		this.defer(Math.min(miner.ticksToLive, EXTRACTOR_DELAY));
+		return;
+	}
+
 	// Do we have a container?
 	var container = this.getAdjacentContainer();
-	if(!container) {
+	if (!container) {
 		Log.warn(`No mineral container for ${this.pos.roomName}, extractor offline`, 'Extractor');
 		this.defer(EXTRACTOR_DELAY);
 		return;
-	} else if(container.storedTotal / container.storeCapacity > EXTRACTOR_CONTAINER_FULL) {
+	} else if (container.storedTotal / container.storeCapacity > EXTRACTOR_CONTAINER_FULL) {
 		Log.warn('Container full, waiting for pickup', 'Extractor');
 		this.defer(EXTRACTOR_DELAY);
 		return;
 	}
-	
-	var spawn = this.getClosestSpawn();	
-	if(spawn && mineral && container && !this.room.hostiles.length) {
-		require('Unit').requestMineralHarvester(spawn, mineral.id, container.id, (MAX_CREEP_SPAWN_TIME*2)-1);
+
+	if (spawn && mineral && container && !this.room.hostiles.length) {
+		require('Unit').requestMineralHarvester(spawn, mineral.id, container.id, (MAX_CREEP_SPAWN_TIME * 2) - 1);
 	}
 	this.defer(MAX_CREEP_SPAWN_TIME * 2); // margin of error
 };
 
-StructureExtractor.prototype.rampartContainer = function() {
+StructureExtractor.prototype.rampartContainer = function () {
 	const container = this.getAdjacentContainer();
-	if(container != null && !container.pos.hasRampart()) {
+	if (container != null && !container.pos.hasRampart()) {
 		const status = container.pos.createConstructionSite(STRUCTURE_RAMPART);
 		Log.notify(`[Extractor] Requesting rampart on mineral container at ${container.pos}, status: ${status}`);
 		return status;
@@ -88,6 +88,6 @@ StructureExtractor.prototype.rampartContainer = function() {
 	return ERR_INVALID_TARGET;
 };
 
-StructureExtractor.prototype.isActive = function() {
+StructureExtractor.prototype.isActive = function () {
 	return (!this.room.controller || this.room.controller.level >= 6);
 };

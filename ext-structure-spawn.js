@@ -213,10 +213,10 @@ StructureSpawn.prototype.submit = function (job) {
 		job.ticks = job.body.length * CREEP_SPAWN_TIME;
 	if (job.cost > this.room.energyCapacityAvailable)
 		throw new Error(`${this.pos.roomName}: Unit cost would exceed room energy capacity`);
-	if(job.priority == null)
+	if (job.priority == null)
 		job.priority = DEFAULT_SPAWN_JOB_PRIORITY;
-	if(job.priority > 0 && job.priority < 1)
-		job.priority = Math.ceil(100*job.priority);
+	if (job.priority > 0 && job.priority < 1)
+		job.priority = Math.ceil(100 * job.priority);
 	job.body = require('Unit').tailSort(job.body);
 	if (!job.score)
 		job.score = this.scoreTask(job);
@@ -241,7 +241,7 @@ StructureSpawn.prototype.scoreTask = function (task) {
 	var ownedRoom = !!(Game.rooms[home] && Game.rooms[home].my);
 	if (home !== this.pos.roomName)
 		dist = Game.map.findRoute(this.pos.roomName, home).length || 1;
-	return (!ownedRoom << 30) | (Math.min(dist,63) << 24) | ((100 - task.priority) << 16) | Math.min(task.cost,65535);
+	return (!ownedRoom << 30) | (Math.min(dist, 63) << 24) | ((100 - task.priority) << 16) | Math.min(task.cost, 65535);
 };
 
 // 2017-04-14: Back to just expiration. Bad jobs should never make it into the queue.
@@ -294,14 +294,16 @@ StructureSpawn.prototype.getProviderCache = function () {
 const { renewCreep } = StructureSpawn.prototype;
 StructureSpawn.prototype.renewCreep = function (creep) {
 	const status = renewCreep.call(this, creep);
-	Log.debug(`${this.name} renewing ${creep.name} at ${creep.pos} status ${status}`, 'Spawn');
 	if (status === OK) {
 		const bonus = Math.floor(SPAWN_RENEW_RATIO * CREEP_LIFE_TIME / CREEP_SPAWN_TIME / creep.body.length);
 		const ticksToLive = Math.min(CREEP_LIFE_TIME, creep.ticksToLive + bonus);
 		const cost = Math.ceil(SPAWN_RENEW_RATIO * creep.cost / CREEP_SPAWN_TIME / creep.body.length);
 		this.room.energyAvailable -= cost;
 		Object.defineProperty(creep, 'ticksToLive', { value: ticksToLive, configurable: true });
+		this.resetEnergyClock(); // If we can renew, we probably aren't waiting on energy
 		// console.log(`Renewing ${creep.name} (${creep.pos}) for ${bonus} ticks at ${cost} energy`);
+	} else {
+		Log.warn(`${this.name} renewing ${creep.name} at ${creep.pos} status ${status}`, 'Spawn');
 	}
 	return status;
 };
@@ -356,7 +358,7 @@ global.DEFUNCT_SPAWN_TICKS = 300;
 StructureSpawn.prototype.isDefunct = function () {
 	if (this.room.energyAvailable >= this.room.energyCapacityAvailable)
 		return false;
-	return Boolean(Math.ceil(1 + this.memory.edelay) >= DEFAULT_SPAWN_JOB_EXPIRE);
+	return !!(Math.ceil(1 + this.memory.edelay) >= DEFAULT_SPAWN_JOB_EXPIRE);
 	// return Boolean(this.memory.e && this.memory.e > DEFUNCT_SPAWN_TICKS);
 	// var jobs = this.getAvailJobs();	
 	// this.room.energyAvailable < 50	

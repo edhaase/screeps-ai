@@ -157,14 +157,13 @@ module.exports = {
 		// energy use is  active work * UPGRADE_CONTROLLER_POWER, so 11 work parts is 11 ept, over half a room's normal production
 		// let max = 2500;
 		// @todo Are we sure we're sizing this right?
-		const { controller, storage } = spawn.room;
+		const { controller } = spawn.room;
+		const avail = Math.max(250, spawn.room.energyCapacityAvailable - (SPAWN_ENERGY_CAPACITY * 0.20));
 		if (controller.level <= 2) {
 			body = [CARRY, MOVE, WORK, WORK];
+		} else if(spawn.pos.roomName !== home) {
+			body = Arr.repeat([WORK,CARRY,MOVE], avail);
 		} else {
-			// max = Math.min(BODYPART_COST[WORK] * Math.floor(10 * storage.stock), max); // Less than 20 ept.
-			// Ignore top 20% of spawn energy (might be in use by renewels)
-			// var avail = Math.clamp(250, spawn.room.energyCapacityAvailable - (SPAWN_ENERGY_CAPACITY * 0.20), max);
-			var avail = Math.max(250, spawn.room.energyCapacityAvailable - (SPAWN_ENERGY_CAPACITY * 0.20));
 			var count = Math.min(workDiff, 1 + Math.floor((avail - 300) / BODYPART_COST[WORK])) || 1;
 			let ccarry = 1;
 			if (count > 5) {
@@ -328,6 +327,7 @@ module.exports = {
 			throw new Error('site can not be empty!');
 		const cost = UNIT_COST([MOVE, CLAIM]);
 		const canBuild = Math.floor(spawn.room.energyCapacityAvailable / cost);
+		const remainder = spawn.room.energyCapacityAvailable % cost;	// for spare parts like [MOVE,ATTACK]
 		const building = Math.min(size, canBuild) * cost;
 		const body = Arr.repeat([MOVE, CLAIM], building);
 		if (_.isEmpty(body))

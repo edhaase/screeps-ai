@@ -67,7 +67,7 @@ module.exports = {
 				// creep.memory.travelTime = CREEP_LIFE_TIME - creep.ticksToLive;
 				// Attempt to prevent excess waiting:
 				// creep.memory.travelTime = Math.max(1, CREEP_LIFE_TIME - creep.ticksToLive - 3);
-				creep.memory.travelTime = Math.clamp(1, CREEP_LIFE_TIME - creep.ticksToLive, 50);
+				creep.memory.travelTime = CREEP_LIFE_TIME - creep.ticksToLive;
 
 				// Look for containers.
 				if (!creep.memory.container) {

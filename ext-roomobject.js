@@ -437,16 +437,19 @@ RoomObject.prototype.getAdjacentContainer = function () {
  *
  * @param string prop - key name to store spawn name in (cache or memory)
  */
-RoomObject.prototype.getClosestSpawn = function (prop = 'memory') {
+RoomObject.prototype.getClosestSpawn = function (opts = {}, prop = 'memory') {
 	if (!this[prop].spawn || !Game.spawns[this[prop].spawn] || Game.spawns[this[prop].spawn].isDefunct() || this[prop].resetSpawn <= Game.time) {
-		const spawn = this.pos.findClosestSpawn();
-		if (!spawn)
+		const spawns = _.reject(Game.spawns, s => s.isDefunct());
+		const { goal, cost, path } = this.pos.findClosestByPathFinder(spawns, (spawn) => ({ pos: spawn.pos, range: 1 }), opts);
+		if (!goal)
 			return null;
-		this[prop].spawn = spawn.name;
-		this[prop].resetSpawn = Game.time + 300;
-		Log.debug(`Assigning spawn ${this[prop].spawn} to ${this}`, 'RoomObject');
+		this[prop].spawn = goal.name;
+		this[prop].steps = path.length;
+		this[prop].cost = cost;				// est ticks to get there
+		this[prop].resetSpawn = Game.time + CREEP_LIFE_TIME;
+		Log.debug(`Assigning spawn ${this[prop].spawn} at steps ${path.length} and cost ${cost} to ${this}`, 'RoomObject');
 	}
-	return Game.spawns[this[prop].spawn];
+	return [Game.spawns[this[prop].spawn], this[prop].cost, this[prop].steps];
 };
 
 /**

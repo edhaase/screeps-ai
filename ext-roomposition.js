@@ -256,16 +256,17 @@ RoomPosition.prototype.getStepsTo = function (dest, opts = {}) {
  * @todo: replace with roomCallback
  * @todo: maxCost testing
  */
-RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = _.identity) {
+RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = _.identity, opts={}) {
 	const mapping = _.map(goals, itr);
 	if (_.isEmpty(mapping))
 		return { goal: null };
-	const result = PathFinder.search(this, mapping, {
+	_.defaults(opts, {
 		maxOps: 16000,
-		swampCost: 5,
 		plainCost: 2,
+		swampCost: 5,
 		roomCallback: r => FIXED_OBSTACLE_MATRIX[r]
 	});
+	const result = PathFinder.search(this, mapping, opts);
 	// if(result.incomplete)
 	//	throw new Error('Path incomplete');
 	let last = _.last(result.path);

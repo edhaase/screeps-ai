@@ -50,7 +50,7 @@ const NUKER_FILLER_BODY = Util.RLD([4, CARRY, 4, MOVE]);
 StructureNuker.prototype.runReload = function () {
 	if (this.ghodium >= this.ghodiumCapacity)
 		return ERR_FULL;
-	const spawn = this.getClosestSpawn();
+	const [spawn]= this.getClosestSpawn();
 	const {terminal} = this.room;
 	const memory = { role: 'filler', src: terminal.id, dest: this.id, res: RESOURCE_GHODIUM, amt: this.ghodiumCapacity - this.ghodium };
 	spawn.submit({ body: NUKER_FILLER_BODY, memory, priority: 10 });

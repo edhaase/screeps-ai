@@ -91,9 +91,10 @@ class ReserveState extends FSM.State {
 		let status = OK;
 
 		try {
+			target.flee(10);
 			if (target.pos.inRangeTo(target.room.controller, 1)
 				&& ((target.room.controller.owner && target.room.controller.owner.username && !target.room.controller.my)
-				|| _.has(target.room, 'controller.reservation.username') && Player.status(target.room.controller.reservation.username === PLAYER_HOSTILE))
+				|| _.has(target.room, 'controller.reservation.username') && Player.status(target.room.controller.reservation.username) === PLAYER_HOSTILE)
 				&& target.hasActiveBodypart(CLAIM))
 				return target.attackController(target.room.controller);
 
