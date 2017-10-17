@@ -111,7 +111,7 @@ Creep.prototype.isDeferred = function () {
  * Can we renew this creep?
  * @todo: (Optional) (Cpu) Remove body part check and just mark roles with claim parts.
  */
-var unRenewableRoles = ['recycle', 'filler', 'pilot', 'defender'];
+var unRenewableRoles = ['recycle', 'filler', 'pilot', 'defender', 'upgrader'];
 Creep.prototype.canRenew = function () {
 	if (!this.my)
 		return false;
@@ -368,7 +368,7 @@ Creep.prototype.flee = function (min = MINIMUM_SAFE_FLEE_DISTANCE, all = false, 
 	// let hostiles = this.pos.findInRange(FIND_HOSTILE_CREEPS, min, {filter: Filter.unauthorizedHostile});
 	var hostiles;
 	if (all)
-		hostiles = this.pos.findInRange(FIND_CREEPS, min - 1);
+		hostiles = this.pos.findInRange(FIND_CREEPS, min - 1, {filter: c => c.id !== this.id});
 	else
 		hostiles = this.pos.findInRange(this.room.hostiles, min - 1, { filter: Filter.unauthorizedCombatHostile });
 
