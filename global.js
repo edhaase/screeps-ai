@@ -376,6 +376,19 @@ global.defineGetter = function (proto, propertyName, fn, enumerable = false) {
 	});
 };
 
+global.defineMemoryBackedProperty = function (proto, propertyName, enumerable = false) {
+	Object.defineProperty(proto, propertyName, {
+		get: function () {
+			return this.memory[propertyName];
+		},
+		set: function(v) {
+			return (this.memory[propertyName] = v);
+		},
+		configurable: true,
+		enumerable: enumerable
+	});
+};
+
 /* global.defineLazyProperties = function(scope, obj) {
 	_.each(obj, (v,k) => defineCachedGetter(scope, k, v));
 }
