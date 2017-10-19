@@ -19,8 +19,7 @@ module.exports = {
 		this.say('Arrived!');
 		if (!this.room.my && Memory.empire && Memory.empire.remoteMine && _.any(exits, exit => Game.rooms[exit] && Game.rooms[exit].my)) {
 			this.say('Want!');
-			if(Room.getType(this.pos.roomName) === 'SourceKeeper') {
-			} else {
+			if(Room.getType(this.pos.roomName) !== 'SourceKeeper' && this.room.controller && !this.room.controller.owner) {
 				this.room.find(FIND_SOURCES).forEach(s => {
 					s.pos.createLogicFlag(null, FLAG_MINING, SITE_REMOTE);
 					s.pos.createLogicFlag(null, FLAG_MINING, SITE_PICKUP);
