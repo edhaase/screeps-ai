@@ -540,6 +540,7 @@ global.terminals = function () {
 		let stored = _.map(terminals, t => _.get(t, 'store.' + res, 0));
 		return [res].concat(stored);
 	});
+	rows = _.filter(rows, r => _.any(r,(v,k) => v > 0));
 	let totals = _.map(terminals, 'total');
 	rows.unshift(['total'].concat(totals));
 	output += '</table>';
