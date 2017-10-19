@@ -312,6 +312,8 @@ RoomObject.prototype.transitions = function (obj,def) {
 /**
  * Pushdown automata state machine
  */
+const MAX_STACK_DEPTH = 100;
+
 RoomObject.prototype.invokeState = function() {
 	if(!this.memory.stack || !this.memory.stack.length)
 		return false;
@@ -324,14 +326,19 @@ RoomObject.prototype.invokeState = function() {
 	return true;
 };
 
-// Get current state on the stack
+/**
+ * @param {string} [defaultState] - Fallback state if none defined.
+ */
 RoomObject.prototype.getState = function (defaultState = 'I') {
 	if(!this.memory.stack)
 		return defaultState;
 	return this.memory.stack[0][0] || defaultState;
 };
 
-// Set the current state
+/**
+ * @param {string} state - Name of state to switch to.
+ * @param {*} scope - Any data you want to supply to the state.
+ */
 RoomObject.prototype.setState = function (state, scope) {
 	if (state == null)
 		throw new TypeError('State can not be null');
@@ -341,21 +348,33 @@ RoomObject.prototype.setState = function (state, scope) {
 	return state;
 };
 
-// Push a new state to the top of the stack
+/**
+ * @param {string} state - Name of state to push
+ * @param {*} scope - Any data you want to supply to the state.
+ */
 RoomObject.prototype.pushState = function (state, scope={}) {
 	if (!this.memory.stack)
 		this.memory.stack = [];
 	var method = `run${state}`;
 	if (this[method] == null)
 		throw new Error(`No such state or action ${method}`);
-	if (this.memory.stack.length >= 100)
+	if (this.memory.stack.length >= MAX_STACK_DEPTH)
 		throw new Error('Automata stack limit exceeded');
 	Log.debug(`Pushing state ${state} to ${this}`, 'RoomObject');
 	this.memory.stack.unshift([state, scope]);
 	return state;
 };
 
-// Pop a state off the top of the stack
+
+RoomObject.prototype.pushStates = function(arr=[]) {
+	if(!this.memory.stack)
+		this.memory.stack = [];
+	if(this.memory.stack.length + arr.length >= MAX_STACK_DEPTH)
+		throw new Error('Automata stack limit exceed');
+	_.each(arr, a => this.memory.stack.unshift(a));
+};
+
+/** Pop the current state off the stack */
 RoomObject.prototype.popState = function () {
 	if (!this.memory.stack || !this.memory.stack.length)
 		return;
@@ -365,7 +384,7 @@ RoomObject.prototype.popState = function () {
 		this.memory.stack = undefined;
 };
 
-// Reset all state
+/** Clear the stack */
 RoomObject.prototype.clearState = function() {
 	this.memory.stack = undefined;
 };
@@ -380,6 +399,11 @@ RoomObject.prototype.runEval = function (scope) {
 		this.popState();
 	else
 		eval(script);
+};
+
+RoomObject.prototype.runEvalOnce = function (scope) {
+	this.popState();
+	eval(scope);
 };
 
 // Cycle through states
