@@ -237,12 +237,12 @@ module.exports = {
 	/**
 	 * Biggest we can!
 	 */
-	requestRepair: function (spawn, home, maxAvail = Infinity, priority = 10) {
-		const avail = Math.clamp(400, spawn.room.energyCapacityAvailable, maxAvail);
-		// var body = this.repeat([WORK,CARRY,MOVE,MOVE], avail);
-		// var body = this.repeat([WORK,WORK,CARRY,MOVE,MOVE,MOVE], avail);
-		var body = Arr.repeat([MOVE, MOVE, MOVE, WORK, WORK, CARRY], avail);
-		return spawn.submit({ body, memory: { role: 'repair', home }, priority, expire: DEFAULT_SPAWN_JOB_EXPIRE });
+	requestRepair: function (spawn, home, ept=1) {
+		const pattern = [WORK,CARRY,MOVE,MOVE];
+		const cost = UNIT_COST(pattern);
+		const can = Math.floor(spawn.room.energyCapacityAvailable / cost);
+		const body = Arr.repeat(pattern, cost*Math.min(ept,can));
+		return spawn.submit({ body, memory: { role: 'repair', home }, priority: 10, expire: DEFAULT_SPAWN_JOB_EXPIRE });
 	},
 
 	requestHapgrader: function (spawn, site) {
