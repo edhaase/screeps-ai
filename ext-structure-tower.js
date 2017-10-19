@@ -16,6 +16,9 @@
  */
 "use strict";
 
+/* global defineMemoryBackedProperty */
+defineMemoryBackedProperty(StructureTower.prototype, 'range');
+
 const TOWER_MINIMUM_RESERVE = 0.75;
 // global.TOWER_DAMAGE_EFFECT = [600,600,600,600,600,600,570,540,510,480,450,420,390,360,330,300,270,240,210,180,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150];
 // global.TOWER_REPAIR_EFFECT = [800,800,800,800,800,800,760,720,680,640,600,560,520,480,440,400,360,320,280,240,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200];
@@ -23,14 +26,14 @@ const TOWER_MINIMUM_RESERVE = 0.75;
 
 const TOWER_STRATEGY_CHANGE = 100;
 
-global.TOWER_STRATEGY_DISTRIBUTE = 0;	// Distribute damage across hostiles
-global.TOWER_STRATEGY_FOCUS = 1;		// Focus fire on the target with the most damage
-global.TOWER_STRATEGY_RANDOM = 2;		// Random target selection
-global.TOWER_STRATEGY_FIRST = 3;		// First target in the room
-global.TOWER_STRATEGY_CLOSEST = 4;		// Closest to tower
-global.TOWER_STRATEGY_CLOSEST_CTRL = 5;
-global.TOWER_STRATEGY_WEAKEST = 6;		// Most hurt
-global.TOWER_STRATEGY_TOUGHEST = 7;		// Most hits
+const TOWER_STRATEGY_DISTRIBUTE = 0;	// Distribute damage across hostiles
+const TOWER_STRATEGY_FOCUS = 1;		// Focus fire on the target with the most damage
+const TOWER_STRATEGY_RANDOM = 2;		// Random target selection
+const TOWER_STRATEGY_FIRST = 3;		// First target in the room
+const TOWER_STRATEGY_CLOSEST = 4;		// Closest to tower
+const TOWER_STRATEGY_CLOSEST_CTRL = 5;
+const TOWER_STRATEGY_WEAKEST = 6;		// Most hurt
+const TOWER_STRATEGY_TOUGHEST = 7;		// Most hits
 const MAX_ATTACK_STRATEGY = 7;
 
 StructureTower.prototype.onWake = function () {
