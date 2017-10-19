@@ -80,7 +80,7 @@ defineCachedGetter(Room.prototype, 'canMine', function ({ controller }) {
  */
 defineCachedGetter(Room.prototype, 'hostiles', function (room) {
 	if (_.get(room, 'controller.safeMode', 0) < SAFE_MODE_IGNORE_TIMER) // abritary tick count before re-engaging
-		return room.find(FIND_HOSTILE_CREEPS, { filter: Filter.unauthorizedHostile });
+		return room.find(FIND_HOSTILE_CREEPS, { filter: c => Filter.unauthorizedHostile(c) && !c.pos.isOnRoomBorder() });
 	return [];
 });
 
