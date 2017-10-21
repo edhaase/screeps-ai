@@ -5,7 +5,7 @@
 
 module.exports = {
 	init: function (creep) {
-		this.memory.roomName = _.sample(Game.map.describeExits(creep.pos.roomName));
+		
 	},
 	body: function () {
 

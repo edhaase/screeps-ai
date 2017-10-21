@@ -9,6 +9,7 @@ global.BIT_CREEP_DISABLE_RENEW = (1 << 0);	// Don't renew this creep.
 global.BIT_CREEP_IGNORE_ROAD = (1 << 1);	// Ignore roads when pathfinding.
 
 const ON_ERROR_SLEEP_DELAY = 3;
+const CREEP_AUTOFLEE_HP = 0.75;		// Run away at 75% hp
 
 /**
  * Intents are currently 0.2 cpu. With simultaneous action pipelines,
@@ -46,19 +47,13 @@ Creep.prototype.run = function run() {
 
 	try {
 		if (this.invokeState() === false) {
-			if (this.hitPct < 0.75)
+			if (this.hitPct < CREEP_AUTOFLEE_HP)
 				this.pushState('HealSelf');
 			if (memory.home !== undefined && (this.pos.roomName !== memory.home || this.pos.isOnRoomBorder())) {
 				if (this.flee(MINIMUM_SAFE_FLEE_DISTANCE) === OK)
 					return;
 				this.moveToRoom(memory.home);
 			} else {
-				this.runRTSactions();
-				// Single-pass extension of types
-				if (memory.type) {
-					Object.setPrototypeOf(this, require(`type-${memory.type}`).prototype);
-					// var dt = Time.measure( () => Object.setPrototypeOf(this, require('type-' + memory.type).prototype) );
-				}
 				this.runRole();
 			}
 		}
@@ -363,12 +358,12 @@ const DEFAULT_FLEE_OPTS = { maxRooms: 1, maxOps: 2500, flee: true, planAhead: DE
 Creep.prototype.flee = function (min = MINIMUM_SAFE_FLEE_DISTANCE, all = false, opts = {}) {
 	if (!min || typeof min !== "number" || min <= 1)
 		throw new TypeError(`Unacceptable minimum distance: ${min}, must be postive integer greater than 1`);
-	if(this.fatigue)
+	if (this.fatigue)
 		return ERR_TIRED;
 	// let hostiles = this.pos.findInRange(FIND_HOSTILE_CREEPS, min, {filter: Filter.unauthorizedHostile});
 	var hostiles;
 	if (all)
-		hostiles = this.pos.findInRange(FIND_CREEPS, min - 1, {filter: c => c.id !== this.id});
+		hostiles = this.pos.findInRange(FIND_CREEPS, min - 1, { filter: c => c.id !== this.id });
 	else
 		hostiles = this.pos.findInRange(this.room.hostiles, min - 1, { filter: Filter.unauthorizedCombatHostile });
 
@@ -598,6 +593,8 @@ Creep.prototype.repair = function (target) {
  * example: Game.spawns.Spawn1.submit({body: [MOVE], memory: {role: 'noop',stack:[['runFleeRoom','W7N2']]}, priority: 100})
  */
 Creep.prototype.runFleeRoom = function (scope) {
+	if (this.fatigue > 0)
+		return;
 	Log.debug(`${this.name} fleeing room ${scope}`, 'Creep');
 	var pos = new RoomPosition(25, 25, scope);
 	var range = 30;
@@ -639,11 +636,41 @@ Creep.prototype.runWait = function (scope) {
  * @todo - Route
  * @todo - Opts
  */
-Creep.prototype.runGoto = function (scope) {
+Creep.prototype.runMoveTo = function (scope) {
 	var { pos, range = 1 } = scope;
 	var roomPos = _.create(RoomPosition.prototype, pos);
-	if (this.moveTo(roomPos, { range: range }) === ERR_NO_PATH)
+	if (this.pos.inRangeTo(roomPos, range))
+		return this.popState();
+	this.moveTo(roomPos, { range });
+	// if (this.moveTo(roomPos, { range }) === ERR_NO_PATH)
+	//	this.popState();
+};
+
+Creep.prototype.runMoveToRoom = function (scope) {
+	if (this.moveToRoom(scope) === ERR_NO_PATH)
 		this.popState();
+};
+
+Creep.prototype.runAttackMove = function (scope) {
+	this.runMove(scope);
+	if (this.room.hostiles)
+		this.pushState('Combat');
+};
+
+Creep.prototype.runEvadeMove = function (scope) {
+	this.runMove(scope);
+	// @todo evade hostiles
+};
+
+/**
+ * Move between a series of goals. Act accordingly.
+ *
+ * @todo Respond to hostiles
+ * @todo Optional onArrival event
+ */
+Creep.prototype.runPatrol = function (scope) {
+	this.pushState('AttackMove', scope.goals[scope.i]);
+	scope.i++;
 };
 
 /** ex: goto, claim, recycle */
@@ -653,8 +680,10 @@ Creep.prototype.runSetRole = function (scope) {
 };
 
 /** ex: goto, runMethod(claim), recycle */
-Creep.prototype.runMethod = function () {
-
+Creep.prototype.runMethod = function (scope) {
+	var { method, args } = scope;
+	if (this[method].apply(this, args) === OK)
+		this.popState();
 };
 
 /** Run away and heal */
@@ -663,11 +692,14 @@ Creep.prototype.runHealSelf = function (scope) {
 		this.clearTarget();
 		return this.popState();
 	}
-	if (this.hasActiveBodypart(HEAL)) {
-		if(scope.hits != null) {
-			scope.hma = Math.mmAvg(this.hits - scope.hits, scope.hma || 0, 3);
-			if(scope.hma < 0)
+	if (this.hasActiveBodypart(HEAL) && this.hitPct > 0.50) {
+		if (scope.hits != null) {
+			const diff = this.hits - scope.hits;
+			scope.hma = Math.mmAvg(diff, scope.hma || 0, 3);
+			if (scope.hma < 0 || (-diff / this.hitsMax) > 0.10) {
 				this.pushState('FleeRoom', this.room.name);
+				scope.hma = 0;
+			}
 			this.log(`hit move avg: ${scope.hma}`, Log.LEVEL_INFO);
 		}
 		scope.hits = this.hits;
