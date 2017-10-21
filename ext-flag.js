@@ -16,7 +16,7 @@ if (!Memory.flags)
  * 2016-12-14: seperated run and runLogic because try/catch doesn't optimize
  */
 Flag.prototype.run = function () {
-	if(this.secondaryColor === COLOR_WHITE)
+	if (this.secondaryColor === COLOR_WHITE)
 		return;
 
 	if (this.isDeferred())
@@ -165,8 +165,7 @@ Flag.prototype.getAssignedUnit = function (fn) {
 		// Log.debug(`Cache miss on ${this.name}`, "Flag");
 		creep = _.find(Game.creeps, fn);
 		// console.log('result of find: ' + creep);
-		if (creep != null)
-			this.cache.creep = creep.name;
+		this.cache.creep = (creep) ? creep.name : undefined;
 		return creep;
 	}
 };
@@ -189,10 +188,12 @@ Flag.prototype.runLogic = function () {
 
 	if (this.color === FLAG_MILITARY) {
 		if (this.secondaryColor === STRATEGY_DEFEND) {
+			if (this.room && this.room.controller && this.room.controller.owner && !this.room.controller.my)
+				return this.remove();
 			const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1 });
-			const unit = this.getAssignedUnit(c => c.getRole() === 'guard' && c.memory.site === this.name && (c.spawning || c.ticksToLive > UNIT_BUILD_TIME(c.body)+cost));
+			const unit = this.getAssignedUnit(c => c.getRole() === 'guard' && c.memory.site === this.name && (c.spawning || c.ticksToLive > UNIT_BUILD_TIME(c.body) + cost));
 			if (unit)
-				return;
+				return this.defer(MAX_CREEP_SPAWN_TIME);
 			if (spawn && !spawn.hasJob({ memory: { role: 'guard', site: this.name } }) && !spawn.spawning) {
 				Unit.requestGuard(spawn, this.name, this.memory.body, this.pos.roomName);
 			}
@@ -204,14 +205,16 @@ Flag.prototype.runLogic = function () {
 		if (this.secondaryColor === STRATEGY_RESPOND) {
 			if (this.room == null) // We can't see the room, we can't act. Maybe request observer?
 				return;
-			const {hostiles} = this.room;
+			if (this.room && this.room.controller && this.room.controller.owner && !this.room.controller.my)
+				return this.remove();
+			const { hostiles } = this.room;
 			if (_.isEmpty(hostiles))
 				return this.defer(_.random(25, 50));
 			// @todo: 1 or more, guard body based on enemy body and boost.
 			const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1 });
-			const unit = this.getAssignedUnit(c => c.getRole() === 'guard' && c.memory.site === this.name && (c.spawning || c.ticksToLive > UNIT_BUILD_TIME(c.body)+cost));
+			const unit = this.getAssignedUnit(c => c.getRole() === 'guard' && c.memory.site === this.name && (c.spawning || c.ticksToLive > UNIT_BUILD_TIME(c.body) + cost));
 			if (unit || !spawn)
-				return this.defer(15);
+				return this.defer(MAX_CREEP_SPAWN_TIME);
 			// @todo: Find correct guard to respond.
 			Log.warn(`Requesting guard to ${this.pos}`, "Flag");
 			// Unit.requestGuard(spawn, this.name, [TOUGH, TOUGH, MOVE, RANGED_ATTACK, MOVE, RANGED_ATTACK, MOVE, MOVE, MOVE, ATTACK, MOVE, ATTACK, MOVE, ATTACK, MOVE, HEAL, MOVE, HEAL]);
@@ -234,22 +237,21 @@ Flag.prototype.runLogic = function () {
 					Log.warn(`Controller owned by ${JSON.stringify(controller.owner)} else, unable to reserve`, 'Flag');
 					this.remove();
 					return;
-				} else if(controller && controller.reservation && Player.status(controller.reservation.username) >= PLAYER_NEUTRAL && controller.reservation.username !== WHOAMI) {
+				} else if (controller && controller.reservation && Player.status(controller.reservation.username) >= PLAYER_NEUTRAL && controller.reservation.username !== WHOAMI) {
 					Log.warn(`Controller reserved by friendly player ${controller.reservation.username}`, 'Flag');
 					this.defer(controller.reservation.ticksToEnd);
 					return;
-				} else if (this.room.isOnHighAlert())
-					return;
+				}
 			}
 
 			const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1 });
 			const size = Math.floor((CONTROLLER_RESERVE_MAX - clock) / (CREEP_CLAIM_LIFE_TIME - cost));
-			const reserver = this.getAssignedUnit(c => this.pos.isEqualToPlain(c.memory.site) && (c.spawning || (c.ticksToLive > (2*size*CREEP_SPAWN_TIME) + cost)));
-			if(reserver)
+			const reserver = this.getAssignedUnit(c => this.pos.isEqualToPlain(c.memory.site) && (c.spawning || (c.ticksToLive > (2 * size * CREEP_SPAWN_TIME) + cost)));
+			if (reserver)
 				return this.defer(Math.min(reserver.ticksToLive || CREEP_CLAIM_LIFE_TIME, DEFAULT_SPAWN_JOB_EXPIRE));
-			Log.info(`${this.name} wants to build reserver of size ${size} for room ${this.pos.roomName}`,'Flag')
+			Log.info(`${this.name} wants to build reserver of size ${size} for room ${this.pos.roomName}`, 'Flag')
 			if (spawn && !spawn.hasJob({ memory: { role: 'reserver', site: this.pos } }) && !spawn.spawning) {
-				const prio = Math.clamp(1, Math.ceil(100 * (1-(clock / MINIMUM_RESERVATION))), 100);
+				const prio = Math.clamp(1, Math.ceil(100 * (1 - (clock / MINIMUM_RESERVATION))), 100);
 				require('Unit').requestReserver(spawn, this.pos, prio, size);
 			}
 			this.defer(DEFAULT_SPAWN_JOB_EXPIRE);
@@ -300,7 +302,6 @@ Flag.prototype.runLogic = function () {
 		}
 		this.clearAssignedUnit();
 		let {room,pos} = this;		
-		// this.room.isOnHighAlert() disabled because of 1600 tick idle period
 		if(!room || !this.room.canMine) // probably bad
 			return Log.warn('Dual-miner ' + this.name + ' unable to request unit at this time', 'Flag:unit');
 		// Find all sources
@@ -370,10 +371,12 @@ Flag.prototype.runLogic = function () {
 	 */
 	if (this.color === FLAG_MINING && this.secondaryColor === SITE_PICKUP && !BUCKET_LIMITER) {
 		if (this.room && !this.room.canMine) {
-			Log.notify(`[Mining] Cannot mine in ${this.pos.roomName}, deferring.`);
+			Log.warn(`Cannot mine in ${this.pos.roomName}, deferring.`, 'Flag');
 			return this.defer(5000);
 		}
-		if(this.room && this.room.my)
+		else if (this.room && this.room.controller && this.room.controller.owner && !this.room.controller.my)
+			return this.remove();
+		else if (this.room && this.room.my)
 			return this.remove();
 		if (this.room && !BUCKET_LIMITER && this.memory.dropoff != null && this.room.isBuildQueueEmpty())
 			this.throttle(300, 'clk', () => {
@@ -384,26 +387,26 @@ Flag.prototype.runLogic = function () {
 			});
 		if (this.room && (!this.memory.dropoff || (this.memory.step == null || this.memory.step < 0))) {
 			this.memory.steps = undefined;
-			const storages = _.filter(Game.structures, s => [STRUCTURE_LINK,STRUCTURE_STORAGE,STRUCTURE_TERMINAL].includes(s.structureType));
-			const {goal} = this.pos.findClosestByPathFinder(storages, s => ({ pos: s.pos, range: 1 }));
-			if(goal) {
+			const storages = _.filter(Game.structures, s => [STRUCTURE_LINK, STRUCTURE_STORAGE, STRUCTURE_TERMINAL].includes(s.structureType));
+			const { goal } = this.pos.findClosestByPathFinder(storages, s => ({ pos: s.pos, range: 1 }));
+			if (goal) {
 				this.memory.dropoff = goal.pos;
 				Log.info(`${this.name} found dropoff goal: ${goal}`, 'Flag');
 			} else
 				this.assignNearbySpot();
-			this.memory.steps = this.pos.getStepsTo({pos: this.memory.dropoff, range: 1});
+			this.memory.steps = this.pos.getStepsTo({ pos: this.memory.dropoff, range: 1 });
 		}
-		if(!this.memory.dropoff) {
+		if (!this.memory.dropoff) {
 			Log.warn(`No dropoff point for ${this.name}`, 'Flag');
 			return this.defer(MAX_CREEP_SPAWN_TIME);
-		}		
+		}
 		if (this.room) {
 			const [source] = this.pos.lookFor(LOOK_SOURCES);
 			this.memory.capacity = (source && source.energyCapacity) || SOURCE_ENERGY_CAPACITY;
 			Log.debug(`${this.name} setting capacity to ${this.memory.capacity}`, 'Flag');
 		}
 		const creeps = _.filter(Game.creeps, c => c.memory.role === 'hauler' && this.pos.isEqualToPlain(c.memory.site));
-		const assigned = _.sum(creeps, c => c.getBodyParts(CARRY));		
+		const assigned = _.sum(creeps, c => c.getBodyParts(CARRY));
 		const { steps, capacity = SOURCE_ENERGY_CAPACITY } = this.memory;
 		const estCarry = CARRY_PARTS(capacity, steps);
 		const reqCarry = Math.ceil(estCarry + 2); // flat 1 + 2 extra carry
@@ -432,13 +435,11 @@ Flag.prototype.runLogic = function () {
 	 */
 	// Move to module?
 	if (this.color === FLAG_MINING && !BUCKET_LIMITER && this.secondaryColor === SITE_REMOTE) {
-		if (this.room){
-			if(this.room.my) {
+		if (this.room) {
+			if (this.room.owner) {	// If it's owned by us or another player we aren't using flag based mining.
 				return this.remove();
-			} else if(!this.room.canMine) {
-				Log.notify(`Cannot mine in ${this.pos.roomName} deferring.`, 'Flag');
-				this.defer(5000);
-				return;
+			} else if (!this.room.canMine) {
+				return this.defer(500);
 			} else {
 				const [source] = this.pos.lookFor(LOOK_SOURCES);
 				this.memory.work = (source && source.harvestParts) || SOURCE_HARVEST_PARTS;
@@ -446,7 +447,7 @@ Flag.prototype.runLogic = function () {
 			}
 		}
 		const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 3 });
-		var miner = this.getAssignedUnit(c => c.getRole() === 'miner' && this.pos.isEqualToPlain(c.memory.dest) && (c.spawning || c.ticksToLive > UNIT_BUILD_TIME(c.body)+cost));
+		var miner = this.getAssignedUnit(c => c.getRole() === 'miner' && this.pos.isEqualToPlain(c.memory.dest) && (c.spawning || c.ticksToLive > UNIT_BUILD_TIME(c.body) + cost));
 		if (!miner) {
 			if (!spawn) {
 				// Log.error(`No spawn for ${this.name}`, 'Flag');
