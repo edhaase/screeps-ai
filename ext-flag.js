@@ -245,7 +245,7 @@ Flag.prototype.runLogic = function () {
 			}
 
 			const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1 });
-			const size = Math.floor((CONTROLLER_RESERVE_MAX - clock) / (CREEP_CLAIM_LIFE_TIME - cost));
+			const size = Math.floor((CONTROLLER_RESERVE_MAX - clock) / (CONTROLLER_RESERVE*(CREEP_CLAIM_LIFE_TIME - cost)));
 			const reserver = this.getAssignedUnit(c => this.pos.isEqualToPlain(c.memory.site) && (c.spawning || (c.ticksToLive > (2 * size * CREEP_SPAWN_TIME) + cost)));
 			if (reserver)
 				return this.defer(Math.min(reserver.ticksToLive || CREEP_CLAIM_LIFE_TIME, DEFAULT_SPAWN_JOB_EXPIRE));
