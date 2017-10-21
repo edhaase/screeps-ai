@@ -119,11 +119,25 @@ StructureSpawn.prototype.processJobs = function () {
 	if (job.notify === true)
 		Game.notify(`Tick ${Game.time}: ${this.pos.roomName}/${this.name}: New ${job.memory.role} unit: ${assignedName}, cost: ${job.cost}, ticks: ${job.ticks}, priority: ${job.priority}, idle: ${idle}`);
 	if (job.memory && job.memory.role)
-		_.attempt(() => require(`role-${job.memory.role}`).init(Game.creeps[assignedName]));
+		this.initCreep(assignedName, job.memory.role);
 	q.shift();
 	this.memory.lastidle = Game.time + job.ticks;
 	this.resetEnergyClock();
 	return true;
+};
+
+/**
+ * Call the role init code if there is any
+ */
+StructureSpawn.prototype.initCreep = function (name, roleName) {
+	try {
+		const role = require(`role-${roleName}`);
+		if (role && role.init)
+			role.init(Game.creeps[name]);
+	} catch (e) {
+		Log.error(`${this.pos.roomName}/${this.name} failed to initialize creep ${name}`, 'Spawn');
+		Log.error(e.stack);
+	}
 };
 
 /**
