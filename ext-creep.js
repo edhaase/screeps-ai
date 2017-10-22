@@ -198,7 +198,7 @@ Creep.prototype.sumActiveBodyparts = function (fn = () => 1, filter = null) {
 };
 
 Creep.prototype.hasBodypart = function (type) {
-	return _.any(this.body, ({ t }) => t === type);
+	return _.any(this.body, 'type', type);
 };
 
 /**
