@@ -747,3 +747,61 @@ Creep.prototype.runHealSelf = function (scope) {
 Creep.prototype.runBorderHop = function () {
 	// If hurt, stop and push heal
 };
+
+/**
+ * General state for finding energy.
+ *
+ * If we're not allowed to move, only look for adjacent providers.
+ */
+Creep.prototype.runAcquireEnergy = function ({ allowMove = false, allowHarvest = true }) {
+	if (this.carryCapacityAvailable <= 0)
+		return this.popState();
+	if (this.hits < this.hitsMax)
+		this.pushState('HealSelf');	// We can let it continue this tick.
+	let target, status;
+	if (allowMove) {
+		target = this.getTarget(
+			({ room }) => [...room.structures, ...room.resources],
+			(c) => Filter.canProvideEnergy(c),
+			(c) => this.pos.findClosestByPath(c)
+		);
+	} else {
+		target = this.getTarget(
+			({ room }) => {
+				const resources = _.map(this.lookForNear(LOOK_RESOURCES), LOOK_RESOURCES);
+				const structures = _.map(this.lookForNear(LOOK_STRUCTURES), LOOK_STRUCTURES);
+				return [...resources, ...structures];
+			},
+			(c) => Filter.canProvideEnergy(c),
+			(c) => this.pos.findClosestByPath(c)
+		);
+	}
+	if (!target && allowHarvest && this.hasBodypart(WORK))
+		return this.pushState('HarvestEnergy', { allowMove });
+	else if (target instanceof Resource)
+		status = this.pickup(target);
+	else
+		status = this.withdraw(target, RESOURCE_ENERGY);
+	if (status === ERR_NOT_IN_RANGE && allowMove)
+		this.moveTo(target, { range: 1, maxRooms: 1, ignoreRoads: this.memory.ignoreRoad || true });
+};
+
+/**
+ * Harvest energy to fill ourself up
+ */
+Creep.prototype.runHarvestEnergy = function ({ allowMove = true }) {
+	if (this.carryCapacityAvailable <= 0 || !this.hasBodypart(WORK))
+		return this.popState();
+	if (this.hits < this.hitsMax)
+		this.pushState('HealSelf');	// We can let it continue this tick.
+	let source;
+	if (allowMove)
+		source = this.getTarget(({ room }) => room.find(FIND_SOURCES), s => s.energy > 0, c => this.pos.findClosestByPath(c));
+	else
+		source = this.getTarget(({ room }) => room.find(FIND_SOURCES), s => s.energy > 0 && s.pos.isNearTo(this));
+	if(!source)
+		return this.popState();
+	const status = this.harvest(source);
+	if (status === ERR_NOT_IN_RANGE && allowMove)
+		this.moveTo(source, { range: 1, maxRooms: 1 });
+};
