@@ -5,6 +5,8 @@
  */
 "use strict";
 
+StructureRampart.prototype.decay = RAMPART_DECAY_AMOUNT / RAMPART_DECAY_TIME;
+
 /**
  * Fix for a missing rampart is public check.
  */
