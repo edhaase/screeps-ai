@@ -250,6 +250,11 @@ Room.prototype.updateBuild = function () {
 		return OK;
 	var { x, y, structureType } = job;
 	var pos = this.getPositionAt(x, y);
+	// Stolen from kasami, build rampart first
+	if((structureType === STRUCTURE_TERMINAL || structureType === STRUCTURE_SPAWN || structureType === STRUCTURE_TOWER || structureType === STRUCTURE_STORAGE || structureType === STRUCTURE_LAB || structureType === STRUCTURE_NUKER)
+	&& !pos.hasStructure(STRUCTURE_RAMPART)
+	&& pos.createConstructionSite(STRUCTURE_RAMPART) === OK) // This might fail at RCL 1, let's not lock up the room.
+		return OK;
 	var status = pos.createConstructionSite(structureType);
 	switch (status) {
 	case OK: {
