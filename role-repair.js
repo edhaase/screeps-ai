@@ -1,10 +1,13 @@
 /**
- *
+ * role-repair
  */
 "use strict";
 // Game.spawns.Spawn4.enqueue([WORK,CARRY,MOVE,MOVE], null, {role:'repair'})
 // Game.spawns.Spawn4.enqueue([WORK,WORK,WORK,CARRY,MOVE,MOVE,MOVE,MOVE], null, {role:'repair'}, 1, 5, 5)
 // Game.spawns.Spawn4.enqueue([MOVE,WORK,MOVE,WORK,MOVE,WORK,MOVE,WORK,MOVE,WORK,MOVE,CARRY,MOVE,CARRY], null, {role:'repair'}, 1, 5, 5)
+const MINIMUM_TTL = 50;
+
+/* eslint-disable consistent-return */
 module.exports = {
 	init: function (creep) {
 		creep.memory.ignoreRoad = (creep.plainSpeed === creep.roadSpeed);
@@ -13,32 +16,12 @@ module.exports = {
 		if (this.hits < this.hitsMax)
 			this.flee(7);
 
-		if (creep.carry.energy === 0) {
-			var storage = this.getTarget(
-				({ room }) => [...room.links, room.storage, room.terminal, ...room.resources],
-				(provider) => Filter.canProvideEnergy(provider),
-				(candidates) => {
-					if (creep.ticksToLive < 30)
-						return creep.setRole('recycle');
-					this.clearTarget();
-					return creep.pos.findClosestByPath(candidates);
-				},
-				'pid'
-			);
-			if (!storage)
-				return this.defer(5);
+		if (creep.carry[RESOURCE_ENERGY] === 0) {
+			if (this.ticksToLive < MINIMUM_TTL)
+				this.setRole('recycle');
 			else
-				creep.moveTo(storage, {
-					reusePath: 10,
-					maxRooms: 1,
-					range: 1,
-					ignoreRoads: this.memory.ignoreRoad || true
-				});
-			if (creep.pos.isNearTo(storage))
-				creep.pull(storage, RESOURCE_ENERGY);
-
+				this.pushState('AcquireEnergy', { allowMove: true, allowHarvest: true });
 		} else {
-			this.clearTarget('pid');
 			var target = this.getTarget(
 				({ room }) => room.structures,
 				(s) => s.hits < s.hitsMax,
