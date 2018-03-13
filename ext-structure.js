@@ -44,10 +44,10 @@ Structure.prototype.isActive = function () {
 	return this.cache.active;
 };
 
-Structure.prototype.say = function (msg) {
+Structure.prototype.say = function (msg, color = 'yellow') {
 	var { x, y, roomName } = this.pos;
 	var newPos = new RoomPosition(x, y - 0.75, roomName);
-	this.room.visual.text(msg, newPos, { color: 'yellow' });
+	this.room.visual.text(msg, newPos, { color });
 };
 
 /**
