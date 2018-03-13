@@ -344,6 +344,7 @@ RoomObject.prototype.setState = function (state, scope) {
 		throw new TypeError('State can not be null');
 	if (!this.memory.stack)
 		this.memory.stack = [[]];
+	this.clearTarget();
 	this.memory.stack[0] = [state, scope];
 	return state;
 };
@@ -361,6 +362,7 @@ RoomObject.prototype.pushState = function (state, scope={}) {
 	if (this.memory.stack.length >= MAX_STACK_DEPTH)
 		throw new Error('Automata stack limit exceeded');
 	Log.debug(`Pushing state ${state} to ${this}`, 'RoomObject');
+	this.clearTarget();
 	this.memory.stack.unshift([state, scope]);
 	return state;
 };
@@ -371,6 +373,7 @@ RoomObject.prototype.pushStates = function(arr=[]) {
 		this.memory.stack = [];
 	if(this.memory.stack.length + arr.length >= MAX_STACK_DEPTH)
 		throw new Error('Automata stack limit exceed');
+	this.clearTarget();
 	_.each(arr, a => this.memory.stack.unshift(a));
 };
 
@@ -380,12 +383,14 @@ RoomObject.prototype.popState = function () {
 		return;
 	const [state] = this.memory.stack.shift();
 	Log.debug(`Popping state ${state} from ${this}`, 'RoomObject');
+	this.clearTarget();
 	if (!this.memory.stack.length)
 		this.memory.stack = undefined;
 };
 
 /** Clear the stack */
 RoomObject.prototype.clearState = function() {
+	this.clearTarget();
 	this.memory.stack = undefined;
 };
 
