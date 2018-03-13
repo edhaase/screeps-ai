@@ -246,11 +246,11 @@ Flag.prototype.runLogic = function () {
 
 			const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1 });
 			const size = Math.floor((CONTROLLER_RESERVE_MAX - clock) / (CONTROLLER_RESERVE*(CREEP_CLAIM_LIFE_TIME - cost)));
-			const reserver = this.getAssignedUnit(c => this.pos.isEqualToPlain(c.memory.site) && (c.spawning || (c.ticksToLive > (2 * size * CREEP_SPAWN_TIME) + cost)));
+			const reserver = this.getAssignedUnit(c => c.getRole() === 'reserver' && this.pos.isEqualToPlain(c.memory.site) && (c.spawning || (c.ticksToLive > (2 * size * CREEP_SPAWN_TIME) + cost)));
 			if (reserver)
 				return this.defer(Math.min(reserver.ticksToLive || CREEP_CLAIM_LIFE_TIME, DEFAULT_SPAWN_JOB_EXPIRE));
 			Log.info(`${this.name} wants to build reserver of size ${size} for room ${this.pos.roomName}`, 'Flag')
-			if (spawn && !spawn.hasJob({ memory: { role: 'reserver', site: this.pos } }) && !spawn.spawning) {
+			if (spawn && !spawn.hasJob({ memory: { role: 'reserver', site: this.pos } })) {
 				const prio = Math.clamp(1, Math.ceil(100 * (1 - (clock / MINIMUM_RESERVATION))), 100);
 				require('Unit').requestReserver(spawn, this.pos, prio, size);
 			}
@@ -276,15 +276,15 @@ Flag.prototype.runLogic = function () {
 	/** maintain sk miner */
 	if (this.color === FLAG_MINING && this.secondaryColor === SITE_SKMINE) {
 		// let miner = _.find(Game.creeps, c => c.memory.role === 'war-miner' && this.pos.isEqualTo(_.create(RoomPosition.prototype, c.memory.pos)) && c.ticksToLive >= 150);
-		const miner = this.getAssignedUnit(c => c.getRole() === 'war-miner' && this.pos.isEqualToPlain(c.memory.pos) && c.ticksToLive >= 150);
+		const miner = this.getAssignedUnit(c => c.getRole() === 'war-miner' && this.pos.isEqualToPlain(c.memory.pos) && (c.spawning || c.ticksToLive >= UNIT_BUILD_TIME(c.body)));
 		// let miner = this.getAssignedUnit(c => c.memory.role === 'war-miner' && this.pos.isEqualTo(c.memory.pos) && c.ticksToLive >= 150);
 		const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1 });
-		if (!miner && spawn && !spawn.hasJob({ memory: { role: 'war-miner', pos: this.pos } }) && !spawn.spawning) {
+		if (!miner && spawn && !spawn.hasJob({ memory: { role: 'war-miner', pos: this.pos } })) {
 			Log.info('Requesting new war-miner');
 			Unit.requestWarMiner(spawn, { role: 'war-miner', pos: this.pos });
-			this.defer(Time.secondsToTicks(60 * 15));
+			this.defer(DEFAULT_SPAWN_JOB_EXPIRE);
 		} else {
-			this.defer(Time.secondsToTicks(60 * 5));
+			this.defer(CREEP_LIFE_TIME / 2);
 		}
 		return;
 	}
