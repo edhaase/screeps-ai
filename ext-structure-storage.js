@@ -9,8 +9,6 @@
  */
 'use strict';
 
-const DEFAULT_STORAGE_RESERVE = 100000;
-
 Object.defineProperty(StructureStorage.prototype, 'reserve', {
 	set: function (value) {
 		if (value === null) {
