@@ -73,6 +73,8 @@ const getDropoffSite = createUniqueTargetSelector(
 			return ['upgrader', 'builder', 'repair'].includes(sel.getRole());
 		} else if (sel instanceof StructureLink)
 			return false;
+		else if(sel instanceof StructureNuker && (!room.storage || room.storage.stock < 1.0))
+			return false;
 		if (sel.store != null)
 			return false;
 		return true;
@@ -103,7 +105,7 @@ module.exports = {
 		const { terminal, storage, controller } = this.room;
 		if (state === STATE_GATHER) {
 			// const goal = module.exports.getPickupSite.call(this);
-			goal = (terminal) ? getPickupSiteWithTerminal(this) : getPickupSite(this);
+			goal = (terminal && terminal.storedTotal < terminal.storeCapacity) ? getPickupSiteWithTerminal(this) : getPickupSite(this);
 			if (!goal)
 				return;
 			// let status = this.withdraw(goal, RESOURCE_ENERGY);
