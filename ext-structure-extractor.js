@@ -46,7 +46,7 @@ StructureExtractor.prototype.run = function () {
 		return;
 	}
 
-	if (terminal && mineral && terminal.store[mineral.mineralType] > TERMINAL_RESOURCE_LIMIT) {
+	if (terminal && mineral && (terminal.store[mineral.mineralType] > TERMINAL_RESOURCE_LIMIT || terminal.storedTotal >= terminal.storeCapacity)) {
 		Log.warn(`Terminal ${this.pos.roomName} at capacity for ${mineral.mineralType}, deferring harvester`, 'Extractor');
 		this.defer(EXTRACTOR_DELAY);
 		return;
