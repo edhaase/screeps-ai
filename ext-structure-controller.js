@@ -301,14 +301,14 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 		// If we have miners currently skip..
 		const dualminer = _.findWhere(dualminers, { memory: { site: roomName, role: 'dualminer' } });
 		if (!dualminer) {
-			if (!this.cache.steps) {
+			if (!this.cache.steps || this.cache.steps < 0) {
 				const [s1, s2] = sources;
 				var s1pos = _.create(RoomPosition.prototype, s1.pos);
 				var s2pos = _.create(RoomPosition.prototype, s2.pos);
-				this.cache.steps = s1pos.getStepsTo(s2pos) * 2; // expecting two sources
+				this.cache.steps = s1pos.getStepsTo({pos: s2pos, range: 1}) * 2; // expecting two sources
 				Log.debug(`${this.pos.roomName} steps: ${this.cache.steps}`, 'Controller');
 			}
-			const result = _.attempt( () => require('Unit').requestDualMiner(spawn, this.pos.roomName, totalCapacity, this.cache.steps) )
+			const result = _.attempt( () => require('Unit').requestDualMiner(spawn, this.pos.roomName, totalCapacity, this.cache.steps) );
 			if (result !== false && !(result instanceof Error)) {
 				// Log.warn('Requesting dual miner at ' + roomName + ' from ' + spawn.pos.roomName);
 				dual = true;
