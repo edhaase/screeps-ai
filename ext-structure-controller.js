@@ -378,10 +378,6 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	//	require('Unit').requestHealer(spawn, roomName);
 	// }
 
-	// Keep this small, we don't know if the energy capacity is ours or not.
-	if (bulldozer.length < 1 && !_.isEmpty(room.find(FIND_HOSTILE_STRUCTURES)))
-		require('Unit').requestBulldozer(spawn, roomName);
-
 	// beyond this point, room-local spawns only
 	if (roomName !== this.pos.roomName)
 		return;
@@ -561,6 +557,7 @@ StructureController.prototype.onBootup = function () {
 	Log.success(`Room ${this.pos.roomName} claimed`, 'Controller');
 	this.memory.maxlevel = this.level;
 	this.memory.claimedAt = Game.time;
+	this.room.find(FIND_HOSTILE_STRUCTURES).forEach(s => s.destroy());
 };
 
 StructureController.prototype.onDowngrade = function (level, prev) {
