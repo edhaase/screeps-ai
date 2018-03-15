@@ -252,8 +252,8 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 
 
 	// Distribution
-	const allotedUpgrade = Math.floor(avail * 0.90);
-	const allotedRepair = Math.floor(avail * 0.10);
+	const allotedUpgrade = Math.floor(avail * 0.80);
+	const allotedRepair = Math.floor(avail * 0.20);
 	Log.info(`Allotments: ${allotedUpgrade} upgrade ${allotedRepair} repair`, 'Controller');
 
 	/**
@@ -308,7 +308,8 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 				this.cache.steps = s1pos.getStepsTo(s2pos) * 2; // expecting two sources
 				Log.debug(`${this.pos.roomName} steps: ${this.cache.steps}`, 'Controller');
 			}
-			if (require('Unit').requestDualMiner(spawn, this.pos.roomName, totalCapacity, this.cache.steps) !== false) {
+			const result = _.attempt( () => require('Unit').requestDualMiner(spawn, this.pos.roomName, totalCapacity, this.cache.steps) )
+			if (result !== false && !(result instanceof Error)) {
 				// Log.warn('Requesting dual miner at ' + roomName + ' from ' + spawn.pos.roomName);
 				dual = true;
 			}
@@ -423,8 +424,8 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 		// let workDesired = 10 * (numSources / 2);
 		let workDesired = allotedUpgrade;
 		if (this.level === MAX_ROOM_LEVEL) {
-			if (workAssigned < MAX_RCL_UPGRADER_SIZE && (this.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || storedEnergy > 700000))
-				require('Unit').requestUpgrader(spawn, roomName, 90, MAX_RCL_UPGRADER_SIZE - workAssigned);
+			if (workAssigned < CONTROLLER_MAX_UPGRADE_PER_TICK && (this.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || storedEnergy > 700000))
+				require('Unit').requestUpgrader(spawn, roomName, 90, CONTROLLER_MAX_UPGRADE_PER_TICK);
 		} else {
 			if (this.room.storage)
 				workDesired = Math.floor(workDesired * this.room.storage.stock);
@@ -450,14 +451,9 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	// const desiredRepai
 	if (!repair.length && allotedRepair > 0 && _.any(this.room.structures, s => s.hits / s.hitsMax < 0.90)) {
 		require('Unit').requestRepair(spawn, roomName, allotedRepair);
-	}/* else if (repair.length > desiredRepair) {
-		// const target = _.min(repair, 'ticksToLive');
-		const [target] = repair;
-		if (target && target.ticksToLive) {
-			Log.info(`Request recycle of repairer: ${target} at ${target.pos}`, 'Controller');
-			target.setRole('recycle');
-		}
-	} */
+	} else if (repair.length && allotedRepair <= 0) {
+		_.invoke(repair, 'setRole', 'recycle');
+	}
 };
 
 StructureController.prototype.getAssistingSpawn = function () {
