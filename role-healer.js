@@ -10,6 +10,7 @@ const DEFAULT_HEALER_FOLLOW_RANGE = 2;
 const MAXIMUM_CREEP_IDLE = 80;
 
 module.exports = {
+	boosts: ['LO','LHO2','XLHO2','GO','GHO2','XGHO2'],
 	init: function (creep) {
 		// Flee at 50% hp, or if we're about to lose our only heal part
 		creep.memory.fleeAtHp = Math.max(creep.hitsMax * 0.60, BODYPART_MAX_HITS * 1.50);
