@@ -120,6 +120,14 @@ StructureSpawn.prototype.processJobs = function () {
 		Game.notify(`Tick ${Game.time}: ${this.pos.roomName}/${this.name}: New ${job.memory.role} unit: ${assignedName}, cost: ${job.cost}, ticks: ${job.ticks}, priority: ${job.priority}, idle: ${idle}`);
 	if (job.memory && job.memory.role)
 		this.initCreep(assignedName, job.memory.role);
+	const creep = Game.creeps[assignedName];
+	if (job.memory && job.memory.home && job.memory.home !== this.pos.roomName && Game.map.isRoomAvailable(job.memory.home)) {
+		if (job.boosts)
+			job.boosts.forEach(b => creep.pushState('BoostSelf', { boost: b }));
+		creep.pushState('MoveToRoom', job.memory.home);
+	}
+	if (job.boosts)
+		job.boosts.forEach(b => creep.pushState('BoostSelf', { boost: b }));
 	q.shift();
 	this.memory.lastidle = Game.time + job.ticks;
 	this.resetEnergyClock();
@@ -232,6 +240,10 @@ StructureSpawn.prototype.submit = function (job) {
 		job.priority = DEFAULT_SPAWN_JOB_PRIORITY;
 	if (job.priority > 0 && job.priority < 1)
 		job.priority = Math.ceil(100 * job.priority);
+	if (!job.boosts && job.memory && job.memory.role)
+		job.boosts = require(`role-${job.memory.role}`).boosts;
+	if (job.boosts && _.any(job.boosts, b => !RESOURCES_ALL.includes(b)))
+		throw new Error(`Invalid boosts ${job.boosts} for job`);
 	job.body = require('Unit').tailSort(job.body);
 	if (!job.score)
 		job.score = this.scoreTask(job);

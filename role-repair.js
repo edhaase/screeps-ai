@@ -9,8 +9,9 @@ const MINIMUM_TTL = 50;
 
 /* eslint-disable consistent-return */
 module.exports = {
-	init: function (creep) {
-		creep.memory.ignoreRoad = (creep.plainSpeed === creep.roadSpeed);
+	boosts: ['LH','LH2O','XLH2O'],
+	init: function () {
+		this.memory.ignoreRoads = (this.plainSpeed === this.roadSpeed);
 	},
 	run: function (creep) {
 		if (this.hits < this.hitsMax)

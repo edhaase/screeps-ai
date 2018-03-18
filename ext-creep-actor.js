@@ -49,13 +49,11 @@ Creep.prototype.run = function run() {
 		if (this.invokeState() === false) {
 			if (this.hitPct < CREEP_AUTOFLEE_HP)
 				this.pushState('HealSelf');
-			if (memory.home !== undefined && (this.pos.roomName !== memory.home || this.pos.isOnRoomBorder())) {
-				if (this.flee(MINIMUM_SAFE_FLEE_DISTANCE) === OK)
-					return;
-				this.moveToRoom(memory.home);
-			} else {
+			// Replaced with stack state.
+			if (memory.home !== undefined && (this.pos.roomName !== memory.home || this.pos.isOnRoomBorder()))
+				this.pushState("MoveToRoom", memory.home);
+			else
 				this.runRole();
-			}
 		}
 		this.updateStuck();
 	} catch (e) {
@@ -804,4 +802,45 @@ Creep.prototype.runHarvestEnergy = function ({ allowMove = true }) {
 	const status = this.harvest(source);
 	if (status === ERR_NOT_IN_RANGE && allowMove)
 		this.moveTo(source, { range: 1, maxRooms: 1 });
+};
+
+/**
+ * Find compound
+ */
+Creep.prototype.runAcquireResource = function() {
+	// May use terminal for purchase
+};
+
+/**
+ * Hunts down a lab with boosts.
+ * Can limit amount
+ * One boost per state
+ * Game.creeps['scav676'].pushState('BoostSelf', {boost:'KO',parts:5})
+ * Game.creeps['builder641'].pushState('BoostSelf', {boost:'XLH2O'})
+ * Game.spawns.Spawn5.enqueue(Util.RLD([4,CARRY,4,MOVE]), null, {role: 'filler', src: '5d413747263e080', dest: 'c17238650e603f3', res: 'XGH2O'})
+ */
+Creep.prototype.runBoostSelf = function ({ boost, parts }) {
+	const target = this.getTarget(
+		({ room }) => room.structuresByType[STRUCTURE_LAB] || [],
+		(lab) => lab.mineralType === boost && lab.mineralAmount >= LAB_BOOST_MINERAL,
+		(candidates) => _.min(candidates, c => c.pos.getRangeTo(this)));
+	if (!target) {
+		this.say("No lab");
+		// May acquire resource if has carry part
+		// If we have an idle lab, carry, and terminal, go ahead and load it up ourselves
+		return this.popState();
+	} else if (!this.pos.isNearTo(target))
+		return this.moveTo(target, { range: 1 });
+	else {
+		const sum = _.sum(this.body, p => p.boost === boost);
+		const non = _.sum(this.body, p => !p.boost && BOOSTS[p.type] != null && BOOSTS[p.type]['XLH2O'] != null);
+		const total = parts ? parts - sum : undefined;
+		const cost = non * LAB_BOOST_ENERGY;
+		const cpt = cost / CREEP_LIFE_TIME;
+		Log.debug(`Boost cost: ${non}/${sum} ${cost} or ${cpt}/t`);
+		const status = target.boostCreep(this, total);
+		Log.debug(`${this.pos.roomName}/${this.name} boosting result: ${status}`);
+		if (sum <= 0 || status !== OK)
+			this.popState();
+	}
 };

@@ -9,6 +9,7 @@
 'use strict';
 
 module.exports = {
+	boosts: ['GH','GH2O','XGH2O'],
 	init: function (creep) {
 
 	},

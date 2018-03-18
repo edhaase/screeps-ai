@@ -18,6 +18,7 @@ const STATE_DEFAULT = STATE_UNLOAD;
 
 /* eslint-disable consistent-return */
 module.exports = {
+	boosts: ['LH','LH2O','XLH2O'],
 	init: function () {
 		this.memory.ignoreRoads = (this.plainSpeed === this.roadSpeed);
 	},
