@@ -358,7 +358,7 @@ RoomObject.prototype.pushState = function (state, scope={}) {
 		this.memory.stack = [];
 	var method = `run${state}`;
 	if (this[method] == null)
-		throw new Error(`No such state or action ${method}`);
+		throw new Error(`No such state or action ${method} on ${this}`);
 	if (this.memory.stack.length >= MAX_STACK_DEPTH)
 		throw new Error('Automata stack limit exceeded');
 	Log.debug(`Pushing state ${state} to ${this}`, 'RoomObject');
