@@ -312,17 +312,29 @@ RoomObject.prototype.transitions = function (obj,def) {
 /**
  * Pushdown automata state machine
  */
-const MAX_STACK_DEPTH = 100;
+const MAX_STACK_DEPTH = 100;		// How many states can be pushed onto the stack at once
+const MAX_STACK_CONCURRENT = 15;	// How many states can we invoke on one tick
 
 RoomObject.prototype.invokeState = function() {
 	if(!this.memory.stack || !this.memory.stack.length)
 		return false;
+	if(this.stackDepth===undefined) {
+		this.stackDepth=0;
+		this.stackCounter=0;
+	}
+	if(this.stackDepth > MAX_STACK_CONCURRENT) {
+		Log.debug(`Aborting action ${state} (${method}) for ${this} at ${this.pos} on tick ${Game.time} at depth ${this.stackDepth} (count ${this.stackCounter})`, 'RoomObject');
+		return false;
+	}
+	this.stackDepth++; // Depth counter
+	this.stackCounter++; // Increments permanently
 	var [[state,scope]] = this.memory.stack;
 	var method = `run${state}`;
 	if(!this[method])
 		return false;
-	// Log.debug(`Invoking action ${state} (${method}) for ${this}`, 'RoomObject');
+	Log.debug(`Invoking action ${state} (${method}) for ${this} at ${this.pos} on tick ${Game.time} at depth ${this.stackDepth} (count ${this.stackCounter})`, 'RoomObject');
 	this[method](scope);
+	this.stackDepth--;
 	return true;
 };
 
@@ -339,13 +351,19 @@ RoomObject.prototype.getState = function (defaultState = 'I') {
  * @param {string} state - Name of state to switch to.
  * @param {*} scope - Any data you want to supply to the state.
  */
-RoomObject.prototype.setState = function (state, scope) {
+RoomObject.prototype.setState = function (state, scope={}, runNext=true) {
 	if (state == null)
 		throw new TypeError('State can not be null');
+	var method = `run${state}`;
+	// if (this[method] == null)	// Not currently usable
+	//	throw new Error(`No such state or action ${method} on ${this}`);
 	if (!this.memory.stack)
 		this.memory.stack = [[]];
 	this.clearTarget();
 	this.memory.stack[0] = [state, scope];
+	Log.debug(`Setting state ${state} to ${this}`, 'RoomObject');
+	if(runNext && this[method] !== null)
+		this.invokeState();
 	return state;
 };
 
@@ -353,7 +371,7 @@ RoomObject.prototype.setState = function (state, scope) {
  * @param {string} state - Name of state to push
  * @param {*} scope - Any data you want to supply to the state.
  */
-RoomObject.prototype.pushState = function (state, scope={}) {
+RoomObject.prototype.pushState = function (state, scope={}, runNext=true) {
 	if (!this.memory.stack)
 		this.memory.stack = [];
 	var method = `run${state}`;
@@ -364,21 +382,27 @@ RoomObject.prototype.pushState = function (state, scope={}) {
 	Log.debug(`Pushing state ${state} to ${this}`, 'RoomObject');
 	this.clearTarget();
 	this.memory.stack.unshift([state, scope]);
+	if(runNext) {
+		Log.debug(`Invoking next state ${this.getState()} early for ${this} (post-push)`, 'RoomObject');
+		this.invokeState();
+	}
 	return state;
 };
 
 
-RoomObject.prototype.pushStates = function(arr=[]) {
+RoomObject.prototype.pushStates = function(arr=[], runNext=true) {
 	if(!this.memory.stack)
 		this.memory.stack = [];
 	if(this.memory.stack.length + arr.length >= MAX_STACK_DEPTH)
 		throw new Error('Automata stack limit exceed');
 	this.clearTarget();
 	_.each(arr, a => this.memory.stack.unshift(a));
+	if(runNext)
+		this.invokeState();
 };
 
 /** Pop the current state off the stack */
-RoomObject.prototype.popState = function () {
+RoomObject.prototype.popState = function (runNext=true) {
 	if (!this.memory.stack || !this.memory.stack.length)
 		return;
 	const [state] = this.memory.stack.shift();
@@ -386,6 +410,10 @@ RoomObject.prototype.popState = function () {
 	this.clearTarget();
 	if (!this.memory.stack.length)
 		this.memory.stack = undefined;
+	if(runNext) {
+		Log.debug(`Invoking next state ${this.getState()} early for ${this} (post-pop)`, 'RoomObject');
+		this.invokeState();
+	}
 };
 
 /** Clear the stack */

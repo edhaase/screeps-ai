@@ -475,8 +475,10 @@ StructureController.prototype.getSafeModeGoal = function () {
  */
 StructureController.prototype.evacuate = function (condition) {
 	this.room.find(FIND_MY_CREEPS).forEach(c => {
-		c.pushState('Wait', condition);
-		c.pushState('FleeRoom', this.room.name);
+		c.pushStates([
+			['Wait', condition],
+			['FleeRoom', this.pos.roomName]
+		]);
 	});
 };
 

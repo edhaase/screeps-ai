@@ -582,6 +582,9 @@ Creep.prototype.repair = function (target) {
  * Stack machine actions
  */
 /* eslint-disable consistent-return */
+Creep.prototype.pushState = function (state, scope={}, runNext=true) {
+	return RoomObject.prototype.pushState.call(this, state, scope, ((this.spawning) ? false : runNext));
+};
 
 /**
  * Escape a room, either from a nuke or invasion
@@ -650,14 +653,14 @@ Creep.prototype.runMoveToRoom = function (scope) {
 };
 
 Creep.prototype.runAttackMove = function (scope) {
-	this.runMove(scope);
+	this.runMoveTo(scope);
 	if (this.room.hostiles)
 		this.pushState('Combat');
 };
 
 Creep.prototype.runEvadeMove = function (scope) {
-	this.runMove(scope);
-	// @todo evade hostiles
+	if(this.flee(MINIMUM_SAFE_FLEE_DISTANCE) !== OK)
+		this.runMoveTo(scope);
 };
 
 /**
@@ -775,7 +778,7 @@ Creep.prototype.runAcquireEnergy = function ({ allowMove = false, allowHarvest =
 		);
 	}
 	if (!target && allowHarvest && this.hasBodypart(WORK))
-		return this.pushState('HarvestEnergy', { allowMove });
+		return this.setState('HarvestEnergy', { allowMove });
 	else if (target instanceof Resource)
 		status = this.pickup(target);
 	else
