@@ -9,6 +9,7 @@
  * example: Game.spawns.Spawn1.enqueue([MOVE], null, {role: 'signer', dest: new RoomPosition(21,41,'W2N7'), msg: 'Zenity'}, 1);
  * example: Game.spawns.Spawn1.enqueue([MOVE], null, {role: 'signer', room: 'W1N7', msg: 'Zenity'}, 1)
  * example: Game.spawns.Spawn1.enqueue([MOVE], null, {role: 'signer', room: 'W1N7', msg: ''}, 1)
+ * example: Game.spawns.Spawn2.submit({body:[MOVE], memory: {role: 'signer', room: 'W3N3', msg: 'Test'}, priority: 100})
  */
 "use strict";
 
@@ -31,5 +32,23 @@ module.exports = {
 			return this.setRole('recycle');
 		else
 			Log.warn(`Unable to sign controller: ${status}`);
+	}
+};
+
+
+
+module.exports = {
+	init: function(creep) {
+		creep.pushStates([
+			['SetRole', 'recycle'],
+			['EvalOnce', `this.signController(this.room.controller, "${creep.memory.msg}")`],
+			['EvalOnce', 'this.pushState("EvadeMove",{pos:this.memory.dest})'],
+			['EvalOnce', 'this.memory.dest = this.room.controller.pos'],
+			['MoveToRoom', creep.memory.room]
+		]);
+	},
+	run: function(creep) {
+		/* Maybe not neccesary if our stack machine is good enough? */
+		creep.say('Done!');
 	}
 };

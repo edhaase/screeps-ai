@@ -134,10 +134,15 @@ module.exports = {
 				goal = this.room.controller;
 			} else {
 				goal = getDropoffSite(this);
+				const MAX_OVERSTOCK = 3.0;
 				if (!goal) {
-					if (terminal && terminal.my && (terminal.store[RESOURCE_ENERGY] < TERMINAL_MIN_ENERGY * 2 || (storage && storage.stock >= 1)))
+					if (terminal && terminal.my
+					&& (terminal.store[RESOURCE_ENERGY] < TERMINAL_MIN_ENERGY * 2 || (storage && storage.stock >= 1))
+					&& terminal.storedTotal < terminal.storeCapacity)
 						goal = terminal;
-					else if (storage && storage.my && (storage.store[RESOURCE_ENERGY] / storage.storeCapacity < 0.9))
+					else if (storage && storage.my
+					&& (storage.store[RESOURCE_ENERGY] / storage.storeCapacity < 0.9)
+					&& storage.stock < MAX_OVERSTOCK)
 						goal = storage;
 					else
 						goal = controller;

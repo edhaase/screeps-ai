@@ -12,7 +12,7 @@ module.exports = {
 	},
 	run: function () {
 		const { controller } = this.room;
-		if (!controller)
+		if (!controller || this.pos.roomName !== this.memory.site.roomName)
 			return this.pushState('MoveTo', {pos: this.memory.site, range: 1});
 		this.room.memory.reservation = Game.time + _.get(controller, 'reservation.ticksToEnd', 0);
 		if (this.flee(10) === OK)

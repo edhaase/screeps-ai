@@ -9,8 +9,9 @@
 "use strict";
 
 module.exports = {
-	init: function (creep) {
-
+	init: function () {
+		// this.pushState('MoveTo', {pos: Game.flags[this.memory.site].pos, range: 3});
+		this.pushState('MoveToRoom', Game.flags[this.memory.site].pos.roomName);
 	},
 	run: function (creep) {
 		var { site } = creep.memory;
@@ -32,7 +33,7 @@ module.exports = {
 			if (creep.canAttack && creep.pos.isNearTo(threat)) {
 				// We're melee and adjacent, smack them in their stupid face.
 				creep.attack(threat);
-				if (creep.canRanged)
+				if (creep.canRanged && threat.canAttack)
 					creep.flee(CREEP_RANGED_ATTACK_RANGE);
 			} else if (creep.canRanged && creep.pos.inRangeTo(threat, CREEP_RANGED_ATTACK_RANGE)) {
 				// We're ranged and in range, shoot them in the face.
@@ -41,9 +42,9 @@ module.exports = {
 				else
 					creep.rangedAttack(threat);
 				// @todo: or massAttack?
-				if (creep.canAttack && !threat.canFight)
+				if (creep.canAttack && !threat.canAttack)
 					creep.moveTo(threat, { rangee: 1 });
-				else
+				else if(threat.canAttack)
 					creep.flee(CREEP_RANGED_ATTACK_RANGE);
 				if (creep.hits < creep.hitsMax)
 					creep.heal(creep);
@@ -71,8 +72,9 @@ module.exports = {
 			var patient = creep.pos.findClosestByRange(FIND_MY_CREEPS, { filter: c => c.hits < c.hitsMax });
 			// var patient = creep.pos.findClosestByRange(FIND_CREEPS, { filter: c => c.hits < c.hitsMax && !Filter.unauthorizedHostile(c) });
 			if (!patient) {
-				if (flag && !creep.pos.inRangeTo(flag.pos, IDLE_DISTANCE))
-					creep.moveTo(flag, { range: IDLE_DISTANCE });
+				if (flag && creep.pos.roomName !== flag.pos.roomName) {
+					creep.moveToRoom(flag.pos.roomName);
+				}
 			} else if (creep.pos.isNearTo(patient)) {
 				creep.heal(patient);
 			} else {
@@ -84,8 +86,8 @@ module.exports = {
 			// No threats (or can't fight) and wounded. Limp home for tower repairs.
 			if (creep.memory.origin && (creep.pos.roomName !== creep.memory.origin || creep.pos.isOnRoomBorder()))
 				creep.moveToRoom(creep.memory.origin);
-		} else if (flag && !creep.pos.inRangeTo(flag.pos, IDLE_DISTANCE)) {
-			creep.moveTo(flag, { range: IDLE_DISTANCE });
+		} else if (flag && creep.pos.roomName !== flag.pos.roomName) {
+			creep.moveToRoom(flag.pos.roomName);
 		}
 	}
 };

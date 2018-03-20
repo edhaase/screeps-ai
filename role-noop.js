@@ -3,7 +3,10 @@
 "use strict";
 
 module.exports = {
+	boosts: ['LH', 'LH2O', 'XLH2O'],	
+	priority: function () {
 
+	},
 	run: function () {
 		// does nothing
 	}
