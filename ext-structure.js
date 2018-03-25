@@ -5,6 +5,7 @@
 
 defineCachedGetter(Structure.prototype, 'cost', ({ structureType }) => CONSTRUCTION_COST[structureType]);
 defineCachedGetter(Structure.prototype, 'energyPct', s => s.energy / s.energyCapacity);
+defineCachedGetter(Structure.prototype, 'energyCapacityAvailable', s => s.energyCapacity - s.energy);
 defineCachedGetter(Structure.prototype, 'hitPct', s => s.hits / s.hitsMax);
 defineCachedGetter(Structure.prototype, 'storedTotal', s => _.sum(s.store));
 
