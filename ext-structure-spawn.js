@@ -90,7 +90,7 @@ StructureSpawn.prototype.processJobs = function () {
 		return false;
 	}
 
-	if (job.expire && Game.time > job.expire) {
+	if ((job.expire && Game.time > job.expire) || job.cost > this.room.energyCapacityAvailable) {
 		q.shift();
 		return this.processJobs(); // Recursively try again.
 	}
