@@ -5,7 +5,7 @@
  * Around 73k to 120k we should consider defense creeps.
  */
 "use strict";
-/* global defineCachedGetter Player Filter */
+/* global defineCachedGetter Player Filter CRITICAL_INFRASTRUCTURE */
 
 global.BIT_LOW_POWER = (1 << 1);
 global.BIT_DISABLE_CONSTRUCTION = (1 << 2);
@@ -25,8 +25,8 @@ defineCachedGetter(Room.prototype, 'structuresByType', r => _.groupBy(r.structur
 defineCachedGetter(Room.prototype, 'structureCountByType', r => _.countBy(r.structures, 'structureType'));
 defineCachedGetter(Room.prototype, 'mineral', r => r.find(FIND_MINERALS)[0]);
 defineCachedGetter(Room.prototype, 'containers', r => r.structuresByType[STRUCTURE_CONTAINER] || []);
-defineCachedGetter(Room.prototype, 'hurtCreeps', r => r.find(FIND_CREEPS, {filter: c => c.hitPct < 1 && (c.my || Player.status(c.owner.username) === PLAYER_ALLY)}));
-defineCachedGetter(Room.prototype, 'nuker', r => r.findOne(FIND_MY_STRUCTURES, {filter: {structureType: STRUCTURE_NUKER}}));
+defineCachedGetter(Room.prototype, 'hurtCreeps', r => r.find(FIND_CREEPS, { filter: c => c.hitPct < 1 && (c.my || Player.status(c.owner.username) === PLAYER_ALLY) }));
+defineCachedGetter(Room.prototype, 'nuker', r => r.findOne(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_NUKER } }));
 defineCachedGetter(Room.prototype, 'resources', r => r.find(FIND_DROPPED_RESOURCES, { filter: Filter.droppedResources }));
 defineCachedGetter(Room.prototype, 'energyPct', r => r.energyAvailable / r.energyCapacityAvailable);
 
@@ -162,12 +162,12 @@ global.pushCommandToRoom = function (roomName, cmd) {
 /**
  * Calculate the origin of a room given our constraints.
  */
-Room.prototype.getOrigin = function() {
+Room.prototype.getOrigin = function () {
 	if (!this.memory.origin) {
-		this.memory.origin = require('Planner').distanceTransformWithController(this) || {pos: this.controller.pos, range: 4};
+		this.memory.origin = require('Planner').distanceTransformWithController(this) || { pos: this.controller.pos, range: 4 };
 		Log.warn(`Found origin: ${this.memory.origin}`, 'Planner');
 	}
-	return {pos: _.create(RoomPosition.prototype, this.memory.origin), radius: 1};
+	return { pos: _.create(RoomPosition.prototype, this.memory.origin), radius: 1 };
 };
 
 /***********************************************************************
@@ -241,24 +241,26 @@ Room.prototype.updateBuild = function () {
 	delete this.memory.cid;
 	Util.shiftWhile(this.memory.bq,
 		({ x, y, structureType, expire }) => Game.time > expire || this.getPositionAt(x, y).hasStructure(structureType),
-		(job) => Log.info(this.name + ': Job ' + ((Game.time > job.expire) ? 'expired' : 'completed') + ', ' + JSON.stringify(job)));
+		(job) => Log.info(this.name + ': Job ' + ((Game.time > job.expire) ? 'expired' : 'completed') + ', ' + JSON.stringify(job), 'Room'));
 
 	// Get a job. If we're using addToBuildQueue correctly, this will already
 	// be sorted correctly (priority, expiration, cost)
-	const job = _.first(this.getBuildQueue());
-	if (!job)
+	const [job] = this.getBuildQueue() || [];
+	if (!job) {
+		Log.info(`${this.name}: Build queue complete!`, 'Room');
 		return OK;
+	}
 	var { x, y, structureType } = job;
 	var pos = this.getPositionAt(x, y);
 	// Stolen from kasami, build rampart first
-	if((structureType === STRUCTURE_TERMINAL || structureType === STRUCTURE_SPAWN || structureType === STRUCTURE_TOWER || structureType === STRUCTURE_STORAGE || structureType === STRUCTURE_LAB || structureType === STRUCTURE_NUKER)
-	&& !pos.hasStructure(STRUCTURE_RAMPART)
-	&& pos.createConstructionSite(STRUCTURE_RAMPART) === OK) // This might fail at RCL 1, let's not lock up the room.
+	if (CRITICAL_INFRASTRUCTURE.includes(structureType)
+		&& !pos.hasStructure(STRUCTURE_RAMPART)
+		&& pos.createConstructionSite(STRUCTURE_RAMPART) === OK) // This might fail at RCL 1, let's not lock up the room.
 		return OK;
 	var status = pos.createConstructionSite(structureType);
 	switch (status) {
 	case OK: {
-		if(structureType === STRUCTURE_SPAWN && _.isEmpty(this.find(FIND_MY_SPAWNS))) {
+		if (structureType === STRUCTURE_SPAWN && _.isEmpty(this.find(FIND_MY_SPAWNS))) {
 			const smStatus = this.controller.activateSafeMode();
 			Log.notify(`${this.name}: Activating safe mode to protect critical construction, status ${smStatus}`);
 		}
@@ -396,9 +398,9 @@ Room.prototype.getMyCreeps = function (filter = _.identity) {
 /**
  *
  */
-Room.prototype.findOne = function(c, opts={}) {
+Room.prototype.findOne = function (c, opts = {}) {
 	var results = this.find(c);
-	if(opts.filter)
+	if (opts.filter)
 		return _.find(results, opts.filter);
 	else
 		return _.first(results);
@@ -565,7 +567,7 @@ Room.prototype.getUpkeep = function () {
 	return (_.get(s, STRUCTURE_ROAD + '.length', 0) * ROAD_UPKEEP)
 		+ (_.get(s, STRUCTURE_CONTAINER + '.length', 0) * (_.get(this, 'controller.my', false) ? CONTAINER_UPKEEP : REMOTE_CONTAINER_UPKEEP))
 		+ (_.get(s, STRUCTURE_RAMPART + '.length', 0) * RAMPART_UPKEEP)
-	;
+		;
 };
 
 Room.prototype.stats = function () {

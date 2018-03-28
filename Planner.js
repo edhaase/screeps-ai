@@ -33,16 +33,16 @@
 /* var a = {
 	[STRUCTURE_NUKER]: CONTROLLER_STRUCTURES[STRUCTURE_NUKER][level],	
 } */
-
+/* global CRITICAL_INFRASTRUCTURE */
 global.BIT_BUILD_ROAD = (1 << 0); // Enable road building
 
 // Labs must be built close together.
 // Roads fill in the gaps
 // Links go near controllers, sources, and terminal/storage (if multiple points, pick closer?)
-// const RANDO_STRUCTURES = [STRUCTURE_LAB, STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_POWER_SPAWN, STRUCTURE_NUKER, STRUCTURE_OBSERVER];
-const RANDO_STRUCTURES = [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_POWER_SPAWN, STRUCTURE_NUKER, STRUCTURE_OBSERVER];
-// const RANDO_STRUCTURES = [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_POWER_SPAWN, STRUCTURE_NUKER];
+const RANDO_STRUCTURES = [STRUCTURE_LAB, STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_POWER_SPAWN, STRUCTURE_NUKER, STRUCTURE_OBSERVER];
+// const RANDO_STRUCTURES = [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_POWER_SPAWN, STRUCTURE_NUKER, STRUCTURE_OBSERVER];
 const MINIMUM_LEVEL_FOR_LINKS = _.findKey(CONTROLLER_STRUCTURES[STRUCTURE_LINK]);
+const MIN_LEVEL_FOR_RAMPARTS = _.findKey(CONTROLLER_STRUCTURES[STRUCTURE_RAMPART]);
 
 /**
  *
@@ -320,7 +320,11 @@ class BuildPlanner {
 			var {plan} = fleePlanner;
 			// @todo move to build planner
 			// _.each(plan, ({pos,structureType}) => pos.createConstructionSite(structureType));
-			_.each(plan, ({ pos, structureType }) => Game.rooms[pos.roomName].addToBuildQueue(pos, structureType, DEFAULT_BUILD_JOB_EXPIRE, STRUCTURE_BUILD_PRIORITY[structureType] || 0.5));
+			var room = Game.rooms[pos.roomName], prio;
+			_.each(plan, ({ pos, structureType }) => {
+				prio = STRUCTURE_BUILD_PRIORITY[structureType] || 0.5
+				room.addToBuildQueue(pos, structureType, DEFAULT_BUILD_JOB_EXPIRE, prio);
+			});
 		}
 		// Then build other stuff
 		this.placeRamparts(room);
@@ -631,17 +635,19 @@ class BuildPlanner {
 	 */
 	static placeRamparts(room) {
 		// Maybe lower this to 2.
-		if (_.get(room, 'controller.level', 0) < 3) // ignore until we get a tower up
+		// if (_.get(room, 'controller.level', 0) < 3) // ignore until we get a tower up
+		//	return ERR_RCL_NOT_ENOUGH;
+		if(_.get(room, 'controller.level', 0) < MIN_LEVEL_FOR_RAMPARTS)
 			return ERR_RCL_NOT_ENOUGH;
 		var protect = [STRUCTURE_STORAGE, STRUCTURE_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_NUKER, STRUCTURE_OBSERVER, STRUCTURE_TOWER, STRUCTURE_POWER_SPAWN];
 		var start = Game.cpu.getUsed();
 		var structures = room.find(FIND_MY_STRUCTURES, { filter: s => s.structureType !== STRUCTURE_RAMPART });
-		if (!_.any(structures, s => s.structureType === STRUCTURE_TOWER)) {
+		/* if (!_.any(structures, s => s.structureType === STRUCTURE_TOWER)) {
 			Log.error(`No towers in ${room.name}, unable to auto-rampart`, 'Planner');
 			return ERR_NOT_FOUND;
-		}
+		} */
 		_.each(structures, function (s) {
-			if (!protect.includes(s.structureType) || s.pos.hasRampart())
+			if (!CRITICAL_INFRASTRUCTURE.includes(s.structureType) || s.pos.hasRampart())
 				return;
 			Log.debug(`Creating rampart for ${s} at pos ${s.pos}`,'Planner');
 			room.addToBuildQueue(s.pos, STRUCTURE_RAMPART);

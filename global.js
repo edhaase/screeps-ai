@@ -110,6 +110,8 @@ global.CONTROLLER_STRUCTURES_LEVEL_FIRST = [];
 for (var i = 0; i <= 8; i++)
 	CONTROLLER_STRUCTURES_LEVEL_FIRST[i] = _.transform(CONTROLLER_STRUCTURES, (r, v, k) => r[k] = v[i]);
 
+/** Critical infrastructure is auto-ramparted periodically or on creation */
+global.CRITICAL_INFRASTRUCTURE = [STRUCTURE_STORAGE, STRUCTURE_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_NUKER, STRUCTURE_OBSERVER, STRUCTURE_TOWER, STRUCTURE_POWER_SPAWN, STRUCTURE_LAB, STRUCTURE_NUKER, STRUCTURE_POWER_SPAWN];
 
 /** primary flag types */
 global.FLAG_MILITARY = COLOR_RED;	// Military
@@ -177,14 +179,15 @@ global.BODYPART_THREAT = {
  * Will probably be evaluated as max (priority / distance).
  */
 global.STRUCTURE_THREAT = {
-	[STRUCTURE_TOWER]: 2000,	// These _must_ die.
-	[STRUCTURE_SPAWN]: 1000,
-	[STRUCTURE_STORAGE]: 500,	// May be adjusted for contents
-	[STRUCTURE_TERMINAL]: 500,
-	[STRUCTURE_EXTENSION]: 250,
-	[STRUCTURE_OBSERVER]: 400,
-	[STRUCTURE_LINK]: 5,
-	[STRUCTURE_EXTRACTOR]: 3,
+	[STRUCTURE_SPAWN]: 1.0,
+	[STRUCTURE_TOWER]: 0.95,	// These _must_ die.
+	[STRUCTURE_EXTENSION]: 0.75,
+	[STRUCTURE_STORAGE]: 0.75,	// May be adjusted for contents
+	[STRUCTURE_TERMINAL]: 0.75,
+	[STRUCTURE_LINK]: 0.10,
+	[STRUCTURE_WALL]: 0.5,
+	[STRUCTURE_OBSERVER]: 0,
+	[STRUCTURE_EXTRACTOR]: 0,
 	[STRUCTURE_ROAD]: 0,		// These aren't threats
 	[STRUCTURE_RAMPART]: 0,		// will be dealth with if in the way.
 	[STRUCTURE_WALL]: 0,
