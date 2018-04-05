@@ -225,14 +225,16 @@ class FixedObstacleMatrix extends CostMatrix {
 		if (!room)
 			return;
 		// don't forget enemy non-public ramparts!
+		const { isObstacle } = require('Filter');
+
 		room
-			.find(FIND_STRUCTURES, { filter: require('Filter').isObstacle })
+			.find(FIND_STRUCTURES, { filter: isObstacle })
 			.forEach(s => this.set(s.pos.x, s.pos.y, 255));
 		room
 			.find(FIND_STRUCTURES, { filter: {structureType: STRUCTURE_ROAD} })
 			.forEach(s => this.set(s.pos.x, s.pos.y, 1));
 		room
-			.find(FIND_MY_CONSTRUCTION_SITES, { filter: require('Filter').isObstacle })
+			.find(FIND_CONSTRUCTION_SITES, { filter: c => isObstacle(c) || (c.owner && Player.status(c.owner.username) === PLAYER_ALLY) })
 			.forEach(s => this.set(s.pos.x, s.pos.y, 255));
 
 		// Disable while SK mining, until we find a better way.
