@@ -27,6 +27,7 @@ defineCachedGetter(Room.prototype, 'mineral', r => r.find(FIND_MINERALS)[0]);
 defineCachedGetter(Room.prototype, 'containers', r => r.structuresByType[STRUCTURE_CONTAINER] || []);
 defineCachedGetter(Room.prototype, 'hurtCreeps', r => r.find(FIND_CREEPS, { filter: c => c.hitPct < 1 && (c.my || Player.status(c.owner.username) === PLAYER_ALLY) }));
 defineCachedGetter(Room.prototype, 'nuker', r => r.findOne(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_NUKER } }));
+defineCachedGetter(Room.prototype, 'observer', r => r.findOne(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_OBSERVER } }));
 defineCachedGetter(Room.prototype, 'resources', r => r.find(FIND_DROPPED_RESOURCES, { filter: Filter.droppedResources }));
 defineCachedGetter(Room.prototype, 'energyPct', r => r.energyAvailable / r.energyCapacityAvailable);
 
@@ -541,21 +542,6 @@ Room.prototype.onHighAlertExit = function () {
 Room.prototype.getAdjacentRooms = function () {
 	return _.values(Game.map.describeExits(this.name));
 };
-
-Object.defineProperty(Room.prototype, 'observer', {
-	get: function () {
-		if (this == null || this.name == null)
-			return null;
-		if (this.cache.observer == null) {
-			const observer = _.first(this.find(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_OBSERVER } }));
-			if (observer)
-				this.cache.observer = observer.id;
-		}
-		return Game.getObjectById(this.cache.observer);
-	},
-	enumerable: false,
-	configurable: true
-});
 
 Room.prototype.disable = function (ticks = CREEP_LIFE_TIME) {
 	_.invoke(this.find(FIND_MY_CREEPS), 'setRole', 'recycle');
