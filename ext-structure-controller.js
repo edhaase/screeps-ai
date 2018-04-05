@@ -75,8 +75,8 @@ defineCachedGetter(StructureController.prototype, 'age', con => Game.time - con.
 // RCL 4: Storage.  We have 20000 ticks till downgrade, ignore upgraders until we get storage up?
 // RCL 5: Second tower. Link storage to controller.
 StructureController.prototype.run = function () {
-	this.updateLevel();
 	this.updateRclAvg();
+	this.updateLevel();
 	this.updateSafeMode();
 	//
 	// Working countdown clock
@@ -89,6 +89,9 @@ StructureController.prototype.run = function () {
 		const estimate = this.estimateInTicks();
 		this.say(`${avgTick} (${estimate})`);
 	}
+
+	if (!(Game.time & 255))
+		Command.push(`require('Planner').buildRoom(Game.rooms['${this.room.name}'])`);
 
 	if ((Game.time % (DEFAULT_SPAWN_JOB_EXPIRE + 1)) === 0 && !this.checkBit(BIT_CTRL_DISABLE_CENSUS)) {
 		// if (this.clock(DEFAULT_SPAWN_JOB_EXPIRE) === 0 && !this.checkBit(BIT_CTRL_DISABLE_CENSUS)) { // Staggering jobs might be bad.
@@ -204,6 +207,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 		throw new Error("This room under acting under another controller");
 	var spawns = this.room.find(FIND_MY_SPAWNS);
 	var [spawn] = spawns;
+	const { storage, terminal } = this.room;
 	const terminalEnergy = _.get(this.room, 'terminal.store.energy', 0);
 	const storedEnergy = _.get(this.room, 'storage.store.energy', 0);
 	var prio = 50;
@@ -242,19 +246,21 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	const base = Math.min(_.sum(sources, 'ept'), _.sum(miners, 'harvestPower') + _.sum(dualminers, 'harvestPower'));
 	const remote = Math.floor(_.sum(haulers, 'memory.ept')) || 0;
 	const reactor = (this.room.energyAvailable >= SPAWN_ENERGY_START) ? 0 : spawns.length;
-	const income = base + remote + reactor;
+	const overstock = Math.floor((storage && storedEnergy * Math.max(0, storage.stock - 1) || 0) / CREEP_LIFE_TIME);
+	const income = base + remote + reactor + overstock;
 
 	const upkeep = _.sum(creeps, 'cpt') + _.sum(this.room.structures, 'upkeep');
 	const expense = 0;
 	const net = income - (expense + upkeep);
 	const avail = income - upkeep;
-	Log.info(`${this.pos.roomName}: Income ${income}, Expense: ${expense}, Upkeep: ${_.round(upkeep, 3)}, Net: ${_.round(net, 3)}, Avail ${_.round(avail,3)}, Banked: ${storedEnergy}`, 'Controller');
+	Log.info(`${this.pos.roomName}: Income ${income}, Overstock: ${overstock}, Expense: ${expense}, Upkeep: ${_.round(upkeep, 3)}, Net: ${_.round(net, 3)}, Avail ${_.round(avail, 3)}, Banked: ${storedEnergy}`, 'Controller');
 
 
 	// Distribution
-	const allotedUpgrade = Math.floor(avail * 0.80);
+	const allotedUpgrade = Math.floor(avail * 0.60);
 	const allotedRepair = Math.floor(avail * 0.20);
-	Log.info(`Allotments: ${allotedUpgrade} upgrade ${allotedRepair} repair`, 'Controller');
+	const allotedBuild = Math.floor(avail * 0.20);
+	Log.info(`${this.pos.roomName}: Allotments: ${allotedUpgrade} upgrade, ${allotedRepair} repair, ${allotedBuild} build`, 'Controller');
 
 	/**
 	 * Emergency conditions - Should probably be detected elsewhere
@@ -296,6 +302,8 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	var dual = false;
 	// @todo: If we start adding sources to this list, how is this supposed to work?
 	// @todo: Start requesting dedicated, assigned haulers?
+	const MAX_STORAGE_PCT = 0.90;
+	// if(!this.room.storage || this.room.storage.storedPct < MAX_STORAGE_PCT) {
 	if (numSources === 2 && this.level >= 6) {
 		var totalCapacity = _.sum(sources, 'energyCapacity');
 		// If we have miners currently skip..
@@ -305,10 +313,10 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 				const [s1, s2] = sources;
 				var s1pos = _.create(RoomPosition.prototype, s1.pos);
 				var s2pos = _.create(RoomPosition.prototype, s2.pos);
-				this.cache.steps = s1pos.getStepsTo({pos: s2pos, range: 1}) * 2; // expecting two sources
+				this.cache.steps = s1pos.getStepsTo({ pos: s2pos, range: 1 }) * 2; // expecting two sources
 				Log.debug(`${this.pos.roomName} steps: ${this.cache.steps}`, 'Controller');
 			}
-			const result = _.attempt( () => require('Unit').requestDualMiner(spawn, this.pos.roomName, totalCapacity, this.cache.steps) );
+			const result = _.attempt(() => require('Unit').requestDualMiner(spawn, this.pos.roomName, totalCapacity, this.cache.steps));
 			if (result !== false && !(result instanceof Error)) {
 				// Log.warn('Requesting dual miner at ' + roomName + ' from ' + spawn.pos.roomName);
 				dual = true;
@@ -319,8 +327,9 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	}
 	if (dual !== true) {
 		sources.forEach(source => {
+			const [, cost,] = source.getClosestSpawn({}, 'cache');
 			const miner = _.findWhere(miners, { memory: { dest: source.pos, role: 'miner' } });
-			if (!miner || (miner.ticksToLive && this.room.energyCapacityAvailable < 600 && miner.ticksToLive < UNIT_BUILD_TIME(miner.body) + assistCost)) {
+			if (!miner || (miner.ticksToLive && this.room.energyCapacityAvailable < 600 && miner.ticksToLive < UNIT_BUILD_TIME(miner.body) + (assistCost||cost))) {
 				prio = 75;
 				if (storedEnergy > 10000)
 					prio = 50;
@@ -336,6 +345,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 			}
 		});
 	}
+	// }
 
 	const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
 	if (sites && sites.length && builders.length < (numSources || 1)) { // && (this.room.energyAvailable > 200 || storedEnergy > 110000)) {
@@ -415,6 +425,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 
 	// @todo conflict mode reduce this
 	// @todo did we beak RCL 8 low power mode?
+	const MAX_UPGRADER_COUNT = 6;
 	if ((!this.upgradeBlocked || this.upgradeBlocked < CREEP_SPAWN_TIME * 6)) {
 		const workAssigned = _.sum(upgraders, c => c.getBodyParts(WORK));
 		// let workDesired = 10 * (numSources / 2);
@@ -425,11 +436,11 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 		} else {
 			if (this.room.storage)
 				workDesired = Math.floor(workDesired * this.room.storage.stock);
-			if(workDesired > 1) {
+			if (workDesired > 1) {
 				const workDiff = workDesired - workAssigned;
 				const pctWork = _.round(workAssigned / workDesired, 3);
 				Log.debug(`${this.pos.roomName} Upgraders: ${workAssigned} assigned, ${workDesired} desired, ${workDiff} diff (${pctWork})`, 'Controller');
-				if (pctWork < 0.80)
+				if (pctWork < 0.80 && upgraders.length < MAX_UPGRADER_COUNT)
 					require('Unit').requestUpgrader(spawn, roomName, 25, (workDesired));
 			} else {
 				Log.debug(`${this.pos.roomName} Upgraders: No upgraders desired, ${workAssigned} assigned.`, 'Controller');
@@ -477,7 +488,7 @@ StructureController.prototype.evacuate = function (condition) {
 	this.room.find(FIND_MY_CREEPS).forEach(c => {
 		c.pushStates([
 			['Wait', condition],
-			['FleeRoom', this.pos.roomName]
+			['FleeRoom', { room: this.pos.roomName }]
 		]);
 	});
 };
@@ -544,11 +555,6 @@ StructureController.prototype.updateLevel = function () {
 		this.onDowngrade(this.level, this.memory.level);
 	if (this.level > this.memory.level)
 		this.onUpgrade(this.level, this.memory.level);
-	// If build room has nothing to do it uses around 1-3 cpu.
-	// If the build queue is full it returns early.
-	// So we can call this at a higher frequency.
-	// if(Game.time % 300 == 0)
-	//	Planner.buildRoom(this.room);
 	this.memory.level = this.level;
 };
 
@@ -590,6 +596,13 @@ StructureController.prototype.onUpgrade = function (level, prev) {
 
 	if (this.level === 2 && !this.safeMode)
 		this.activateSafeMode();
+
+	// If build room has nothing to do it uses around 1-3 cpu.
+	// If the build queue is full it returns early.
+	// So we can call this at a higher frequency.
+	// if(Game.time % 300 == 0)
+	if (!CPU_LIMITER)
+		require('Planner').buildRoom(this.room);
 };
 
 /**
@@ -598,9 +611,8 @@ StructureController.prototype.onUpgrade = function (level, prev) {
 StructureController.prototype.updateRclAvg = function () {
 	if (this.level === MAX_ROOM_LEVEL)
 		return;
-	if (this.memory.rclLastTick || this.memory.rclLastTick === 0) {
+	if (this.memory.rclLastTick !== null && this.level <= this.memory.level) {
 		var diff = this.progress - this.memory.rclLastTick;
-		// this.memory.rclAvgTick = Math.cmAvg(diff, this.memory.rclAvgTick, 1000);
 		this.memory.rclAvgTick = Math.mmAvg(diff, this.memory.rclAvgTick, 1000);
 	}
 	this.memory.rclLastTick = this.progress;
