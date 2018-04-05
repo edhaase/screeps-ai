@@ -7,6 +7,8 @@ global.WHOAMI = _.find(Game.structures).owner.username;
 global.PREVENT_UNCLAIM = ['E59S39', 'E58S41'];
 global.INVADER_USERNAME = 'Invader';
 global.SOURCE_KEEPER_USERNAME = 'Source Keeper';
+global.IS_PTR = !!(Game.shard && Game.shard.ptr);
+global.IS_SIM = !!Game.rooms['sim'];
 
 global.RUNTIME_ID = Game.time;
 
@@ -111,7 +113,7 @@ for (var i = 0; i <= 8; i++)
 	CONTROLLER_STRUCTURES_LEVEL_FIRST[i] = _.transform(CONTROLLER_STRUCTURES, (r, v, k) => r[k] = v[i]);
 
 /** Critical infrastructure is auto-ramparted periodically or on creation */
-global.CRITICAL_INFRASTRUCTURE = [STRUCTURE_STORAGE, STRUCTURE_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_NUKER, STRUCTURE_OBSERVER, STRUCTURE_TOWER, STRUCTURE_POWER_SPAWN, STRUCTURE_LAB, STRUCTURE_NUKER, STRUCTURE_POWER_SPAWN];
+global.CRITICAL_INFRASTRUCTURE = [STRUCTURE_LINK, STRUCTURE_STORAGE, STRUCTURE_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_NUKER, STRUCTURE_OBSERVER, STRUCTURE_TOWER, STRUCTURE_POWER_SPAWN, STRUCTURE_LAB, STRUCTURE_NUKER, STRUCTURE_POWER_SPAWN];
 
 /** primary flag types */
 global.FLAG_MILITARY = COLOR_RED;	// Military
@@ -485,6 +487,7 @@ global.GC = function () {
 		}
 	}
 
+	Memory.rooms = _.omit(Memory.rooms, _.isEmpty);
 	// console.log("Group ids still around: " + ex(groups));
 	Memory.groups = _.omit(Memory.groups, (v, k) => !groups[k]);
 	/* for(var name in Memory.rooms)
@@ -648,4 +651,4 @@ global.roomLink = (room,shard='shard0') => `<a href='https://screeps.com/a/#!/ro
 /** Set height of console, author Spedwards */
 global.setConsoleLines = function(lines) {
 	console.log(`<script>document.querySelector(\'.editor-panel\').style.height = "${Math.ceil(lines * 22.5714) + 30}px";</script>`);
-}
+};
