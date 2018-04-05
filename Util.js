@@ -4,6 +4,16 @@
 "use strict";
 
 class Util {
+	static invoke(collection, method, ...args) {
+		var i,itm;
+		for(i in collection) {
+			itm = collection[i];
+			if(!itm[method])
+				continue;
+			itm[method].apply(itm,args);
+		}
+	}
+
 	// combine to bytes into single unicode byte
 	static toUnicode(a, b) {
 		a += 127;

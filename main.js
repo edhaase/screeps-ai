@@ -11,6 +11,8 @@
  */
 "use strict";
 
+/* global Log, Time, Util, Empire */
+
 /** Module profiler -  */
 function loadModule(name) {
 	var start = Game.cpu.getUsed();
@@ -25,6 +27,22 @@ function loadModule(name) {
 		console.log(e.stack);
 		throw e;
 	}
+}
+
+// From postcrafter
+function wrapLazyMemory(fn) {
+	let memory, tick;
+	return () => {
+		if (tick && tick + 1 === Game.time && memory) {
+			delete global.Memory;
+			global.Memory = memory;
+		} else {
+			memory = Memory;
+		}
+		tick = Game.time;
+		RawMemory._parsed = Memory;
+		fn();
+	};
 }
 
 /**
@@ -45,6 +63,7 @@ module.exports.loop = function () {
 	loadModule('global');
 
 	/** Set up global modules - These are reachable from the console */
+	global.Arr = loadModule('Arr');
 	global.Util = loadModule('Util');
 	global.Log = loadModule('Log');
 	global.CostMatrix = loadModule('CostMatrix');
@@ -90,9 +109,9 @@ module.exports.loop = function () {
 	loadModule('ext-structure-rampart');
 	loadModule('ext-structure-powerspawn');
 
-
 	// Hot swap the loop when we're loaded
-	module.exports.loop = function () {
+	// module.exports.loop = wrapLazyMemory(function () {
+	module.exports.loop = function() {
 		if (Game.cpu.bucket <= BUCKET_MINIMUM)
 			return Log.notify("Bucket empty, skipping tick!", 60);
 		if (Game.cpu.getUsed() > Game.cpu.limit)
@@ -115,25 +134,26 @@ module.exports.loop = function () {
 		try {
 			// processMessages();
 			Segment.update();
-			var dTR = Time.measure(() => _.invoke(Game.rooms, 'run'));
-			var dTC = Time.measure(() => _.invoke(Game.creeps, 'run')); // Run MUST have try-catch				
-			var dTS = Time.measure(() => _.invoke(Game.structures, 'logic'));
-			var dTF = Time.measure(() => _.invoke(Game.flags, 'run'));
-			var dEM = Time.measure(() => Empire.tick());
-			// var dPL = Time.measure( () => Planner.tick() );
-			var dCS = Time.measure(() => Command.tick());
-			var dMS = Time.measure(() => _.invoke(SEGMENTS, 'commit'));
 			if (!Memory.stats)
 				Memory.stats = {};
-			Memory.stats.runner = { dTR, dTS, dTC, dTF, dCS, dMS }; // , dTCS};
+			Memory.stats.runner = {};
+			const stats = Memory.stats.runner;
+			stats.dTR = Time.measure(() => Util.invoke(Game.rooms, 'run'));
+			stats.dTC = Time.measure(() => Util.invoke(Game.creeps, 'run'));
+			stats.dTS = Time.measure(() => Util.invoke(Game.structures, 'logic'));
+			if(Game.time % (DEFAULT_SPAWN_JOB_EXPIRE + 1) === 0)
+				stats.dTF = Time.measure(() => Util.invoke(Game.flags, 'run'));
+			stats.dEM = Time.measure(() => Empire.tick());
+			stats.dCS = Time.measure(() => Command.tick());
+			stats.dMS = Time.measure(() => _.invoke(SEGMENTS, 'commit'));
 		} catch (e) {
-			Log.error('Error in main loop: ' + e);
+			Log.error(`Error in main loop: ${e}`);
 			Log.error(e.stack);
 		}
 
 		if (!(Game.time & 255)) {
-			Log.success('Updating room builds', 'Planner');
-			require('Planner').pushRoomUpdates();
+			// Log.success('Updating room builds', 'Planner');
+			// require('Planner').pushRoomUpdates();
 			_(Game.market.orders).filter(o => o.remainingAmount <= 1).each(o => Game.market.cancelOrder(o.id)).commit();
 			Time.updateTickLength(256);
 		}
@@ -179,7 +199,7 @@ module.exports.loop = function () {
 		profiler.registerObject(Structure, 'Structure');
 
 		Log.info('Patching loop with profiler');
-		const {loop} = module.exports;
+		const { loop } = module.exports;
 		module.exports.loop = () => profiler.wrap(loop);
 	}
 
@@ -190,7 +210,7 @@ module.exports.loop = function () {
 			samples
 		);
 	};
-		
+
 	var used = Game.cpu.getUsed() - start;
 	console.log(`Delayed global reset (used ${used} cpu)`);
 };
