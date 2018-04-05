@@ -332,7 +332,7 @@ class BuildPlanner {
 		if (level >= 3) {
 			this.buildSourceRoads(room, pos, room.controller.level === 3);
 			this.buildControllerWall(pos, room.controller);
-			this.planRoad(pos, {pos: room.controller.pos, range: CREEP_UPGRADE_RANGE+1}, {container: false} );
+			this.planRoad(pos, {pos: room.controller.pos, range: CREEP_UPGRADE_RANGE}, {container: false, initial: 1} );
 		}
 		if (level >= MINIMUM_LEVEL_FOR_LINKS)
 			this.buildLinks(pos,level);
@@ -345,7 +345,7 @@ class BuildPlanner {
 				room.addToBuildQueue(mineral.pos, STRUCTURE_EXTRACTOR);
 			}
 			if (room.terminal)
-				this.planRoad(room.terminal.pos, { pos: mineral.pos, range: 1 }, { rest: true, initial: true, container: true });
+				this.planRoad(room.terminal.pos, { pos: mineral.pos, range: 1 }, { rest: 1, initial: 1, container: true });
 		}
 		return OK;
 	}
@@ -359,8 +359,11 @@ class BuildPlanner {
 		const room = Game.rooms[origin.roomName];
 		if (!room)
 			throw new Error('Room must be visible');
+		const { controller, sources, links=[] } = room;
+		const linksAllowed = CONTROLLER_STRUCTURES[STRUCTURE_LINK][controller.level];
+		if(links.length >= linksAllowed)
+			return Log.debug(`${room.name}: No links remaining`, 'Planner');
 		Log.debug(`Building links from ${origin} for level ${level}`, 'Planner');
-		const { controller, sources } = room;
 		// controller first, leave room at least 1 upgrader at range 3
 		// by parking the link at range 4
 		let status = controller.planLink(CREEP_UPGRADE_RANGE,2);
@@ -639,7 +642,6 @@ class BuildPlanner {
 		//	return ERR_RCL_NOT_ENOUGH;
 		if(_.get(room, 'controller.level', 0) < MIN_LEVEL_FOR_RAMPARTS)
 			return ERR_RCL_NOT_ENOUGH;
-		var protect = [STRUCTURE_STORAGE, STRUCTURE_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_NUKER, STRUCTURE_OBSERVER, STRUCTURE_TOWER, STRUCTURE_POWER_SPAWN];
 		var start = Game.cpu.getUsed();
 		var structures = room.find(FIND_MY_STRUCTURES, { filter: s => s.structureType !== STRUCTURE_RAMPART });
 		/* if (!_.any(structures, s => s.structureType === STRUCTURE_TOWER)) {
@@ -650,7 +652,7 @@ class BuildPlanner {
 			if (!CRITICAL_INFRASTRUCTURE.includes(s.structureType) || s.pos.hasRampart())
 				return;
 			Log.debug(`Creating rampart for ${s} at pos ${s.pos}`,'Planner');
-			room.addToBuildQueue(s.pos, STRUCTURE_RAMPART);
+			room.addToBuildQueue(s.pos, STRUCTURE_RAMPART, DEFAULT_BUILD_JOB_EXPIRE, 1.0);
 		});
 		var used = Game.cpu.getUsed() - start;
 		Log.info(`Updating auto-ramparts in ${room.name} took ${used} cpu`, 'Planner');
