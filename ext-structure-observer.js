@@ -40,6 +40,8 @@ global.OBSERVER_MODE_WATCH = 2;
 global.BIT_OBSERVER_UPDATE_CM = (1 << 1);
 global.BIT_OBSERVER_MARK_TARGETS = (1 << 2);
 
+const Intel = require('Intel');
+
 /**
  * Observer run method, called by each observer every tick.
  *
@@ -51,18 +53,22 @@ StructureObserver.prototype.run = function () {
 		return;
 
 	const { memory } = this;
+	const prevTickRoomName = this.memory.last;
+	const prevRoom = Game.rooms[prevTickRoomName];
+	this.memory.last = undefined; // clear early, in case we set it later
+
+	if(prevRoom)
+		Intel.scanRoom(prevRoom);
 
 	// Run stored command
-	if (memory.cmd !== undefined
-		&& memory.last !== undefined
-	) { // && Game.rooms[this.memory.last] !== undefined) {
-		console.log('Observer running stored program');
+	if (prevRoom && memory.cmd !== undefined) {
+		Log.info(`Observer ${this.pos.roomName} running stored program`, 'Observer');
 		try {
 			const fn = eval(memory.cmd);
 			fn.call(this, Game.rooms[memory.last]);
 		} catch (e) {
-			Log.error(e);
-			Log.error(e.stack);
+			Log.error(e, 'Observer');
+			Log.error(e.stack, 'Observer');
 		}
 		this.memory.last = undefined;
 		this.memory.cmd = undefined;
@@ -241,7 +247,7 @@ StructureObserver.prototype.observeRoom = function (roomName) {
 			background: 'black',
 		});
 	} else {
-		Log.debug(`Observer ${this.pos.roomName} unable to observe ${roomName} status ${status}`, 'Observer');
+		Log.warn(`Observer ${this.pos.roomName} unable to observe ${roomName} status ${status}`, 'Observer');
 	}
 	return status;
 };
