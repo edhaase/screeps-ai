@@ -181,7 +181,7 @@ module.exports = {
 	requestWarMiner: function (spawn, memory, room) {
 		if (!memory)
 			throw new Error('argument 2 memory cannot be null');
-		const body = Util.RLD([9, WORK, 19, MOVE, 1, CARRY, 3, RANGED_ATTACK, 13, ATTACK, 4, HEAL, 1, MOVE]); // Cost: 4440
+		const {body} = require('role-war-miner');
 		return spawn.submit({ body, memory, priority: 10, room: room || spawn.pos.roomName });
 	},
 
@@ -207,24 +207,12 @@ module.exports = {
 
 	requestBulldozer: function (spawn, roomName) {
 		// const body = [WORK, WORK, MOVE, MOVE];
-		const body = Arr.repeat([WORK, MOVE], spawn.room.energyAvailable);
+		const body = require('role-bulldozer').body({room: spawn.room});
 		return spawn.submit({ body, memory: { role: 'bulldozer', site: roomName }, priority: 10 });
 	},
 
 	requestDualMiner: function (spawn, home, totalCapacity, steps) {
-		const size = Math.ceil(totalCapacity / HARVEST_POWER / (ENERGY_REGEN_TIME - steps)) + 1; // +2 margin of error
-		Log.info(`Dual mining op has ${totalCapacity} total capacity`, 'Controller');
-		Log.info(`Dual mining op wants ${size} harvest parts`, 'Controller');
-
-		const body = Util.RLD([
-			size, WORK,
-			1, CARRY,
-			Math.ceil((1 + size) / 2), MOVE
-		]);
-		if (body.length > 50) {
-			Log.warn('Body of creep would be too big to build', 'Controller');
-			return false;
-		}
+		const body = require('role-dualminer').body({totalCapacity, steps});
 		const cost = UNIT_COST(body);
 		if (spawn.room.energyCapacityAvailable < cost) {
 			Log.warn('Body of creep is too expensive for the closest spawn', 'Controller');
@@ -330,10 +318,10 @@ module.exports = {
 		const remainder = spawn.room.energyCapacityAvailable % cost;	// for spare parts like [MOVE,ATTACK]
 		const building = Math.min(size, canBuild) * cost;
 		const body = Arr.repeat([MOVE, CLAIM], building);
-		if (_.isEmpty(body))
+		if (_.isEmpty(body) || body.length <= 2)
 			return ERR_RCL_NOT_ENOUGH;
 		else
-			return spawn.submit({ body, memory: { role: 'reserver', site }, priority });
+			return spawn.submit({ body, room: site.roomName, memory: { role: 'reserver', site }, priority });
 	},
 
 	requestHauler: function (spawn, memory, hasRoad = false, reqCarry = Infinity, priority = 10, room) {
