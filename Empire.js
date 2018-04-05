@@ -11,7 +11,7 @@
  */
 "use strict";
 
-const EMPIRE_EXPANSION_FREQUENCY = 8191; // Power of 2, minus 1
+const EMPIRE_EXPANSION_FREQUENCY = 4095; // Power of 2, minus 1
 const GCL_MOVING_AVG_DURATION = 1000;
 
 if (Memory.empire == null) {
@@ -74,13 +74,16 @@ class Empire {
 		const body = [MOVE, CLAIM];
 		const cost = UNIT_COST(body);
 		const spawns = _.reject(Game.spawns, r => r.isDefunct() || r.room.energyCapacityAvailable < cost);
-		const spawn = _.sample(spawns);
-		if (!spawn)
-			return Log.error("No available spawn for expansion", "Empire");
-		Log.notify("Expansion in progress!");
-
+		if (!spawns || !spawns.length)
+			return Log.error(`No available spawn for expansion`, 'Empire');
 		const candidates = this.getAllCandidateRooms();
-		Log.warn(`Candidate rooms: ${candidates}`, "Empire");
+		if(!candidates || !candidates.length)
+			return Log.error(`No expansion candidates`, 'Empire');
+		else
+			Log.warn(`Candidate rooms: ${candidates}`, 'Empire');
+		const [first] = candidates;
+		const spawn = _.min(spawns, s => Game.map.findRoute(s.pos.roomName, first).length);
+		Log.notify(`Expansion in progress! (Origin: ${spawn.pos.roomName})`);
 		spawn.submit({ body, memory: { role: 'pioneer', rooms: candidates }, priority: 50 });
 		// Pick a room!
 		// Verify it isn't owned or reserved. Continue picking.
@@ -95,7 +98,7 @@ class Empire {
 			.map(m => this.getCandidateRooms(m.name, 5))
 			.flatten()
 			.unique()
-			.shuffle()
+			.sortByOrder(r => Empire.scoreTerrain(r) * (0.1+Math.random() * 0.2), ['desc'])
 			.value();
 	}
 
@@ -157,6 +160,15 @@ class Empire {
 	 */
 	static reservedRooms() {
 
+	}
+
+	/* eslint-disable no-magic-numbers */
+	static scoreTerrain(roomName) {
+		var x, y, score = 0;
+		for (x = 2; x < 47; x++)
+			for (y = 2; y < 47; y++)
+				score += (Game.map.getTerrainAt(x, y, roomName) === 'plain');
+		return score / 45 ** 2;
 	}
 }
 
