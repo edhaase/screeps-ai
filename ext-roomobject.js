@@ -322,14 +322,14 @@ RoomObject.prototype.invokeState = function() {
 		this.stackDepth=0;
 		this.stackCounter=0;
 	}
-	if(this.stackDepth > MAX_STACK_CONCURRENT) {
-		Log.debug(`Aborting action ${state} (${method}) for ${this} at ${this.pos} on tick ${Game.time} at depth ${this.stackDepth} (count ${this.stackCounter})`, 'RoomObject');
-		return false;
-	}
 	this.stackDepth++; // Depth counter
 	this.stackCounter++; // Increments permanently
 	var [[state,scope]] = this.memory.stack;
 	var method = `run${state}`;
+	if(this.stackDepth > MAX_STACK_CONCURRENT) {
+		Log.warn(`Aborting action ${state} (${method}) for ${this} at ${this.pos} on tick ${Game.time} at depth ${this.stackDepth} (count ${this.stackCounter})`, 'RoomObject');
+		return false;
+	}
 	if(!this[method])
 		return false;
 	Log.debug(`Invoking action ${state} (${method}) for ${this} at ${this.pos} on tick ${Game.time} at depth ${this.stackDepth} (count ${this.stackCounter})`, 'RoomObject');
@@ -345,6 +345,12 @@ RoomObject.prototype.getState = function (defaultState = 'I') {
 	if(!this.memory.stack)
 		return defaultState;
 	return this.memory.stack[0][0] || defaultState;
+};
+
+RoomObject.prototype.getStateParams = function() {
+	if(!this.memory.stack)
+		return null;
+	return this.memory.stack[0][1];
 };
 
 /**
@@ -379,10 +385,10 @@ RoomObject.prototype.pushState = function (state, scope={}, runNext=true) {
 		throw new Error(`No such state or action ${method} on ${this}`);
 	if (this.memory.stack.length >= MAX_STACK_DEPTH)
 		throw new Error('Automata stack limit exceeded');
-	Log.debug(`Pushing state ${state} to ${this}`, 'RoomObject');
+	Log.info(`Pushing state ${state} to ${this}`, 'RoomObject');
 	this.clearTarget();
 	this.memory.stack.unshift([state, scope]);
-	if(runNext) {
+	if(runNext && !this.spawning) {
 		Log.debug(`Invoking next state ${this.getState()} early for ${this} (post-push)`, 'RoomObject');
 		this.invokeState();
 	}
@@ -397,7 +403,7 @@ RoomObject.prototype.pushStates = function(arr=[], runNext=true) {
 		throw new Error('Automata stack limit exceed');
 	this.clearTarget();
 	_.each(arr, a => this.memory.stack.unshift(a));
-	if(runNext)
+	if(runNext && !this.spawning)
 		this.invokeState();
 };
 
@@ -406,7 +412,7 @@ RoomObject.prototype.popState = function (runNext=true) {
 	if (!this.memory.stack || !this.memory.stack.length)
 		return;
 	const [state] = this.memory.stack.shift();
-	Log.debug(`Popping state ${state} from ${this}`, 'RoomObject');
+	Log.info(`Popping state ${state} from ${this}`, 'RoomObject');
 	this.clearTarget();
 	if (!this.memory.stack.length)
 		this.memory.stack = undefined;
@@ -499,12 +505,12 @@ RoomObject.prototype.getClosestSpawn = function (opts = {}, prop = 'memory') {
 		const spawns = _.reject(Game.spawns, s => s.isDefunct());
 		const { goal, cost, path } = this.pos.findClosestByPathFinder(spawns, (spawn) => ({ pos: spawn.pos, range: 1 }), opts);
 		if (!goal)
-			return null;
+			return [null,null,null];
 		this[prop].spawn = goal.name;
 		this[prop].steps = path.length;
 		this[prop].cost = cost;				// est ticks to get there
 		this[prop].resetSpawn = Game.time + CREEP_LIFE_TIME;
-		Log.debug(`Assigning spawn ${this[prop].spawn} at steps ${path.length} and cost ${cost} to ${this}`, 'RoomObject');
+		Log.info(`Assigning spawn ${this[prop].spawn} at steps ${path.length} and cost ${cost} to ${this}`, 'RoomObject');
 	}
 	return [Game.spawns[this[prop].spawn], this[prop].cost, this[prop].steps];
 };
