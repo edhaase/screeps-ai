@@ -68,13 +68,15 @@ global.MAX_PARTS_PER_GENERATION = CREEP_LIFE_TIME / CREEP_SPAWN_TIME;
  *
  */
 StructureSpawn.prototype.run = function () {
-	this.memory.u = Math.cmAvg((this.spawning ? 1 : 0), this.memory.u, CREEP_LIFE_TIME);
+	this.memory.u = Math.mmAvg((this.spawning ? 1 : 0), this.memory.u, CREEP_LIFE_TIME);
 
 	// this.say('U: ' + _.round(this.memory.u,2), this.pos, {color: 'yellow'});	
 	//if(this.spawning && !(Game.time&2))
 	//	this.say(this.spawning.name);
 	if ((Game.time & 15) === 0)
 		this.removeExpiredJobs();
+	if (this.spawning && this.spawning.remainingTime === 0)
+		this.lookForNear(LOOK_CREEPS, true, 1).forEach(l => l['creep'].scatter());
 	if (this.spawning || this.isDeferred())
 		return;
 	if (this.processJobs() !== true && this.isRenewActive())
@@ -385,6 +387,8 @@ global.DEFUNCT_SPAWN_TICKS = 300;
 StructureSpawn.prototype.isDefunct = function () {
 	if (this.room.energyAvailable >= this.room.energyCapacityAvailable)
 		return false;
+	if (this.spawning && this.spawning.remainingTime === 0 && Game.time - Game.creeps[this.spawning.name].memory.born > 1)
+		return true;
 	return !!(Math.ceil(1 + this.memory.edelay) >= DEFAULT_SPAWN_JOB_EXPIRE);
 	// return Boolean(this.memory.e && this.memory.e > DEFUNCT_SPAWN_TICKS);
 	// var jobs = this.getAvailJobs();	
