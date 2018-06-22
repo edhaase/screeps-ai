@@ -5,36 +5,23 @@
  * if not _the_ most. Without one of these we don't have creeps, and creeps are required
  * for everything.
  *
- * Notable mention is that in this design the spawn makes no decisions about what we want
- * to spawn. We can have multiple spawns in a room that run as seperate entities,
- * so it only follows orders set forth in the priority queue. Each spawn in the
- * room shares a queue with the others in it's room. The spawn a job is submitted to may not
- * be the spawn that actually creates the creep.
- *
  * This also supports opportunistic renewels, using a lookForAtArea call to find adjacent creeps,
  * and a Creep prototype extension to check if it's a renewel candidate.
  *
- * Both renewCreep and createCreep adjust the room's energyAvailable if they succeed,
- * so that next spawn in the room to run gets accurate state and reduces intent conflicts.
- *
- * @todo Consider secondary priority of ticks instead of cost. 
- *
- * See: http://support.screeps.com/hc/en-us/articles/205990342-StructureSpawn
- * 
- * Max energy capacity available per level (for defining our creep body limits):
- *		RCL 1 - 300
- *		RCL 2 - 550
- *		RCL 3 - 		(Reservers begin here)
- *		RCL 4 - 1300
- *		RCL 5 -
- *		RCL 6 -		(Dual source miners start here)
- *		RCL 7 -
- *		RCL 8 -
- *
- *
- *
+ * See: http://docs.screeps.com/api/#StructureSpawn
  */
-"use strict";
+'use strict';
+
+/* global BUCKET_LIMITER, Log, DEFAULT_SPAWN_JOB_EXPIRE, DEFAULT_SPAWN_JOB_PRIORITY */
+/* global RENEW_COST, RENEW_TICKS, UNIT_BUILD_TIME */
+
+/* eslint-disable no-magic-numbers */
+
+global.PRIORITY_MIN = 100;
+global.PRIORITY_LOW = 75;
+global.PRIORITY_MED = 50;
+global.PRIORITY_HIGH = 25;
+global.PRIORITY_MAX = 0;
 
 // _.map(Memory.rooms['W2N7'].sq, 'memory.role')
 // _.map(Memory.rooms['W2N7'].sq, 'score')
@@ -57,7 +44,8 @@ global.DEFAULT_SPAWN_JOB_PRIORITY = 50;
 global.MAX_CREEP_SPAWN_TIME = MAX_CREEP_SIZE * CREEP_SPAWN_TIME;
 global.MAX_PARTS_PER_GENERATION = CREEP_LIFE_TIME / CREEP_SPAWN_TIME;
 
-
+const DEFAULT_EXPIRATION_SWEEP = 15; // Number of ticks between eviction sweeps
+const ON_ERROR_SLEEP_DELAY = 50;
 // Math.ceil((SPAWN_RENEW_RATIO * 10) / CREEP_SPAWN_TIME / 1)
 // Math.ceil((SPAWN_RENEW_RATIO * 50) / CREEP_SPAWN_TIME / 1)
 // Min renew cost for single tough: 4 energy,
@@ -73,7 +61,7 @@ StructureSpawn.prototype.run = function () {
 	// this.say('U: ' + _.round(this.memory.u,2), this.pos, {color: 'yellow'});	
 	//if(this.spawning && !(Game.time&2))
 	//	this.say(this.spawning.name);
-	if ((Game.time & 15) === 0)
+	if ((Game.time & DEFAULT_EXPIRATION_SWEEP) === 0)
 		this.removeExpiredJobs();
 	if (this.spawning && this.spawning.remainingTime === 0)
 		this.lookForNear(LOOK_CREEPS, true, 1).forEach(l => l['creep'].scatter());
@@ -84,8 +72,8 @@ StructureSpawn.prototype.run = function () {
 };
 
 StructureSpawn.prototype.processJobs = function () {
-	var job, q = this.getQueue();
-	if (!(job = q[0])) {
+	const q = this.getQueue(), [job] = q;
+	if (!job) {
 		// No job, can't be waiting on energy.
 		if (this.memory.e)
 			this.resetEnergyClock();
@@ -106,11 +94,11 @@ StructureSpawn.prototype.processJobs = function () {
 	}
 
 	var assignedName = job.name || `${job.memory.role}${this.getNextId()}`;
-	var result = this.spawnCreep(job.body, assignedName, { memory: job.memory, cost: job.cost });
+	var result = this.spawnCreep(job.body, assignedName, { memory: job.memory, cost: job.cost, directions: job.directions });
 	if (result !== OK) {
 		Log.error(`${this.pos.roomName}/${this.name} failed to create creep, status: ${result}`, 'Spawn');
 		if (result === ERR_RCL_NOT_ENOUGH)
-			this.defer(50);
+			this.defer(ON_ERROR_SLEEP_DELAY);
 		return false;
 	}
 
@@ -189,39 +177,13 @@ StructureSpawn.prototype.isIdle = function () {
 };
 
 /**
- * enqueue - Push work order for later
- *
- * @param Number priority - Expects integer 0 to 100 percent priority
- *
- * example: Game.spawns.Spawn1.enqueue([CARRY,CARRY,MOVE], null, {role: 'scav'}, 0, 0, 5)
- */
-StructureSpawn.prototype.enqueue = function enqueue(body, name = null, memory = {}, priority = 1, delay = 0, count = 1, expire = DEFAULT_SPAWN_JOB_EXPIRE) {
-	if (_.isObject(name))
-		throw new TypeError("Did you forget an explicit null for name?");
-	// Score once and add ticks once.
-	var job = {
-		body: body,
-		name: name,
-		memory: _.assign({}, memory),
-		priority: priority,
-		expire: (expire) ? (Game.time + expire) : Infinity
-	};
-	if (delay > 1)
-		Log.warn("Delay is not implemented");
-	if (count < 1) {
-		Log.notify(`Count must be one or greater, ${count} provided`);
-		throw new Error(`Count must be one or greater, ${count} provided`);
-	}
-	for (var i = 0; i < count; i++)
-		this.submit(job);
-	return job.ticks;
-};
-
-/**
- * Similar to enqueue but takes a fully built job object
+ * Submit a spawn task to the queue.
+ * 
  * example: {body,memory,priority,room,expire}
  */
 StructureSpawn.prototype.submit = function (job) {
+	if (job.body == null && job.memory && job.memory.role)
+		job.body = require(`role-${job.memory.role}`).minBody;
 	if (!_.isArray(job.body) || job.body.length === 0)
 		throw new Error(`${this.pos.roomName} Enqueue failed, bad body: ${job.body}`);
 	if (job.body.length > MAX_CREEP_SIZE)
@@ -235,7 +197,7 @@ StructureSpawn.prototype.submit = function (job) {
 	if (!job.cost)
 		job.cost = _.sum(job.body, part => BODYPART_COST[part]);
 	if (!job.ticks)
-		job.ticks = job.body.length * CREEP_SPAWN_TIME;
+		job.ticks = UNIT_BUILD_TIME(job.body);
 	if (job.cost > this.room.energyCapacityAvailable)
 		throw new Error(`${this.pos.roomName}: Unit cost would exceed room energy capacity`);
 	if (job.priority == null)
@@ -265,12 +227,14 @@ StructureSpawn.prototype.submit = function (job) {
  * Note: If two tasks are the same priority, go by cost rather than ticks so pilots can take priority.
  */
 StructureSpawn.prototype.scoreTask = function (task) {
+	/* global Route */
 	var home = task.room || (task.memory && task.memory.home) || this.pos.roomName;
 	var dist = 0;
 	var ownedRoom = !!(Game.rooms[home] && Game.rooms[home].my);
 	if (home !== this.pos.roomName)
-		dist = Game.map.findRoute(this.pos.roomName, home).length || 1;
-	return (!ownedRoom << 30) | (Math.min(dist, 63) << 24) | ((100 - task.priority) << 16) | Math.min(task.cost, 65535);
+		dist = Route.findRoute(this.pos.roomName, home).length || 1;
+	//return (!ownedRoom << 30) | (Math.min(dist, 63) << 24) | ((100 - task.priority) << 16) | Math.min(task.cost, 65535);
+	return (!ownedRoom << 30) | (Math.min(dist, 63) << 24) | (task.priority << 16) | Math.min(task.cost, 65535);
 };
 
 // 2017-04-14: Back to just expiration. Bad jobs should never make it into the queue.
@@ -324,9 +288,8 @@ const { renewCreep } = StructureSpawn.prototype;
 StructureSpawn.prototype.renewCreep = function (creep) {
 	const status = renewCreep.call(this, creep);
 	if (status === OK) {
-		const bonus = Math.floor(SPAWN_RENEW_RATIO * CREEP_LIFE_TIME / CREEP_SPAWN_TIME / creep.body.length);
-		const ticksToLive = Math.min(CREEP_LIFE_TIME, creep.ticksToLive + bonus);
-		const cost = Math.ceil(SPAWN_RENEW_RATIO * creep.cost / CREEP_SPAWN_TIME / creep.body.length);
+		const ticksToLive = Math.min(CREEP_LIFE_TIME, creep.ticksToLive + RENEW_TICKS(creep.body));
+		const cost = RENEW_COST(creep.body);
 		this.room.energyAvailable -= cost;
 		Object.defineProperty(creep, 'ticksToLive', { value: ticksToLive, configurable: true });
 		this.resetEnergyClock(); // If we can renew, we probably aren't waiting on energy
@@ -338,12 +301,6 @@ StructureSpawn.prototype.renewCreep = function (creep) {
 };
 
 StructureSpawn.prototype.renewAdjacent = function () {
-	/* var creep = this.getTargetDeep(
-		() => _.map(this.lookForNear(LOOK_CREEPS, true), LOOK_CREEPS),
-		(c) => this.pos.isNearTo(c) && c.canRenew(),
-		_.first,
-		'cache.cid'
-	) */
 	const adj = _.map(this.lookForNear(LOOK_CREEPS, true), LOOK_CREEPS);
 	const creep = _.find(adj, c => c.canRenew());
 	if (!creep)

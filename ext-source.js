@@ -3,15 +3,17 @@
  *
  * All prototype extensions for Source
  */
-"use strict";
+'use strict';
 
-defineCachedGetter(Source.prototype, 'ept', s => s.energyCapacity / ENERGY_REGEN_TIME);
-defineCachedGetter(Source.prototype, 'harvestParts', s => s.energyCapacity / HARVEST_POWER / ENERGY_REGEN_TIME);
+/* global DEFINE_CACHED_GETTER, Log */
+
+DEFINE_CACHED_GETTER(Source.prototype, 'ept', s => s.energyCapacity / ENERGY_REGEN_TIME);
+DEFINE_CACHED_GETTER(Source.prototype, 'harvestParts', s => s.energyCapacity / HARVEST_POWER / ENERGY_REGEN_TIME);
 
 /**
  * Double layer cache?
  */
-/* defineCachedGetter(Source.prototype, 'container', function(source) {
+/* DEFINE_CACHED_GETTER(Source.prototype, 'container', function(source) {
 	let {cid} = source.cache;
 	let container = Game.getObjectById(cid);
 	if(!container) {
@@ -28,13 +30,14 @@ defineCachedGetter(Source.prototype, 'harvestParts', s => s.energyCapacity / HAR
 	return container;
 }); */
 
-defineCachedGetter(Source.prototype, 'container', function (source) {
+DEFINE_CACHED_GETTER(Source.prototype, 'container', function (source) {
 	var { cid } = source.memory || {};
 	var container = Game.getObjectById(cid);
 	if (!cid || !container) {
 		Log.debug(`Cache miss on container at ${this.pos}`, "Source");
 		var { room, pos } = source;
-		container = _.find(room.structures, x => x.structureType === STRUCTURE_CONTAINER && pos.inRangeTo(x, 1));
+		// container = _.find(room.structures, x => x.structureType === STRUCTURE_CONTAINER && pos.inRangeTo(x, 1));
+		container = this.pos.getStructure(STRUCTURE_CONTAINER, 1);
 		if (container) {
 			Log.debug(`Container found at ${container.pos}`, "Source");
 			source.memory = { cid: container.id };

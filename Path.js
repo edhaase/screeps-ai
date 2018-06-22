@@ -3,7 +3,7 @@
  *
  * ES6 class for path management
  */
-"use strict";
+'use strict';
 
 /**
  * Extends PathFinder.search array

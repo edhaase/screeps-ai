@@ -3,30 +3,35 @@
  *
  * ES6 class support for cost matricies
  */
-"use strict";
+'use strict';
 
+/* global Log, Player */
+/* eslint-disable no-magic-numbers */
+
+const Intel = require('Intel');
+const { LazyMap } = require('DataStructures');
+const LRU = require('LRU');
+const { VisibilityError } = require('Error');
+
+const COST_MATRIX_EXPIRATION = 5;
+const COST_MATRIX_CACHE_SIZE = 150;
+
+const TILE_UNWALKABLE = 255;
 // global.CM_COLORS = Util.getColorRange(256);
 
 /**
- *
+ * Base class with functional extensions
  */
 class CostMatrix extends PathFinder.CostMatrix {
-	constructor(room) {
-		super();
-		if (room != null) {
-			if (typeof room == 'string')
-				this.room = Game.rooms[room];
-			else
-				this.room = room;
-		}
-	}
+	/** @inherits static deserialize */
+	/** @inherits serialize */
 
 	/**
 	 * Slightly faster version of set. For optimal performance, eliminate
 	 * the if check.
 	 */
 	set(x, y, value) {
-		if (value !== 255 && this.get(x, y) === 255)
+		if (value !== TILE_UNWALKABLE && this.get(x, y) === TILE_UNWALKABLE)
 			return;
 		this._bits[x * 50 + y] = value;
 	}
@@ -45,7 +50,7 @@ class CostMatrix extends PathFinder.CostMatrix {
 	/** @return CostMatrix - new cost matrix of sum */
 	static sum(a, b) {
 		const c = new CostMatrix();
-		var x,y;
+		var x, y;
 		for (x = 0; x <= 49; x++)
 			for (y = 0; y <= 49; y++)
 				c.set(x, y, Math.clamp(0, a.get(x, y) + b.get(x, y), 255));
@@ -55,7 +60,7 @@ class CostMatrix extends PathFinder.CostMatrix {
 	/** @return CostMatrix - new cost matrix of diff */
 	static diff(a, b) {
 		const c = new CostMatrix();
-		var x,y;
+		var x, y;
 		for (x = 0; x <= 49; x++)
 			for (y = 0; y <= 49; y++)
 				c.set(x, y, Math.clamp(0, Math.abs(b.get(x, y) - a.get(x, y)), 255));
@@ -69,7 +74,7 @@ class CostMatrix extends PathFinder.CostMatrix {
 
 	/** @return CostMatrix - self */
 	apply(fn) {
-		var x,y;
+		var x, y;
 		for (x = 0; x <= 49; x++)
 			for (y = 0; y <= 49; y++)
 				fn.call(this, x, y);
@@ -77,10 +82,19 @@ class CostMatrix extends PathFinder.CostMatrix {
 	}
 
 	applyInRadius(fn, ax, ay, radius) {
-		var dx,dy;
+		var dx, dy;
 		for (dx = -radius; dx <= radius; dx++)
 			for (dy = -radius; dy <= radius; dy++)
 				fn.call(this, ax + dx, ay + dy);
+		return this;
+	}
+
+	applyInRoomRadius(fn, pos, radius) {
+		var dx, dy, ax = pos.x, ay = pos.y;
+		for (dx = -radius; dx <= radius; dx++)
+			for (dy = -radius; dy <= radius; dy++)
+				if (Game.map.getTerrainAt(ax + dx, ay + dy, pos.roomName) !== 'wall')
+					fn.call(this, ax + dx, ay + dy);
 		return this;
 	}
 
@@ -144,12 +158,8 @@ class CostMatrix extends PathFinder.CostMatrix {
 	} */
 
 	/** [object CostMatrix] */
-	get [Symbol.toStringTag]() {
-		return 'CostMatrix';
-	}
-
+	get [Symbol.toStringTag]() { return 'CostMatrix'; }
 	static get [Symbol.species]() { return PathFinder.CostMatrix; }
-	/* static get [Symbol.species]() { return this; } */
 
 	/** */
 	clone() {
@@ -158,39 +168,46 @@ class CostMatrix extends PathFinder.CostMatrix {
 		return newMatrix;
 	}
 
-	/** @inherits static deserialize */
-	/** @inherits serialize */
-
-	//
-	setFixedObstacles(room) {
-		if (!room && this.room)
-			room = this.room;
+	setFixedObstacles(room, score = TILE_UNWALKABLE) {
+		const { isObstacle } = require('Filter');
 		room
-			// .find(FIND_STRUCTURES, {filter: s => _.contains(OBSTACLE_OBJECT_TYPES, s.structureType)} )
-			.find(FIND_STRUCTURES, { filter: s => OBSTACLE_OBJECT_TYPES.includes(s.structureType) })
-			.forEach(s => this.set(s.pos.x, s.pos.y, 0xFF));
-		room
-			// .find(FIND_MY_CONSTRUCTION_SITES, {filter: s =>  _.contains(OBSTACLE_OBJECT_TYPES, s.structureType)})
-			.find(FIND_MY_CONSTRUCTION_SITES, { filter: s => OBSTACLE_OBJECT_TYPES.includes(s.structureType) })
-			.forEach(s => this.set(s.pos.x, s.pos.y, 0xFF));
+			.find(FIND_STRUCTURES, { filter: isObstacle })
+			.forEach(s => this.set(s.pos.x, s.pos.y, score));
 		return this;
 	}
 
+	setSKLairs(room) {
+		// Disable while SK mining, until we find a better way.
+		// @todo shoud this be FIND_HOSTILE_STRUCTURES?
+		room
+			.find(FIND_STRUCTURES, { filter: s => s.structureType === STRUCTURE_KEEPER_LAIR })
+			.forEach(s => this.applyInRoomRadius((x, y) => this.set(x, y, 20), s.pos, 6));
+		return this;
+	}
 
-	//
-	setRoad(room) {
-		if (!room && this.room)
-			room = this.room;
+	// Construction sites? ramparts?
+	setDynamicObstacles(room, score = TILE_UNWALKABLE) {
+		const { isObstacle } = require('Filter');
+		room
+			.find(FIND_HOSTILE_CONSTRUCTION_SITES, { filter: c => Player.status(c.owner.username) === PLAYER_ALLY })
+			.forEach(s => this.set(s.pos.x, s.pos.y, score));
+		room
+			.find(FIND_MY_CONSTRUCTION_SITES, { filter: c => isObstacle(c) })
+			.forEach(s => this.set(s.pos.x, s.pos.y, score));
+		return this;
+	}
+
+	setRoads(room, score = 1) {
 		room
 			.find(FIND_STRUCTURES, { filter: s => s.structureType === STRUCTURE_ROAD })
-			.forEach(s => this.set(s.pos.x, s.pos.y, 1));
+			.forEach(s => this.set(s.pos.x, s.pos.y, score));
 		return this;
 	}
 
-	//
-	setExitUnwalkable() {
-		this.apply((x, y) => this.set(x, y, (x <= 1 || x >= 48 || y <= 1 || y >= 48) ? 255 : 0));
-		return this;
+	setCreeps(room, score = 0xFF, filter = _.Identity, c = FIND_CREEPS) {
+		room
+			.find(c, { filter })
+			.forEach(s => this.set(s.pos.x, s.pos.y, score));
 	}
 
 	iif(condition, action) {
@@ -201,12 +218,16 @@ class CostMatrix extends PathFinder.CostMatrix {
 		return this;
 	}
 
-	setBorderUnwalkable(range = 1) {
-		// this.apply( (x,y) => this.set(x,y,(x <= range || x >= (49-range) || y <= range || y >= (49-range))?255:0) );
+	setBorder(range = 1, score = TILE_UNWALKABLE) {
 		this.iif(
 			(x, y) => (x <= range || x >= (49 - range) || y <= range || y >= (49 - range)),
-			(x, y) => this.set(x, y, 255)
+			(x, y) => this.set(x, y, score)
 		);
+		return this;
+	}
+
+	setExitTiles(room, score = TILE_UNWALKABLE) {
+		room.find(FIND_EXIT).forEach(e => this.set(e.x, e.y, score));
 		return this;
 	}
 }
@@ -217,9 +238,9 @@ class CostMatrix extends PathFinder.CostMatrix {
  */
 class FixedObstacleMatrix extends CostMatrix {
 	constructor(roomName) {
+		super();
 		if (!_.isString(roomName))
 			throw new TypeError("FixedObstacleMatrix expects roomName string");
-		super(roomName);
 
 		const room = Game.rooms[roomName];
 		if (!room)
@@ -227,40 +248,11 @@ class FixedObstacleMatrix extends CostMatrix {
 		// don't forget enemy non-public ramparts!
 		const { isObstacle } = require('Filter');
 
-		room
-			.find(FIND_STRUCTURES, { filter: isObstacle })
-			.forEach(s => this.set(s.pos.x, s.pos.y, 255));
-		room
-			.find(FIND_STRUCTURES, { filter: {structureType: STRUCTURE_ROAD} })
-			.forEach(s => this.set(s.pos.x, s.pos.y, 1));
-		room
-			.find(FIND_CONSTRUCTION_SITES, { filter: c => isObstacle(c) || (c.owner && Player.status(c.owner.username) === PLAYER_ALLY) })
-			.forEach(s => this.set(s.pos.x, s.pos.y, 255));
-
-		// Disable while SK mining, until we find a better way.
-		room
-			.find(FIND_STRUCTURES, { filter: s => s.structureType === STRUCTURE_KEEPER_LAIR })
-			.forEach(s => this.applyInRadius((x, y) => this.set(x, y, 20), s.pos.x, s.pos.y, 6));
-
-	}
-}
-
-/**
- * Use with plainCost: 2, swampCost: 10 to prefer roads.
- * plainCost only needs to be higher if we generate fatigue
- * swampCost can be same as plainCost if we can swamp travel
- */
-class RoadMatrix extends CostMatrix {
-	/**
-	 * @param String
-	 */
-	constructor(roomName) {
-		super();
-		const room = Game.rooms[roomName];
-		if (room)
-			room
-				.find(FIND_STRUCTURES, { filter: s => s.structureType === STRUCTURE_ROAD })
-				.forEach(s => this.set(s.pos.x, s.pos.y, 1));
+		this.setRoads(room);
+		this.setFixedObstacles(room);
+		this.setDynamicObstacles(room);
+		this.setSKLairs(room);
+		this.setExitTiles(room, 5);
 	}
 }
 
@@ -268,43 +260,28 @@ class RoadMatrix extends CostMatrix {
  * Logistics matrix roughly combines obstacle matrix with road matrix
  * to find optimal shipping lane.
  */
-class LogisticsMatrix extends FixedObstacleMatrix {
+class LogisticsMatrix extends CostMatrix {
+	/**
+	 * @param {string} roomName 
+	 * @throws Error
+	 */
 	constructor(roomName) {
-		super(roomName);
+		super();
+
 		const room = Game.rooms[roomName];
 		if (!room)
-			return;
+			throw new VisibilityError(roomName);
 
-		room
-			.find(FIND_CONSTRUCTION_SITES, { filter: c => c.structureType === STRUCTURE_ROAD })
-			.forEach(c => this.set(c.pos.x, c.pos.y, 1));
-
-		room
-			.find(FIND_MY_CREEPS, { filter: c => c.memory.stuck > 3 })
-			.forEach(c => this.set(c.pos.x, c.pos.y, 255));
+		if (room.controller) // @todo if not a wall..
+			this.applyInRoomRadius((x, y) => this.set(x, y, 1), room.controller.pos, 3);
+		this.setRoads(room);
+		this.setFixedObstacles(room);
+		this.setDynamicObstacles(room);
+		this.setSKLairs(room);
+		this.setCreeps(room, TILE_UNWALKABLE, (c) => c.memory.stuck > 3, FIND_MY_CREEPS);
+		this.setExitTiles(room, 5);
 	}
 }
-
-/**
- * Where can't we walk?
- */
-class ObstacleMatrix extends FixedObstacleMatrix {
-	constructor(roomName) {
-		super(roomName);
-
-		const room = Game.rooms[roomName];
-		if (room && (room instanceof Room)) {
-			// room.find(FIND_HOSTILE_CREEPS).forEach(c => this.set(c.pos.x, c.pos.y, 0xfe));		
-			room.find(FIND_CREEPS).forEach(c => this.set(c.pos.x, c.pos.y, 0xff));
-		}
-	}
-
-	toString() {
-		return JSON.stringify(this.serialize());
-	}
-}
-
-
 
 /**
  * Where are we most likely to get horribly murdered?
@@ -314,8 +291,6 @@ class TowerThreatMatrix extends CostMatrix {
 		if (_.isString(room))
 			if (Game.rooms[room])
 				room = Game.rooms[room];
-			else
-				return super();
 		super(room);
 		_.each(
 			room.find(FIND_STRUCTURES, { filter: t => (t.structureType === STRUCTURE_TOWER) }),
@@ -329,16 +304,6 @@ class TowerThreatMatrix extends CostMatrix {
 				TOWER_FALLOFF_RANGE - target.pos.getRangeTo(x, y),
 				TOWER_FALLOFF_RANGE) - TOWER_OPTIMAL_RANGE
 		));
-	}
-}
-
-/**
- * Exits are unpathable.
- */
-class ArenaMatrix extends CostMatrix {
-	constructor() {
-		super();
-		this.apply((x, y) => this.set(x, y, (x <= 1 || x >= 48 || y <= 1 || y >= 48) ? 255 : 0));
 	}
 }
 
@@ -360,52 +325,92 @@ class LazyPropertyFactory {
 }
 
 /* eslint-disable class-methods-use-this */
-const MAX_CACHE_COSTMATRIX_AGE = 5;
+/* const MAX_CACHE_COSTMATRIX_AGE = 5;
 class LazyMatrixStore {
-	constructor(clazz, maxAge=MAX_CACHE_COSTMATRIX_AGE) {
+	constructor(clazz, maxAge = MAX_CACHE_COSTMATRIX_AGE) {
 		this.clazz = clazz;
 		this.maxAge = maxAge;
 	}
 
 	get(target, key, proxy) {
-		Log.debug(`Requesting cost matrix for ${key}`, 'Matrix');
-		if (target[key] == null || Game.time - target[key].tick > this.maxAge) {
-			// let start = Game.cpu.getUsed();
+		Log.debug(`Requesting ${this.clazz.name} cost matrix for ${key}`, 'Matrix');
+		var ck = `${this.clazz.name}_${key}`;
+		var cm = target.get(ck);
+		if(!cm) {
 			if (Game.rooms[key]) {
-				Log.info(`Creating cost matrix for ${key} (Tick ${Game.time})`, 'Matrix');
-				// proxy[key] = new LogisticsMatrix(key);
+				Log.info(`Creating cost matrix for ${ck} (Tick ${Game.time})`, 'Matrix');
 				proxy[key] = new this.clazz(key);
 			} else {
 				// console.log('Loading obstacle matrix for ' + key);
 				// Log.debug(`Loading cost matrix for ${key} from memory`, 'Matrix');
 				// let om = _.get(Memory.rooms, key + '.cm.obstacle');
 				// target[key] = (om) ? CostMatrix.deserialize(om) : new PathFinder.CostMatrix;
-				Log.debug(`Creating empty cost matrix for ${key}`, 'Matrix');
+				Log.debug(`Creating empty cost matrix for ${ck}`, 'Matrix');
 				proxy[key] = new PathFinder.CostMatrix;
 			}
+		}
+		return target.get(ck).matrix;
+		// if (target[key] == null || Game.time - target[key].tick > this.maxAge) {
+			// let start = Game.cpu.getUsed();
+			
 			// Log.debug(`Creating cost matrix for ${key}: ${target[key].serialize()}`);
 			// console.log('Matrix used: ' + _.round(Game.cpu.getUsed() - start, 3));
-		}
-		return target[key].matrix;
+		// }
+		// return target[key].matrix;
 	}
 
 	set(target, key, value, proxy) {
 		// console.log('Saving logistics matrix: ' + key);
-		Log.debug(`Saving cost matrix for ${key}`, 'Matrix');
-		return target[key] = {matrix: value, tick: Game.time};
+		var ck = `${this.clazz.name}_${key}`;
+		Log.debug(`Saving cost matrix for ${ck}`, 'Matrix');
+		return target.set(ck, { matrix: value, tick: Game.time });
 	}
-}
+} */
+// @todo kill proxies
+// @todo handle volatile data
 /* eslint-enable class-methods-use-this */
-global.LOGISTICS_MATRIX = new Proxy({}, new LazyMatrixStore(LogisticsMatrix));
-global.FIXED_OBSTACLE_MATRIX = new Proxy({}, new LazyMatrixStore(FixedObstacleMatrix,30));
+// global.LOGISTICS_MATRIX = new Proxy(CostMatrix.cache, new LazyMatrixStore(LogisticsMatrix));
+// global.FIXED_OBSTACLE_MATRIX = new Proxy(CostMatrix.cache, new LazyMatrixStore(FixedObstacleMatrix, 30));
+
+global.LOGISTICS_MATRIX = new LazyMap(
+	(roomName) => (Game.rooms[roomName] && new LogisticsMatrix(roomName)) || new CostMatrix,
+	new LRU({ ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE })
+);
+
+// map.get(roomname) has no idea about whether the item exists or if there will be an error.
+// we can't throw an error this way.
+global.LOGISTICS_MATRIX = new LazyMap(
+	(roomName) => {
+		try {
+			return (new LogisticsMatrix(roomName));
+		} catch (e) {
+			// Log.error(e.stack);
+		}
+		return new CostMatrix;
+	},
+	new LRU({ ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE })
+);
+
+/* global.FIXED_OBSTACLE_MATRIX = new LazyMap(
+	(roomName) => (Game.rooms[roomName] && new CostMatrix).setFixedObstacles(Game.rooms[roomName]) || new CostMatrix,
+	new LRU({ ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE })
+); */
+
+global.FIXED_OBSTACLE_MATRIX = new LazyMap(
+	(roomName) => {
+		try {			
+			if (Game.rooms[roomName])
+				return new FixedObstacleMatrix(roomName);
+		} catch (e) {
+			Log.error(e.stack);
+		}
+		return new CostMatrix;
+	},
+	new LRU({ ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE })
+);
 
 module.exports = {
 	CostMatrix: CostMatrix,			// base class
 	FixedObstacleMatrix: FixedObstacleMatrix,
-	ObstacleMatrix: ObstacleMatrix,	// obstructions	
-	RoadMatrix: RoadMatrix,			// account for roads
 	LogisticsMatrix: LogisticsMatrix,
-	TowerThreatMatrix: TowerThreatMatrix,
-	ArenaMatrix: ArenaMatrix,
-
 };

@@ -3,7 +3,7 @@
  * 
  * Because extending the built in Array.prototype is a dangerous proposition
  */
-"use strict";
+'use strict';
 
 module.exports = {
 	/**

@@ -1,7 +1,9 @@
 /**
  * Player.js - Allows for whitelisting players.
  */
-"use strict";
+'use strict';
+
+/* global Log */
 
 global.PLAYER_HOSTILE = 0;		// REMOVE THEM.
 global.PLAYER_NEUTRAL = 1;		// IGNORE THEM.

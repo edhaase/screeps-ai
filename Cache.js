@@ -1,79 +1,42 @@
 /**
- * Cache.js
+ * Cache.js - Now with LRU cache 
  */
-"use strict";
+'use strict';
 
-const Cache = {};
+/** */
+/* global DEFINE_CACHED_GETTER */
+const LRU = require('LRU');
+const TTL = 1500;
+const MAX = 1500;
+const map = new LRU({ ttl: TTL, max: MAX });
+const volatile = new WeakMap();
 
-Object.defineProperty(Room.prototype, "cache", {
-	get: function () {
-		if (this == null || this === Room.prototype)
-			return null;
-		if (!Cache.rooms)
-			Cache.rooms = {};
-		if (!Cache.rooms[this.name])
-			Cache.rooms[this.name] = {};
-		return Cache.rooms[this.name];
-
-	},
-	set: function (value) {
-		if (!Cache.rooms)
-			Cache.rooms = {};
-		Cache.rooms[this.name] = value;
-	},
-	configurable: true,
-	enumerable: false
+DEFINE_CACHED_GETTER(RoomObject.prototype, 'cache', ro => {
+	const key = ro.id || ro.name;
+	if (!map.has(key))
+		map.set(key, {});
+	return map.get(key);
 });
 
-/**
- * For the sake of cpu and features we're adding this to everything at once.
- */
-Object.defineProperty(RoomObject.prototype, "cache", {
-	get: function () {
-		if (this == null || !(this instanceof RoomObject))
-			return null;
-		if (this.id === undefined)
-			throw new Error("This object doesn't have an id");
-		if (!Cache.obj)
-			Cache.obj = {};
-		if (!Cache.obj[this.id])
-			Cache.obj[this.id] = {};
-		return Cache.obj[this.id];
-
-	},
-	set: function (value) {
-		if (this.id === undefined)
-			throw new Error("This object doesn't have an id");
-		if (!Cache.obj)
-			Cache.obj = {};
-		Cache.obj[this.id] = value;
-	},
-	configurable: true,
-	enumerable: false
+DEFINE_CACHED_GETTER(Room.prototype, 'cache', r => {
+	const key = r.name;
+	if (!map.has(key))
+		map.set(key, {});
+	return map.get(key);
 });
 
-RoomObject.prototype.clearCache = function () {
-	delete Cache.obj[this.id];
-};
-
-Object.defineProperty(Flag.prototype, "cache", {
-	get: function () {
-		if (this == null || this === Flag.prototype)
-			return null;
-		if (!Cache.flags)
-			Cache.flags = {};
-		if (!Cache.flags[this.name])
-			Cache.flags[this.name] = {};
-		return Cache.flags[this.name];
-
-	},
-	set: function (value) {
-		if (!Cache.flags)
-			Cache.flags = {};
-		Cache.flags[this.name] = value;
-	},
-	configurable: true,
-	enumerable: false
+// Weak maps for associated data
+DEFINE_CACHED_GETTER(RoomObject.prototype, 'volatile', ro => {
+	if (!volatile.has(ro))
+		volatile.set(ro, {});
+	return volatile.get(ro);
 });
 
-module.exports = Cache;
+DEFINE_CACHED_GETTER(Room.prototype, 'volatile', r => {
+	if (!volatile.has(r))
+		volatile.set(r, {});
+	return volatile.get(r);
+});
+
+// module.exports = Cache;
+module.exports = map;

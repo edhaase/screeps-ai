@@ -3,7 +3,7 @@
  *
  * Algorithms for screeps
  */
-"use strict";
+'use strict';
 
 /**
  * Grid class - For mapping an x,y position to a value 
@@ -127,7 +127,7 @@ class MapNode extends Node {
 	getNeighbors() {
 		// var edges = _.values(Game.map.describeExits(this.name));		
 		return _(Game.map.describeExits(this.name))
-			.map(n => getRoomCoordFromName(n))
+			.map(n => ROOM_NAME_TO_COORD(n))
 			.map(([x, y]) => ({ x, y }))
 			.value();
 	}

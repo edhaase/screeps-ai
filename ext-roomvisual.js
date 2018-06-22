@@ -1,7 +1,22 @@
 /**
  *
  */
-"use strict";
+'use strict';
+
+/* eslint-disable no-magic-numbers, indent */
+
+const colors = {
+	gray: '#555555',
+	light: '#AAAAAA',
+	road: '#666', // >:D
+	dark: '#181818',
+	outline: '#8FBB93',
+	extension: 'yellow',
+	spawn: 'purple',
+	powerSpawn: 'red',
+	power: 'red',
+};
+
 
 RoomObject.prototype.drawRangeRect = function (range = 3) {
 	range += 0.5;
@@ -12,6 +27,29 @@ RoomObject.prototype.drawRangeRect = function (range = 3) {
 		range * 2);
 };
 
+// @author mtib
+// ...
+// somewhere in my console module
+// this is really ugly, but works:
+function sho(num) {
+	var n = parseInt(num);
+	if (n === null || n.isNaN) {
+		return num;
+	}
+	n = n.toString();
+	var ld = Math.log10(num) / 3;
+	switch (true) {
+	case ld < 1:
+		return n;
+	case ld < 2:
+		return n.substring(0, n.length - 3) + "k";
+	case ld < 3:
+		return n.substring(0, n.length - 6) + "M";
+	case ld < 4:
+		return n.substring(0, n.length - 9) + "G";
+	}
+	return num;
+}
 
 /**
  * @author mtib
@@ -71,42 +109,6 @@ global.drawPie = function drawPie(visual, val, max, title, color, num, inner = n
 	});
 };
 
-// @author mtib
-// ...
-// somewhere in my console module
-// this is really ugly, but works:
-global.sho = function sho(num) {
-	var n = parseInt(num);
-	if (n === null || n.isNaN) {
-		return num;
-	}
-	n = n.toString();
-	var ld = Math.log10(num) / 3;
-	switch (true) {
-	case ld < 1:
-		return n;
-	case ld < 2:
-		return n.substring(0, n.length - 3) + "k";
-	case ld < 3:
-		return n.substring(0, n.length - 6) + "M";
-	case ld < 4:
-		return n.substring(0, n.length - 9) + "G";
-	}
-	return num;
-};
-
-
-const colors = {
-	gray: '#555555',
-	light: '#AAAAAA',
-	road: '#666', // >:D
-	dark: '#181818',
-	outline: '#8FBB93',
-	extension: 'yellow',
-	spawn: 'purple',
-	powerSpawn: 'red',
-	power: 'red',
-};
 
 /* const dirs = [
 	[],
@@ -155,16 +157,14 @@ RoomVisual.prototype.connectRoads = function (opts = {}) {
  * Stolen from ags131
  */
 RoomVisual.prototype.structure = function (x, y, type, opts = {}) {
-	opts = Object.assign({
-		opacity: 1
-	}, opts);
+	const { opacity= 1 } = opts;	
 	switch (type) {
 	case STRUCTURE_ROAD:
 		this.circle(x, y, {
 			radius: 0.175,
 			fill: colors.road,
 			stroke: false,
-			opacity: opts.opacity
+			opacity
 		});
 		if (!this.roads) this.roads = [];
 		this.roads.push([x, y]);
@@ -175,12 +175,12 @@ RoomVisual.prototype.structure = function (x, y, type, opts = {}) {
 			fill: colors.dark,
 			stroke: colors.outline,
 			strokeWidth: 0.05,
-			opacity: opts.opacity
+			opacity
 		});
 		this.circle(x, y, {
 			radius: 0.35,
 			fill: colors.extension || colors.gray,
-			opacity: opts.opacity
+			opacity
 		});
 		break;
 	/* case STRUCTURE_POWER_SPAWN:
@@ -198,7 +198,7 @@ RoomVisual.prototype.structure = function (x, y, type, opts = {}) {
 			fill: colors.spawn || colors.dark,
 			stroke: '#CCCCCC',
 			strokeWidth: 0.10,
-			opacity: opts.opacity
+			opacity
 		});
 		break;
 	case STRUCTURE_LINK:
@@ -223,12 +223,12 @@ RoomVisual.prototype.structure = function (x, y, type, opts = {}) {
 			fill: colors.dark,
 			stroke: colors.outline,
 			strokeWidth: 0.05,
-			opacity: opts.opacity
+			opacity
 		});
 		this.poly(inner, {
 			fill: colors.gray,
 			stroke: false,
-			opacity: opts.opacity
+			opacity
 		});
 		break;
 	}
@@ -262,18 +262,18 @@ RoomVisual.prototype.structure = function (x, y, type, opts = {}) {
 			fill: colors.dark,
 			stroke: colors.outline,
 			strokeWidth: 0.05,
-			opacity: opts.opacity
+			opacity: opacity
 		});
 		this.poly(inner, {
 			fill: colors.light,
 			stroke: false,
-			opacity: opts.opacity
+			opacity: opacity
 		});
 		this.rect(x - 0.45, y - 0.45, 0.9, 0.9, {
 			fill: colors.gray,
 			stroke: colors.dark,
 			strokeWidth: 0.1,
-			opacity: opts.opacity
+			opacity: opacity
 		});
 		break;
 	}
@@ -283,17 +283,17 @@ RoomVisual.prototype.structure = function (x, y, type, opts = {}) {
 			fill: colors.dark,
 			stroke: colors.outline,
 			strokeWidth: 0.05,
-			opacity: opts.opacity
+			opacity: opacity
 		});
 		this.circle(x, y - 0.025, {
 			radius: 0.40,
 			fill: colors.gray,
-			opacity: opts.opacity
+			opacity: opacity
 		});
 		this.rect(x - 0.45, y + 0.3, 0.9, 0.25, {
 			fill: colors.dark,
 			stroke: false,
-			opacity: opts.opacity
+			opacity: opacity
 		});
 		{
 			let box = [
@@ -306,7 +306,7 @@ RoomVisual.prototype.structure = function (x, y, type, opts = {}) {
 			this.poly(box, {
 				stroke: colors.outline,
 				strokeWidth: 0.05,
-				opacity: opts.opacity
+				opacity: opacity
 			});
 		}
 		break;
@@ -317,23 +317,23 @@ RoomVisual.prototype.structure = function (x, y, type, opts = {}) {
 			fill: 'transparent',
 			stroke: colors.outline,
 			strokeWidth: 0.05,
-			opacity: opts.opacity
+			opacity: opacity
 		});
 		this.rect(x - 0.4, y - 0.3, 0.8, 0.6, {
 			fill: colors.gray,
-			opacity: opts.opacity
+			opacity: opacity
 		});
 		this.rect(x - 0.2, y - 0.9, 0.4, 0.5, {
 			fill: colors.light,
 			stroke: colors.dark,
 			strokeWidth: 0.07,
-			opacity: opts.opacity
+			opacity: opacity
 		});
 		break;
 	case STRUCTURE_CONTAINER:
 		this.rect(x - 0.225, y - 0.3, 0.45, 0.6, {
 			fill: "yellow",
-			opacity: opts.opacity,
+			opacity: opacity,
 			stroke: colors.dark,
 			strokeWidth: 0.10,
 		});
@@ -341,7 +341,7 @@ RoomVisual.prototype.structure = function (x, y, type, opts = {}) {
 	case STRUCTURE_STORAGE:
 		this.rect(x - 0.425, y - 0.55, 0.85, 1.1, {
 			fill: "yellow",
-			opacity: opts.opacity,
+			opacity: opacity,
 			stroke: colors.light,
 			strokeWidth: 0.10,
 		});
@@ -352,7 +352,7 @@ RoomVisual.prototype.structure = function (x, y, type, opts = {}) {
 			fill: '#434C43',
 			stroke: '#5D735F',
 			strokeWidth: 0.10,
-			opacity: opts.opacity
+			opacity: opacity
 		});
 		break;
 	case STRUCTURE_WALL:
@@ -361,7 +361,7 @@ RoomVisual.prototype.structure = function (x, y, type, opts = {}) {
 			fill: colors.dark,
 			stroke: colors.light,
 			strokeWidth: 0.05,
-			opacity: opts.opacity
+			opacity: opacity
 		});
 		break;
 	case STRUCTURE_POWER_SPAWN:
@@ -370,21 +370,21 @@ RoomVisual.prototype.structure = function (x, y, type, opts = {}) {
 			fill: colors.dark,
 			stroke: '#CCCCCC',
 			strokeWidth: 0.10,
-			opacity: opts.opacity
+			opacity: opacity
 		});
 		this.circle(x, y, {
 			radius: 0.65,
 			stroke: colors.power,
 			fill: colors.dark,
 			strokeWidth: 0.10,
-			opacity: opts.opacity
+			opacity: opacity
 		});
 		this.circle(x, y, {
 			radius: 0.45,
 			stroke: colors.power,
 			fill: colors.dark,
 			strokeWidth: 0.15,
-			opacity: opts.opacity
+			opacity: opacity
 		});
 		break;
 	case STRUCTURE_NUKER:
@@ -402,7 +402,7 @@ RoomVisual.prototype.structure = function (x, y, type, opts = {}) {
 				stroke: colors.outline,
 				strokeWidth: 0.05,
 				fill: colors.dark,
-				opacity: opts.opacity
+				opacity: opacity
 			});
 			let inline = [
 				[0, -.80],
@@ -415,12 +415,12 @@ RoomVisual.prototype.structure = function (x, y, type, opts = {}) {
 				stroke: colors.outline,
 				strokeWidth: 0.01,
 				fill: colors.gray,
-				opacity: opts.opacity
+				opacity: opacity
 			});
 			this.rect(x - 0.4, y + 0.25, 0.8, 0.2, {
 				fill: colors.gray,
 				stroke: false,
-				opacity: opts.opacity
+				opacity: opacity
 			});
 		}
 		break;
@@ -430,13 +430,13 @@ RoomVisual.prototype.structure = function (x, y, type, opts = {}) {
 			fill: colors.dark,
 			stroke: colors.outline,
 			strokeWidth: 0.07,
-			opacity: opts.opacity
+			opacity: opacity
 		});
 		this.circle(x, y + .2, {
 			radius: 0.2,
 			fill: colors.outline,
 			stroke: false,
-			opacity: opts.opacity
+			opacity: opacity
 		});
 		break;
 	default:
@@ -445,7 +445,7 @@ RoomVisual.prototype.structure = function (x, y, type, opts = {}) {
 			radius: 0.35,
 			stroke: colors.dark,
 			strokeWidth: 0.20,
-			opacity: opts.opacity
+			opacity: opacity
 		});
 		break;
 	}

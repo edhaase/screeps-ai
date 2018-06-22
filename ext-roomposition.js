@@ -1,7 +1,13 @@
 /**
  *
  */
-"use strict";
+'use strict';
+
+/* global DEFINE_CACHED_GETTER */
+
+const { VisibilityError } = require('Error');
+
+DEFINE_CACHED_GETTER(RoomPosition.prototype, 'room', rp => Game.rooms[rp.roomName]);
 
 /**
  * Because isEqualTo expects a room position and that doesn't
@@ -40,6 +46,7 @@ RoomPosition.prototype.isValid = function () {
 
 /**
  * inRangeTo micro-optimizations
+ * @todo fix
  */
 RoomPosition.prototype.inRangeTo = function (a, b, c) {
 	if (c === undefined) {
@@ -65,7 +72,7 @@ RoomPosition.prototype.inRangeToPos = function (pos, range) {
 RoomPosition.prototype.findClosestByRange = function (ft, opts) {
 	var room = Game.rooms[this.roomName];
 	if (room == null) {
-		throw new Error(`Could not access room ${this.roomName}`);
+		throw new VisibilityError(this.roomName);
 	}
 	if (typeof ft === 'number')
 		return this.findClosestByRange(room.find(ft, opts));
@@ -155,19 +162,26 @@ RoomPosition.prototype.isOnRoomBorder = function () {
 	return (this.x <= 0 || this.x >= 49 || this.y <= 0 || this.y >= 49);
 };
 
+RoomPosition.prototype.getCreep = function (validator = () => true) {
+	return _.find(this.lookFor(LOOK_CREEPS), validator);
+};
+
 /**
  * Check for a structure.
  */
-RoomPosition.prototype.getStructure = function (structureType, validator = () => true) {
-	return _.find(this.lookFor(LOOK_STRUCTURES), s => s.structureType === structureType && validator(s));
+RoomPosition.prototype.getStructure = function (structureType, range = 0, validator = () => true) {
+	if (range === 0)
+		return _.find(this.lookFor(LOOK_STRUCTURES), s => s.structureType === structureType && validator(s));
+	else
+		return this.room.findOne(FIND_STRUCTURES, { filter: s => s.structureType === structureType && s.pos.inRangeTo(this, range) });
 };
 
 RoomPosition.prototype.getStructures = function () {
 	return this.lookFor(LOOK_STRUCTURES);
 };
 
-RoomPosition.prototype.hasStructure = function (structureType, validator = () => true) {
-	return this.getStructure(structureType, validator) != null;
+RoomPosition.prototype.hasStructure = function (structureType, range = 0, validator = () => true) {
+	return this.getStructure(structureType, range, validator) != null;
 };
 
 RoomPosition.prototype.hasRampart = function (fn) {
@@ -178,16 +192,22 @@ RoomPosition.prototype.hasRoad = function () {
 	return this.hasStructure(STRUCTURE_ROAD);
 };
 
-RoomPosition.prototype.hasConstructionSite = function (structureType) {
-	if (structureType)
-		return _.any(this.lookFor(LOOK_CONSTRUCTION_SITES), c => c.structureType === structureType);
-	else
-		return !_.isEmpty(this.lookFor(LOOK_CONSTRUCTION_SITES));
+RoomPosition.prototype.getConstructionSite = function (structureType=null, range = 0, validator = () => true) {
+	if (range === 0) {
+		return _.find(this.lookFor(LOOK_CONSTRUCTION_SITES), c => (structureType == null || c.structureType === structureType) && validator(c));
+	} else {
+		return this.room.findOne(FIND_MY_CONSTRUCTION_SITES, { filter: s => (structureType == null || s.structureType === structureType)  && s.pos.inRangeTo(this, range) && validator(s) });
+	}
+};
+
+RoomPosition.prototype.hasConstructionSite = function (structureType, range = 0, validator = () => true) {
+	return this.getConstructionSite(structureType, range, validator) != null;
 };
 
 RoomPosition.prototype.hasObstacle = function () {
 	return _.any(this.lookFor(LOOK_STRUCTURES), require('Filter').isObstacle)
-		|| _.any(this.lookFor(LOOK_CONSTRUCTION_SITES), require('Filter').isObstacle);
+		|| _.any(this.lookFor(LOOK_CONSTRUCTION_SITES), require('Filter').isObstacle)
+		|| Game.map.getTerrainAt(this) === 'wall';
 };
 
 RoomPosition.prototype.hasCreep = function () {
@@ -226,20 +246,20 @@ RoomPosition.prototype.getOpenNeighborHorizontal = function () {
  * High-cpu (but _accurate_) step count to destination.
  */
 RoomPosition.prototype.getStepsTo = function (dest, opts = {}) {
-	if(!dest)
+	if (!dest)
 		throw new TypeError('Expected destination');
 	opts = _.defaults(opts, {
 		plainCost: 2,
 		swampCost: 5
 	});
 	if (!opts.roomCallback)
-		opts.roomCallback = r => FIXED_OBSTACLE_MATRIX[r];
+		opts.roomCallback = r => FIXED_OBSTACLE_MATRIX.get(r);
 	try {
-		const {path,incomplete} = PathFinder.search(this, dest, opts);
+		const { path, incomplete } = PathFinder.search(this, dest, opts);
 		if (incomplete)
 			return ERR_NO_PATH;
 		return path.length;
-	} catch(e) {
+	} catch (e) {
 		Log.error(`getStepsTo failed on: ${JSON.stringify(dest)}`);
 		Log.error(e.stack);
 		throw e;
@@ -256,7 +276,7 @@ RoomPosition.prototype.getStepsTo = function (dest, opts = {}) {
  * @todo: replace with roomCallback
  * @todo: maxCost testing
  */
-RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = _.identity, opts={}) {
+RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = _.identity, opts = {}) {
 	const mapping = _.map(goals, itr);
 	if (_.isEmpty(mapping))
 		return { goal: null };
@@ -264,9 +284,14 @@ RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = _.identi
 		maxOps: 16000,
 		plainCost: 2,
 		swampCost: 5,
-		roomCallback: r => FIXED_OBSTACLE_MATRIX[r]
+		roomCallback: r => FIXED_OBSTACLE_MATRIX.get(r)
 	});
 	const result = PathFinder.search(this, mapping, opts);
+	if(!result.path.length) {
+	Log.error(ex(mapping));
+	Log.error(ex(opts));
+	Log.error(ex(result));
+	}
 	// if(result.incomplete)
 	//	throw new Error('Path incomplete');
 	let last = _.last(result.path);
@@ -315,9 +340,11 @@ RoomPosition.prototype.findClosestCreep = function () {
 		(c) => ({ pos: c.pos, range: 1 })).goal;
 };
 
-RoomPosition.prototype.findPositionNear = function(otherPos, range=1, opts, offset=2) {
-	const {path,incomplete} = PathFinder.search(this, {pos: otherPos, range}, opts);
-	if(incomplete)
+RoomPosition.prototype.findPositionNear = function (otherPos, range = 1, opts = {}, offset = 2) {
+	if (!opts.roomCallback)
+		opts.roomCallback = (r) => FIXED_OBSTACLE_MATRIX.get(r);
+	const { path, incomplete } = PathFinder.search(this, { pos: otherPos, range }, opts);
+	if (incomplete)
 		throw new Error('Unable to find path');
 	return path[path.length - offset];
 };

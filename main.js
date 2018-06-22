@@ -9,7 +9,7 @@
  * Game.profiler.stream(ticks, [functionFilter]);
  * Game.profiler.email(ticks, [functionFilter]);
  */
-"use strict";
+'use strict';
 
 /* global Log, Time, Util, Empire */
 
@@ -74,11 +74,10 @@ module.exports.loop = function () {
 	global.Player = loadModule('Player');
 	global.Filter = loadModule('Filter');
 	global.Route = loadModule('Route');
-	global.FSM = loadModule('FSM');
 	global.Command = loadModule('Command');
 	global.Segment = require('Segment');
 	global.Market = loadModule('Market');
-	loadModule('fsm-screeps');
+	global.Intel = loadModule('Intel');
 	Object.assign(global, loadModule('astar_tedivm'));
 
 	/**
@@ -101,6 +100,7 @@ module.exports.loop = function () {
 	loadModule('ext-structure-storage');
 	loadModule('ext-structure-link');
 	loadModule('ext-structure-observer');
+	loadModule('ext-structure-container');
 	loadModule('ext-structure-controller');
 	loadModule('ext-structure-terminal');
 	loadModule('ext-structure-lab');
@@ -108,10 +108,11 @@ module.exports.loop = function () {
 	loadModule('ext-structure-extractor');
 	loadModule('ext-structure-rampart');
 	loadModule('ext-structure-powerspawn');
+	loadModule('Group');
 
 	// Hot swap the loop when we're loaded
 	// module.exports.loop = wrapLazyMemory(function () {
-	module.exports.loop = function() {
+	module.exports.loop = function () {
 		if (Game.cpu.bucket <= BUCKET_MINIMUM)
 			return Log.notify("Bucket empty, skipping tick!", 60);
 		if (Game.cpu.getUsed() > Game.cpu.limit)
@@ -141,7 +142,7 @@ module.exports.loop = function () {
 			stats.dTR = Time.measure(() => Util.invoke(Game.rooms, 'run'));
 			stats.dTC = Time.measure(() => Util.invoke(Game.creeps, 'run'));
 			stats.dTS = Time.measure(() => Util.invoke(Game.structures, 'logic'));
-			if(Game.time % (DEFAULT_SPAWN_JOB_EXPIRE + 1) === 0)
+			if (Game.time % (DEFAULT_SPAWN_JOB_EXPIRE + 1) === 0)
 				stats.dTF = Time.measure(() => Util.invoke(Game.flags, 'run'));
 			stats.dEM = Time.measure(() => Empire.tick());
 			stats.dCS = Time.measure(() => Command.tick());
@@ -156,6 +157,7 @@ module.exports.loop = function () {
 			// require('Planner').pushRoomUpdates();
 			_(Game.market.orders).filter(o => o.remainingAmount <= 1).each(o => Game.market.cancelOrder(o.id)).commit();
 			Time.updateTickLength(256);
+			Intel.evict();
 		}
 
 		if ((Game.time & 15) === 0) {
@@ -175,12 +177,13 @@ module.exports.loop = function () {
 	};
 
 	// Optional profiler
-	if (false) {
+	/* eslint-disable no-constant-condition */
+	if (true) {
 		const profiler = loadModule('screeps-profiler');
 		profiler.enable();
 		profiler.registerObject(PathFinder.CostMatrix, 'pCostMatrix');
 		profiler.registerClass(Empire, 'Empire');
-		profiler.registerObject(Filter, 'Filter');
+		profiler.registerClass(Route, 'Route');
 		// profiler.registerObject(OwnedStructure, 'OwnedStructure');
 		profiler.registerObject(RoomObject, 'RoomObject');
 		profiler.registerObject(StructureController, 'Controller');

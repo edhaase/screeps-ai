@@ -21,32 +21,42 @@
  * 		  http://support.screeps.com/hc/en-us/articles/207891075-Minerals
  * @todo: Track credit income/expense at this terminal.
  * @todo: Intel gathering from orders.
+ * @todo: Price reduction should stop high enough we can still make back the fee
+ * @todo: Fix for placing sell orders below standing buy orders
+ * @todo: Account for price of energy
  */
-"use strict";
+'use strict';
 
-const ENABLE_ORDER_MANAGEMENT = true;		// Allow terminals to create orders
+/* global BUCKET_LIMITER, DEFINE_CACHED_GETTER, Log */
+/* global TERMINAL_MINIMUM_ENERGY, TERMINAL_RESOURCE_LIMIT, RESOURCE_THIS_TICK, MARKET_ORDER_LIMIT */
 
-global.MARKET_ORDER_LIMIT = 50;
+const MINIMUM_LEVEL_FOR_TERMINAL = _.findKey(CONTROLLER_STRUCTURES[STRUCTURE_TERMINAL]);
 
-global.TERMINAL_TAX = 0.01;		// Tax terminal income so the empire always nets a profit.
+const ENABLE_ORDER_MANAGEMENT = true;				// Allow terminals to create orders
 
-global.TERMINAL_MIN_ENERGY = 10000;					// We want to keep _at least_ this much energy in the terminal at all times.
-global.TERMINAL_AUTOSELL_THRESHOLD = 7000;			// At what point do we sell overflow?
-global.TERMINAL_RESOURCE_LIMIT = 75000; 			// Above this we stop spawning mineral harvesters
-global.TERMINAL_MAX_AUTOSELL = 5000;				// Maximum amount we can sell in a single action.
-global.TERMINAL_MINIMUM_SELL_PRICE = 0.01;
-global.TERMINAL_MAXIMUM_BUY_PRICE = 20.00;
-global.TERMINAL_MAINTAIN_RESERVE = 500;
-global.TERMINAL_PURCHASE_MARGIN = 10;
+const MODERATE_ENERGY_FREQUENCY = 15;
+const MODERATE_ORDERS_FREQUENCY = 2000;
 
-global.BIT_TERMINAL_SELL_ALL = (1 << 1);
+const TERMINAL_AUTOSELL_THRESHOLD = 7000;			// At what point do we sell overflow?
+const TERMINAL_MAXIMUM_AUTOSELL = 5000;				// Maximum amount we can sell in a single action.
+const TERMINAL_MINIMUM_SELL_PRICE = 0.001;
+
+const TERMINAL_MAXIMUM_BUY_PRICE = 20.00;			// Hard cap on price
+const TERMINAL_PURCHASE_MARGIN = 10;
+
+/* globally registered constants */
+/* eslint-disable no-magic-numbers */
+global.TERMINAL_TAX = 0.01;							// Tax terminal income so the empire always nets a profit.
+global.TERMINAL_MINIMUM_ENERGY = 10000;				// We want to keep _at least_ this much energy in the terminal at all times.
+global.TERMINAL_RESOURCE_LIMIT = 70000; 			// Above this we stop spawning mineral harvesters
+global.TERMINAL_MAINTAIN_RESERVE = 25 * LAB_BOOST_MINERAL;				// Amount of compounds to keep on hand
+/* eslint-enable no-magic-numbers */
 
 StructureTerminal.prototype.NUMBER_FORMATTER = new Intl.NumberFormat();
 
-// Magic properties
-defineCachedGetter(StructureTerminal.prototype, 'orders', ({ pos }) => _.filter(Game.market.orders, 'roomName', pos.roomName));
-defineCachedGetter(StructureTerminal.prototype, 'creditsAvailable', (t) => Math.min(Game.market.credits, t.credits));
-defineCachedGetter(StructureTerminal.prototype, 'network', ({ id }) => _.filter(Game.structures, s => s.structureType === STRUCTURE_TERMINAL && s.id !== id));
+DEFINE_CACHED_GETTER(StructureTerminal.prototype, 'orders', ({ pos }) => _.filter(Game.market.orders, 'roomName', pos.roomName));
+DEFINE_CACHED_GETTER(StructureTerminal.prototype, 'creditsAvailable', (t) => Math.min(Game.market.credits, t.credits));
+DEFINE_CACHED_GETTER(StructureTerminal.prototype, 'network', ({ id }) => _.filter(Game.structures, s => s.structureType === STRUCTURE_TERMINAL && s.id !== id));
 
 /**
  * Terminal run method.
@@ -60,10 +70,10 @@ StructureTerminal.prototype.run = function () {
 	if (BUCKET_LIMITER || this.cooldown || this.isDeferred() || this.busy)
 		return;
 	try {
-		if (!(Game.time & 15))
+		if (!(Game.time % MODERATE_ENERGY_FREQUENCY))
 			this.moderateEnergy();
 
-		if (ENABLE_ORDER_MANAGEMENT && !(Game.time & 2047))
+		if (ENABLE_ORDER_MANAGEMENT && !(Game.time % MODERATE_ORDERS_FREQUENCY))
 			this.updateOrders();
 		this.runAutoSell();
 		this.runAutoBuy();
@@ -78,7 +88,7 @@ StructureTerminal.prototype.run = function () {
 		} */
 	} catch (e) {
 		Log.error(`Error in terminal ${this.pos.roomName}`, 'Terminal');
-		Log.error(e.stack);
+		Log.error(e.stack, 'Terminal');
 	}
 };
 
@@ -109,31 +119,31 @@ StructureTerminal.prototype.getOrder = function (selector, validator = _.identit
 };
 
 /**
- *
+ * @todo don't just flat decrease.. 
+ * @todo what's the cost of lost fee?
  */
+const TERMINAL_ORDER_PRICE_REDUCTION = 0.01;	// How much to change the order by
+const TERMINAL_MINIMUM_ORDER_AGE = 10000;				// How old the order to be before we start messing with it.
 StructureTerminal.prototype.updateOrders = function () {
-	// let orders = this.orders; // get orders for this room.
-	// do we care if they haven't sold?
-	const orders = _.filter(this.orders, o => o.type === ORDER_SELL && Game.time - o.created > 10000 && o.price > 0.45); // find old orders first.
-	_.each(orders, (order) => {
-		const newPrice = order.price - 0.01;
+	const orders = _.filter(this.orders, o => o.type === ORDER_SELL && Game.time - o.created > TERMINAL_MINIMUM_ORDER_AGE && o.price > 0.45); // find old orders first.
+	for (var order of orders) {
+		const newPrice = order.price - TERMINAL_ORDER_PRICE_REDUCTION;
 		if (newPrice < 0.25)
-			return;
-		Log.notify(`[Terminal] ${order.roomName} Reducing order price on old order ${order.id} from ${order.price} to ${newPrice}`);
-		this.changeOrderPrice(order.id, newPrice);
-	});
+			continue;
+		const status = this.changeOrderPrice(order.id, newPrice);
+		Log.notify(`[Terminal] ${order.roomName} Reducing order price on old order ${order.id} from ${order.price} to ${newPrice} status ${status}`);
+	}
 };
 
 /**
  * @todo: min(pctCapacityUsed * distance)
  */
-// _(Game.structures).filter(s => s.structureType === STRUCTURE_TERMINAL).invoke('moderateEnergy')
 StructureTerminal.prototype.moderateEnergy = function () {
 	// If we're not exceeding energy limits, return early.
 	const energy = this.store[RESOURCE_ENERGY] || 0;
-	if (energy < TERMINAL_MIN_ENERGY && this.creditsAvailable > 0) {
+	if (energy < TERMINAL_MINIMUM_ENERGY && this.creditsAvailable > 0) {
 		const order = _.find(this.orders, { type: ORDER_BUY, resourceType: RESOURCE_ENERGY });
-		const total = TERMINAL_MIN_ENERGY * 1.25;
+		const total = TERMINAL_MINIMUM_ENERGY * 1.25;
 		if (ENABLE_ORDER_MANAGEMENT && !order) {
 			const competition = this.getAllOrders({ type: ORDER_BUY, resourceType: RESOURCE_ENERGY });
 			const highest = _.isEmpty(competition) ? 1.0 : (_.max(competition, 'price').price);
@@ -152,19 +162,19 @@ StructureTerminal.prototype.moderateEnergy = function () {
 		return this.buyUpTo(RESOURCE_ENERGY, total); // Fix the always-half-way issue/
 	}
 
-	const overage = energy - TERMINAL_RESOURCE_LIMIT;
+	const overage = energy - TERMINAL_RESOURCE_LIMIT;	
 	if (overage < 1000)
 		return false;
 
 	const terms = _.filter(this.network, s => s.store[RESOURCE_ENERGY] + 1000 < TERMINAL_RESOURCE_LIMIT);
 	if (terms == null || !terms.length) {
 		Log.warn(`${this.pos.roomName} No overflow terminal for ${overage} energy`, "Terminal");
-		return this.sell(RESOURCE_ENERGY, Math.min(overage, TERMINAL_MAX_AUTOSELL), 0.01);
+		return this.sell(RESOURCE_ENERGY, Math.min(overage, TERMINAL_MAXIMUM_AUTOSELL), 0.01);
 	}
 
 	const best = _.max(terms, t => TERMINAL_RESOURCE_LIMIT - t.store[RESOURCE_ENERGY]);
 	const amount = Math.min(TERMINAL_RESOURCE_LIMIT - (best.store[RESOURCE_ENERGY] || 0) - 1, overage); // Amount we can accept vs amount we're over.
-	Log.warn(`Terminal ${this.pos.roomName} reaching capacity. Shipping ${amount} energy to ${best.pos.roomName}`);
+	Log.info(`Terminal ${this.pos.roomName} reaching capacity. Shipping ${amount} energy to ${best.pos.roomName}`, 'Terminal');
 	if (this.send(RESOURCE_ENERGY, amount, best.pos.roomName, 'Overflow prevention') === OK) {
 		this.store[RESOURCE_ENERGY] -= amount;
 		best.store[RESOURCE_ENERGY] += amount;
@@ -182,7 +192,7 @@ StructureTerminal.prototype.runAutoSell = function (resource = RESOURCE_THIS_TIC
 	const over = this.getOverageAmount(resource);
 	if (over < TERMINAL_MIN_SEND)
 		return false;
-	if (Math.random() > (over / TERMINAL_MAX_AUTOSELL))
+	if (Math.random() > (over / TERMINAL_MAXIMUM_AUTOSELL))
 		return Log.info(`${this.pos.roomName} Skipping sell operation on ${over} ${resource}`, 'Terminal');
 
 	// On first overage sell, place a sell order
@@ -204,7 +214,7 @@ StructureTerminal.prototype.runAutoSell = function (resource = RESOURCE_THIS_TIC
 			return true;
 	}
 
-	const moving = Math.clamp(TERMINAL_MIN_SEND, over, TERMINAL_MAX_AUTOSELL);
+	const moving = Math.clamp(TERMINAL_MIN_SEND, over, TERMINAL_MAXIMUM_AUTOSELL);
 	return this.sell(resource, moving) === OK;
 };
 
@@ -212,7 +222,7 @@ StructureTerminal.prototype.runAutoSell = function (resource = RESOURCE_THIS_TIC
  * Auto purchase compounds we're missing.
  */
 StructureTerminal.prototype.runAutoBuy = function (resource = RESOURCE_THIS_TICK) {
-	if (this.creditsAvailable <= 0 || this.store[RESOURCE_ENERGY] < TERMINAL_MIN_ENERGY)
+	if (this.creditsAvailable <= 0 || this.store[RESOURCE_ENERGY] < TERMINAL_MINIMUM_ENERGY)
 		return;
 	if (resource.length <= 1 && resource !== 'G')
 		return;
@@ -226,18 +236,18 @@ StructureTerminal.prototype.runAutoBuy = function (resource = RESOURCE_THIS_TICK
 };
 
 StructureTerminal.prototype.getOverageAmount = function (res) {
-	if (res === RESOURCE_ENERGY || !this.store[res])
+	if (!this.store[res])
 		return 0;
 	const amt = this.store[res] || 0;
-	if (this.checkBit(BIT_TERMINAL_SELL_ALL))
-		return amt;
+	if (res === RESOURCE_ENERGY)
+		return amt - TERMINAL_RESOURCE_LIMIT;
 	const over = Math.max(amt - TERMINAL_AUTOSELL_THRESHOLD, 0);
 	return 100 * Math.floor(over / 100); // round to increments of 100
 };
 
 /** Active check hotwire for safety - Don't need to load terminal if it's inactive due to downgrade */
-StructureTerminal.prototype.isActive = function() {
-	return (this.room.controller.level >= 6);
+StructureTerminal.prototype.isActive = function () {
+	return (this.room.controller.level >= MINIMUM_LEVEL_FOR_TERMINAL);
 };
 
 /**
@@ -313,10 +323,21 @@ StructureTerminal.prototype.isFull = function () {
  * @param Object base - Base filter ({ type: ORDER_SELL, resourceType: res })
  * @param Function filter - Secondary filter to pass through
  */
-StructureTerminal.prototype.getAllOrders = function(base) {
+StructureTerminal.prototype.getAllOrders = function (base, opts = {}) {
 	try {
-		return Game.market.getAllOrders(base);
-	} catch(e) {
+		var orders = Game.market.getAllOrders(base);
+		if (opts.stdDev) {
+			var avg = _.sum(orders, 'price') / (orders.length - 1);
+			_.each(orders, o => {
+				o.diff = o.price - avg;
+				o.sqdiff = o.diff ** 2;
+			});
+			var variance = _.sum(orders, 'sqdiff') / (orders.length - 1);
+			var stddev = Math.sqrt(variance);
+			Log.debug(`${this.pos.roomName}: Avg ${avg} Variance ${variance} StdDev ${stddev}`, 'Terminal');
+		}
+		return orders;
+	} catch (e) {
 		Log.error(`${this.pos.roomName}: ${e.message}`, 'Terminal');
 		return [];
 	}
@@ -327,7 +348,7 @@ StructureTerminal.prototype.getAllOrders = function(base) {
  */
 StructureTerminal.prototype.deal = function (id, amount, order = {}) {
 	// track score, transaction cost averages
-	if(amount <= 0)
+	if (amount <= 0)
 		return ERR_INVALID_ARGS;
 	const status = Game.market.deal(id, amount, this.pos.roomName);
 	Log.debug(`${this.pos.roomName} dealing on ${amount} ${order.resourceType}, order ${id}, status ${status}`, 'Terminal');
@@ -423,6 +444,7 @@ StructureTerminal.prototype.sendAllEnergy = function (dest) {
 
 /**
  * Arbitrage: Exploiting a price 
+ * @todo: Probably requres a run state?
  */
 const TERMINAL_MIN_ARBITRAGE_PROFIT = 0.04;
 StructureTerminal.prototype.findArbitrageOrders = function (resource = RESOURCE_ENERGY, minProfit = TERMINAL_MIN_ARBITRAGE_PROFIT) {
@@ -481,7 +503,7 @@ StructureTerminal.prototype.createOrder = function (orderType, resource, price, 
 	const status = Game.market.createOrder(orderType, resource, price, amt, this.pos.roomName);
 	Log.debug(`Creating order ${orderType} for ${amt} ${resource} at price ${price}, status ${status}`, 'Terminal');
 	if (status === OK)
-		this.credits -= (price * amt * MARKET_FEE);
+		this.credits -= this.calcOrderFee(price, amt);
 	return status;
 };
 
@@ -499,7 +521,7 @@ StructureTerminal.prototype.createBuyOrder = function (resource, price, total) {
 	const cost = Math.ceil((price * total) + this.calcOrderFee(price, total));
 	if (this.creditsAvailable < cost)
 		return ERR_NOT_ENOUGH_RESOURCES;
-	const status = this.createOrder(ORDER_BUY, price, total);
+	const status = this.createOrder(ORDER_BUY, resource, price, total);
 	Log.debug(`Terminal ${this.pos.roomName} creating buy order of ${total} ${resource} at ${price} for ${cost} total, status ${status}`, 'Terminal');
 	return status;
 };

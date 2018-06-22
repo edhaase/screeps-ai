@@ -5,7 +5,7 @@
  * example: new LSystem('A', {B: 'A', A: 'AB'}).iterate(7)
  * example: new LSystem('0', {1: 11,0: '1[0]0'}).iterate(3)
  */
-"use strict";
+'use strict';
 
 class LSystem {
 	constructor(axiom, rules) {

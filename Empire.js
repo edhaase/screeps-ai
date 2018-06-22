@@ -9,10 +9,16 @@
  * @todo - Sign controllers to warn players that AI wants a room
  * @todo - dnc (do not claim), array of rooms
  */
-"use strict";
+'use strict';
+
+/* global Log */
+/* global PRIORITY_MIN, PRIORITY_LOW, PRIORITY_MED, PRIORITY_HIGH, PRIORITY_MAX */
+
+const Intel = require('Intel');
 
 const EMPIRE_EXPANSION_FREQUENCY = 4095; // Power of 2, minus 1
 const GCL_MOVING_AVG_DURATION = 1000;
+const GCL_EXPANSION_GOAL = 10;
 
 if (Memory.empire == null) {
 	Memory.empire = { autoExpand: true };
@@ -33,6 +39,10 @@ class Empire {
 			else
 				Log.warn("Unable to expand, nearing cpu limit", "Empire");
 		}
+	}
+
+	static isAtExpansionGoal() {
+		return (Game.gcl.level >= GCL_EXPANSION_GOAL);
 	}
 
 	static updateGCL() {
@@ -76,7 +86,7 @@ class Empire {
 		const spawns = _.reject(Game.spawns, r => r.isDefunct() || r.room.energyCapacityAvailable < cost);
 		if (!spawns || !spawns.length)
 			return Log.error(`No available spawn for expansion`, 'Empire');
-		const candidates = this.getAllCandidateRooms();
+		const candidates = this.getAllCandidateRoomsByScore().value();
 		if(!candidates || !candidates.length)
 			return Log.error(`No expansion candidates`, 'Empire');
 		else
@@ -84,7 +94,7 @@ class Empire {
 		const [first] = candidates;
 		const spawn = _.min(spawns, s => Game.map.findRoute(s.pos.roomName, first).length);
 		Log.notify(`Expansion in progress! (Origin: ${spawn.pos.roomName})`);
-		spawn.submit({ body, memory: { role: 'pioneer', rooms: candidates }, priority: 50 });
+		spawn.submit({ body, memory: { role: 'pioneer', rooms: candidates }, priority: PRIORITY_MED });
 		// Pick a room!
 		// Verify it isn't owned or reserved. Continue picking.
 		// Launch claimer!
@@ -94,13 +104,20 @@ class Empire {
 
 	static getAllCandidateRooms() {
 		return _(this.ownedRooms())
-			.reverse()
 			.map(m => this.getCandidateRooms(m.name, 5))
 			.flatten()
-			.unique()
-			.sortByOrder(r => Empire.scoreTerrain(r) * (0.1+Math.random() * 0.2), ['desc'])
-			.value();
+			.unique();			
 	}
+
+	// @todo Fuzz factor is still problematic.
+	static getAllCandidateRoomsByScore() {
+		return this
+			.getAllCandidateRooms()
+			// .map(r => ({name: r, score: Intel.scoreRoomForExpansion(r) * (0.1+Math.random() * 0.1)}))
+			// .sortByOrder(r => r.score, ['desc'])
+			.sortByOrder(r => Intel.scoreRoomForExpansion(r) * (0.1+Math.random() * 0.1), ['desc'])
+			// .sortByOrder(r => Intel.scoreRoomForExpansion(r), ['desc'])
+	}	
 
 	/**
 	 * Find expansion candidates.
@@ -110,6 +127,7 @@ class Empire {
 	 * W7N4,W8N4,W5N3,W5N2,W9N3,W9N2
 	 */
 	static getCandidateRooms(start, range = 2) {
+		/* global Route */
 		/* return _(Game.map.describeExits(start))
 			.reject(r => Room.getType(r) != 'Room' || (Game.rooms[r] && Game.rooms[r].my))
 			.value(); */
@@ -125,7 +143,7 @@ class Empire {
 			|| Room.getType(r) !== "Room"
 			|| !Game.map.isRoomAvailable(r)
 			// || Game.map.getRoomLinearDistance(start, r) <= 1
-			|| !_.inRange(Game.map.findRoute(start, r).length, 2, 5));
+			|| !_.inRange(Route.findRoute(start, r).length, 2, 5));
 
 	}
 
@@ -162,14 +180,6 @@ class Empire {
 
 	}
 
-	/* eslint-disable no-magic-numbers */
-	static scoreTerrain(roomName) {
-		var x, y, score = 0;
-		for (x = 2; x < 47; x++)
-			for (y = 2; y < 47; y++)
-				score += (Game.map.getTerrainAt(x, y, roomName) === 'plain');
-		return score / 45 ** 2;
-	}
 }
 
 module.exports = Empire;

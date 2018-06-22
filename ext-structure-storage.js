@@ -9,6 +9,10 @@
  */
 'use strict';
 
+/* global DEFINE_CACHED_GETTER */
+
+const DEFAULT_STORAGE_RESERVE = 100000;
+
 Object.defineProperty(StructureStorage.prototype, 'reserve', {
 	set: function (value) {
 		if (value === null) {
@@ -31,4 +35,4 @@ Object.defineProperty(StructureStorage.prototype, 'reserve', {
 });
 
 // Sliding scale - Possibly exponential decay at lower levels
-defineCachedGetter(StructureStorage.prototype, 'stock', (s) => (s.store[RESOURCE_ENERGY] || 0) / s.reserve);
+DEFINE_CACHED_GETTER(StructureStorage.prototype, 'stock', (s) => (s.store[RESOURCE_ENERGY] || 0) / s.reserve);

@@ -3,7 +3,7 @@
  *
  * 
  */
-"use strict";
+'use strict';
 
 /**
  * Memory segment globals.

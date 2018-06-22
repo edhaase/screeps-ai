@@ -5,7 +5,7 @@
  * @todo: abbr tag '<abbr title="World Health Organization">WHO</abbr>'
  * @todo: log groups / log levels?
  */
-"use strict";
+'use strict';
 
 class Log {
 	constructor() {

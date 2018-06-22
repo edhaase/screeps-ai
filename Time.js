@@ -1,7 +1,7 @@
 /**
  * Time.js
  */
-"use strict";
+'use strict';
 
 const CURRENT_TIMEZONE = -7;
 const DEFAULT_TICK_LENGTH_ESTIMATE = 4;

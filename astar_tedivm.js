@@ -20,7 +20,7 @@
  *  - Simplified API
  *  - Optimizations from http://theory.stanford.edu/~amitp/GameProgramming/Heuristics.html
  */
-"use strict";
+'use strict';
 
 /**
  * Simple grid storage class

@@ -3,7 +3,9 @@
  *
  * Global store of predefined filters.
  */
-"use strict";
+'use strict';
+
+/* global Player, PLAYER_HOSTILE */
 
 module.exports = {
 
@@ -40,7 +42,7 @@ module.exports = {
 	/**
 	 * Filter for room objects that can provide energy
 	 */
-	canProvideEnergy: function (thing, min = TERMINAL_MIN_ENERGY) {
+	canProvideEnergy: function (thing, min = TERMINAL_MINIMUM_ENERGY) {
 		if (thing instanceof Resource
 			&& thing.resourceType === RESOURCE_ENERGY
 			&& this.droppedResources(thing))
@@ -50,7 +52,7 @@ module.exports = {
 			if (thing.structureType === STRUCTURE_CONTAINER && thing.store[RESOURCE_ENERGY] > 10) return true;
 			if (thing.structureType === STRUCTURE_STORAGE && (thing.store[RESOURCE_ENERGY] > 0)) return true;
 			if (thing.structureType === STRUCTURE_TERMINAL && thing.store[RESOURCE_ENERGY] > min) return true;
-			if (thing.structureType === STRUCTURE_SPAWN && thing.energyPct > 0 && _.inRange(thing.room.energyAvailable, SPAWN_ENERGY_START - CARRY_CAPACITY, SPAWN_ENERGY_START + CARRY_CAPACITY - 5) && thing.isIdle()) return true;
+			if (thing.structureType === STRUCTURE_SPAWN && thing.energyPct > 0.10 && _.inRange(thing.room.energyAvailable, SPAWN_ENERGY_START - CARRY_CAPACITY, SPAWN_ENERGY_START + CARRY_CAPACITY - 5) && thing.isIdle()) return true;
 		}
 		return false;
 	},

@@ -3,7 +3,25 @@
  *
  * This file is for any features that help multiple types of room objects.
  */
-"use strict";
+'use strict';
+
+/* global DEFINE_CACHED_GETTER, Log, */
+/* global Player, PLAYER_ALLY */
+
+// Not truly a source of RoomObject, a lot of objects have this property..
+DEFINE_CACHED_GETTER(RoomObject.prototype, 'friendly', (obj) => obj.my || (obj.owner && Player.status(obj.owner.username) === PLAYER_ALLY));
+
+DEFINE_CACHED_GETTER(RoomObject.prototype, 'total', function () {
+	if (this instanceof Resource)
+		return this.amount;
+	else if (this instanceof Creep)
+		return this.carryTotal;
+	else if (this.store !== undefined)
+		return _.sum(this.store);
+	return 0;
+});
+
+DEFINE_CACHED_GETTER(Resource.prototype, 'decay', ({ amount }) => Math.ceil(amount / ENERGY_DECAY));
 
 /**
  * Generalized target locking function for actors.
@@ -33,9 +51,9 @@ RoomObject.prototype.getTarget = function (selector, validator = _.identity, cho
 	var target, tid = this.memory[prop];
 	if (tid != null) // Sanity check for cassandra migration
 		target = Game.getObjectById(tid);
-	if (target == null || !validator(target,this)) {
+	if (target == null || !validator(target, this)) {
 		this.room.visual.circle(this.pos, { fill: 'red' });
-		var candidates = _.filter(selector.call(this, this), x => validator(x,this));
+		var candidates = _.filter(selector.call(this, this), x => validator(x, this));
 		if (candidates && candidates.length)
 			target = chooser(candidates, this);
 		else
@@ -86,11 +104,11 @@ RoomObject.prototype.getTargetDeep = function (selector, validator = _.identity,
 RoomObject.prototype.getUniqueTarget = function (selector, restrictor, validator = _.identity, chooser = _.first, prop = 'tid') {
 	var tid = this.memory[prop];
 	var target = Game.getObjectById(tid);
-	if (tid == null || target == null || !validator(target,this)) {
+	if (tid == null || target == null || !validator(target, this)) {
 		this.room.visual.circle(this.pos, { fill: 'red' });
 		this.clearTarget(prop);
 		var invalid = restrictor.call(this, this) || [];
-		var candidates = _.filter(selector.call(this, this), x => validator(x,this) && !invalid.includes(x.id));
+		var candidates = _.filter(selector.call(this, this), x => validator(x, this) && !invalid.includes(x.id));
 		if (candidates && candidates.length)
 			target = chooser(candidates, this);
 		else
@@ -115,7 +133,7 @@ RoomObject.prototype.getUniqueTarget = function (selector, restrictor, validator
  * @return function - Return function to call
  */
 global.createUniqueTargetSelector = function (selector, restrictor, validator = _.identity, chooser = _.first, prop = 'tid') {
-	return function(roomObject) {
+	return function (roomObject) {
 		return RoomObject.prototype.getUniqueTarget.call(roomObject, selector, restrictor, validator, chooser, prop);
 	};
 };
@@ -136,43 +154,6 @@ RoomObject.prototype.setTarget = function (target, prop = 'tid') {
 	else
 		this.memory[prop] = target.id;
 	return this;
-};
-
-/**
- * Unit groups - Assign groups and shared memory space
- */
-Object.defineProperty(RoomObject.prototype, 'group', {
-	set: function (value) {
-		this.memory.gid = value;
-	},
-	get: function () {
-		if (this === RoomObject.prototype)
-			return null;
-		return this.memory.gid;
-	},
-	configurable: true,
-	enumerable: false
-});
-
-Object.defineProperty(RoomObject.prototype, 'gmem', {
-	get: function () {
-		var id = this.group;
-		if (this === RoomObject.prototype || id == null)
-			return null;
-		if (!Memory.groups)
-			Memory.groups = {};
-		if (!Memory.groups[id])
-			Memory.groups[id] = {};
-		return Memory.groups[id];
-	},
-	configurable: true
-});
-
-/**
- * Refresh a stale object. Maybe caching will have merit.
- */
-RoomObject.prototype.refresh = function () {
-	return _.merge(this, Game.getObjectById(this.id));
 };
 
 /**
@@ -287,21 +268,21 @@ RoomObject.prototype.transition = function (start, condition, end, onEnter) {
  *
  *
  */
-RoomObject.prototype.transitions = function (obj,def) {
+RoomObject.prototype.transitions = function (obj, def) {
 	var state = this.getState();
-	if(!obj)
+	if (!obj)
 		throw new TypeError('Expected transitions object');
 	// Log.warn(`Transitions for ${this.name} state ${state}`,'Creep')
-	if(!obj[state] || !obj[state].length) {
-		Log.warn(`No transitions for ${this.name} state ${state} [${Object.keys(obj)}]`,'Creep');
+	if (!obj[state] || !obj[state].length) {
+		Log.warn(`No transitions for ${this.name} state ${state} [${Object.keys(obj)}]`, 'Creep');
 		return this.setState(def);
 	}
 	for (var i = 0; i < obj[state].length; i++) {
-		var [condition, end, onEnter=null] = obj[state][i];
+		var [condition, end, onEnter = null] = obj[state][i];
 		if (condition.call(this, this)) {
 			state = end;
-			if(onEnter)
-				onEnter.call(this,this);
+			if (onEnter)
+				onEnter.call(this, this);
 			this.setState(state);
 			break;
 		}
@@ -315,25 +296,25 @@ RoomObject.prototype.transitions = function (obj,def) {
 const MAX_STACK_DEPTH = 100;		// How many states can be pushed onto the stack at once
 const MAX_STACK_CONCURRENT = 15;	// How many states can we invoke on one tick
 
-RoomObject.prototype.invokeState = function() {
-	if(!this.memory.stack || !this.memory.stack.length)
+RoomObject.prototype.invokeState = function () {
+	if (!this.memory.stack || !this.memory.stack.length)
 		return false;
-	if(this.stackDepth===undefined) {
-		this.stackDepth=0;
-		this.stackCounter=0;
+	if (this.stackDepth === undefined) {
+		this.stackDepth = 0;
+		this.stackCounter = 0;
 	}
 	this.stackDepth++; // Depth counter
 	this.stackCounter++; // Increments permanently
-	var [[state,scope]] = this.memory.stack;
+	var [[state, opts]] = this.memory.stack;
 	var method = `run${state}`;
-	if(this.stackDepth > MAX_STACK_CONCURRENT) {
+	if (this.stackDepth > MAX_STACK_CONCURRENT) {
 		Log.warn(`Aborting action ${state} (${method}) for ${this} at ${this.pos} on tick ${Game.time} at depth ${this.stackDepth} (count ${this.stackCounter})`, 'RoomObject');
 		return false;
 	}
-	if(!this[method])
+	if (!this[method])
 		return false;
 	Log.debug(`Invoking action ${state} (${method}) for ${this} at ${this.pos} on tick ${Game.time} at depth ${this.stackDepth} (count ${this.stackCounter})`, 'RoomObject');
-	this[method](scope);
+	this[method](opts);
 	this.stackDepth--;
 	return true;
 };
@@ -342,22 +323,22 @@ RoomObject.prototype.invokeState = function() {
  * @param {string} [defaultState] - Fallback state if none defined.
  */
 RoomObject.prototype.getState = function (defaultState = 'I') {
-	if(!this.memory.stack)
+	if (!this.memory.stack)
 		return defaultState;
 	return this.memory.stack[0][0] || defaultState;
 };
 
-RoomObject.prototype.getStateParams = function() {
-	if(!this.memory.stack)
+RoomObject.prototype.getStateParams = function () {
+	if (!this.memory.stack)
 		return null;
 	return this.memory.stack[0][1];
 };
 
 /**
  * @param {string} state - Name of state to switch to.
- * @param {*} scope - Any data you want to supply to the state.
+ * @param {*} opts - Any data you want to supply to the state.
  */
-RoomObject.prototype.setState = function (state, scope={}, runNext=true) {
+RoomObject.prototype.setState = function (state, opts = {}, runNext = true) {
 	if (state == null)
 		throw new TypeError('State can not be null');
 	var method = `run${state}`;
@@ -366,18 +347,18 @@ RoomObject.prototype.setState = function (state, scope={}, runNext=true) {
 	if (!this.memory.stack)
 		this.memory.stack = [[]];
 	this.clearTarget();
-	this.memory.stack[0] = [state, scope];
+	this.memory.stack[0] = [state, opts];
 	Log.debug(`Setting state ${state} to ${this}`, 'RoomObject');
-	if(runNext && this[method] !== null)
+	if (runNext && this[method] !== null)
 		this.invokeState();
 	return state;
 };
 
 /**
  * @param {string} state - Name of state to push
- * @param {*} scope - Any data you want to supply to the state.
+ * @param {*} opts - Any data you want to supply to the state.
  */
-RoomObject.prototype.pushState = function (state, scope={}, runNext=true) {
+RoomObject.prototype.pushState = function (state, opts = {}, runNext = true) {
 	if (!this.memory.stack)
 		this.memory.stack = [];
 	var method = `run${state}`;
@@ -387,8 +368,8 @@ RoomObject.prototype.pushState = function (state, scope={}, runNext=true) {
 		throw new Error('Automata stack limit exceeded');
 	Log.info(`Pushing state ${state} to ${this}`, 'RoomObject');
 	this.clearTarget();
-	this.memory.stack.unshift([state, scope]);
-	if(runNext && !this.spawning) {
+	this.memory.stack.unshift([state, opts]);
+	if (runNext && !this.spawning) {
 		Log.debug(`Invoking next state ${this.getState()} early for ${this} (post-push)`, 'RoomObject');
 		this.invokeState();
 	}
@@ -396,19 +377,19 @@ RoomObject.prototype.pushState = function (state, scope={}, runNext=true) {
 };
 
 
-RoomObject.prototype.pushStates = function(arr=[], runNext=true) {
-	if(!this.memory.stack)
+RoomObject.prototype.pushStates = function (arr = [], runNext = true) {
+	if (!this.memory.stack)
 		this.memory.stack = [];
-	if(this.memory.stack.length + arr.length >= MAX_STACK_DEPTH)
+	if (this.memory.stack.length + arr.length >= MAX_STACK_DEPTH)
 		throw new Error('Automata stack limit exceed');
 	this.clearTarget();
 	_.each(arr, a => this.memory.stack.unshift(a));
-	if(runNext && !this.spawning)
+	if (runNext && !this.spawning)
 		this.invokeState();
 };
 
 /** Pop the current state off the stack */
-RoomObject.prototype.popState = function (runNext=true) {
+RoomObject.prototype.popState = function (runNext = true) {
 	if (!this.memory.stack || !this.memory.stack.length)
 		return;
 	const [state] = this.memory.stack.shift();
@@ -416,69 +397,68 @@ RoomObject.prototype.popState = function (runNext=true) {
 	this.clearTarget();
 	if (!this.memory.stack.length)
 		this.memory.stack = undefined;
-	if(runNext) {
+	if (runNext) {
 		Log.debug(`Invoking next state ${this.getState()} early for ${this} (post-pop)`, 'RoomObject');
 		this.invokeState();
 	}
 };
 
 /** Clear the stack */
-RoomObject.prototype.clearState = function() {
+RoomObject.prototype.clearState = function () {
 	this.clearTarget();
 	this.memory.stack = undefined;
 };
 
 /**
- * Programmable steps!
- * ex: Game.spawns.Spawn1.submit({body: [MOVE], memory: {role: 'noop',stack:[['Eval',{script:'this.move(TOP)'}]]}, priority: 100})
+ * 
  */
-RoomObject.prototype.runEval = function (scope) {
-	var {script,exit} = scope;
-	if(exit && eval(exit))
+RoomObject.prototype.runEval = function (opts) {
+	var { script, exit } = opts;
+	if (exit && eval(exit))
 		this.popState();
 	else
 		eval(script);
 };
 
-RoomObject.prototype.runEvalOnce = function (scope) {
+RoomObject.prototype.runEvalOnce = function (opts) {
 	this.popState();
-	eval(scope);
+	eval(opts);
 };
 
 // Cycle through states
-RoomObject.prototype.runCycle = function (scope) {
+RoomObject.prototype.runCycle = function (opts) {
 
 };
 
 // Repeat another state indefinitely
-RoomObject.prototype.runRepeat = function (scope) {
-	return this.pushState(scope);
+RoomObject.prototype.runRepeat = function (opts) {
+	return this.pushState(opts);
 };
 
 // Conditional
-RoomObject.prototype.runIIF = function(scope) {
+RoomObject.prototype.runIIF = function (opts) {
 
 };
 
-RoomObject.prototype.runWait = function(scope) {
-	switch (typeof scope) {
-	case 'number':
-		if (Game.time > scope)
-			this.popState();
-		break;
-	case 'string':
-		if(eval(scope))
-			this.popState();
-		break;
-	case 'object':
-		break;
+RoomObject.prototype.runWait = function (opts) {
+	switch (typeof opts) {
+		case 'number':
+			if (Game.time > opts)
+				this.popState();
+			break;
+		case 'string':
+			if (eval(opts))
+				this.popState();
+			break;
+		case 'object':
+			break;
 	}
 };
 
 /**
  * Rampart benefits
  */
-defineCachedGetter(RoomObject.prototype, 'hitsEffective', function () {
+DEFINE_CACHED_GETTER(RoomObject.prototype, 'hitsEffective', function () {
 	if (this.structureType !== STRUCTURE_RAMPART) {
 		var rampart = this.pos.getStructure(STRUCTURE_RAMPART);
 		if (rampart)
@@ -501,11 +481,13 @@ RoomObject.prototype.getAdjacentContainer = function () {
  * @param string prop - key name to store spawn name in (cache or memory)
  */
 RoomObject.prototype.getClosestSpawn = function (opts = {}, prop = 'memory') {
-	if (!this[prop].spawn || !Game.spawns[this[prop].spawn] || Game.spawns[this[prop].spawn].isDefunct() || this[prop].resetSpawn <= Game.time) {
-		const spawns = _.reject(Game.spawns, s => s.isDefunct());
-		const { goal, cost, path } = this.pos.findClosestByPathFinder(spawns, (spawn) => ({ pos: spawn.pos, range: 1 }), opts);
+	var { spawn } = this[prop];
+	const { filter = () => true } = opts;
+	if (!Game.spawns[spawn] || Game.spawns[spawn].isDefunct() || this[prop].resetSpawn <= Game.time || !filter(Game.spawns[spawn])) {
+		const spawns = _.reject(Game.spawns, s => s.isDefunct() || !filter(s));
+		const { goal, cost, path } = this.pos.findClosestByPathFinder(spawns, (s) => ({ pos: s.pos, range: 1 }), opts);
 		if (!goal)
-			return [null,null,null];
+			return [null, null, null];
 		this[prop].spawn = goal.name;
 		this[prop].steps = path.length;
 		this[prop].cost = cost;				// est ticks to get there
@@ -592,47 +574,32 @@ RoomObject.prototype.canUseBits = function () {
 /**
  * Checks for a link in range
  */
-RoomObject.prototype.getLink = function(range=2) {
-	const [link] = this.pos.findInRange(FIND_MY_STRUCTURES, range, {filter: {structureType: STRUCTURE_LINK}});
+RoomObject.prototype.getLink = function (range = 2) {
+	const [link] = this.pos.findInRange(FIND_MY_STRUCTURES, range, { filter: { structureType: STRUCTURE_LINK } });
 	return link;
 };
 
 /**
  * Create a link for a given object
  */
-RoomObject.prototype.planLink = function(range=1,adjust=2) {
-	if(this.getLink(range+1) != null)
+RoomObject.prototype.planLink = function (range = 1, adjust = 2) {
+	if (this.getLink(range + 1) != null)
 		return ERR_FULL;
 	const origin = this.room.getOrigin().pos;
-	if(!origin)
+	if (!origin)
 		throw new Error('Origin expected');
 	try {
 		const pos = origin.findPositionNear(this.pos, range, {
 			plainSpeed: 2,
 			swampSpeed: 5,
-			roomCallback: (r) => FIXED_OBSTACLE_MATRIX[r]
+			roomCallback: (r) => FIXED_OBSTACLE_MATRIX.get(r)
 		}, adjust);
 		Log.debug(`Adding link to ${pos} for ${this}`, 'Planner');
 		this.room.addToBuildQueue(pos, STRUCTURE_LINK);
 		return OK;
-	} catch(e) {
+	} catch (e) {
 		Log.error(`Error planning link for ${this} at ${this.pos}`, 'RoomObject');
 		Log.error(e.stack);
 		return ERR_NO_PATH;
 	}
 };
-
-/**
- * Resource extensions
- */
-defineCachedGetter(Resource.prototype, 'decay', ({ amount }) => Math.ceil(amount / ENERGY_DECAY));
-
-defineCachedGetter(RoomObject.prototype, 'total', function () {
-	if (this instanceof Resource)
-		return this.amount;
-	else if (this instanceof Creep)
-		return this.carryTotal;
-	else if (this.store !== undefined)
-		return _.sum(this.store);
-	return 0;
-});

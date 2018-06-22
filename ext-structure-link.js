@@ -2,24 +2,26 @@
  * ext-structurelink.js
  * 
  * Logic for operating links
+ * @todo Improve error handling
  */
-"use strict";
+'use strict';
 
-global.LINK_AUTOBALANCE_THRESHOLD = 100; // Amount of energy over in-network average before transferring.
+/* global DEFINE_CACHED_GETTER, Log */
 
-global.BIT_LINK_RECEIVE_ONLY = (1 << 1);
+const LINK_AUTOBALANCE_THRESHOLD = 100; // Amount of energy over in-network average before transferring.
+const LINK_ON_ERROR_DEFER = 100;
 
-defineCachedGetter(Room.prototype, 'links', function() {
-	if(this.cache.links == null || Game.time - this.cache.tick > 10) {
-		this.cache.links = this.find(FIND_MY_STRUCTURES, {filter: s => s.structureType === STRUCTURE_LINK}).map(s => s.id);
+DEFINE_CACHED_GETTER(Room.prototype, 'links', function () {
+	if (this.cache.links == null || Game.time - this.cache.tick > 10) {
+		this.cache.links = this.find(FIND_MY_STRUCTURES, { filter: s => s.structureType === STRUCTURE_LINK }).map(s => s.id);
 		this.cache.tick = Game.time;
 	}
 	return _.map(this.cache.links, l => Game.getObjectById(l));
 });
 
-defineCachedGetter(Room.prototype, 'energyInNetwork', r => _.sum(r.links, 'energy'));
-defineCachedGetter(Room.prototype, 'energyCapacityInNetwork', r => _.sum(r.links, 'energyCapacity'));
-defineCachedGetter(Room.prototype, 'avgInNetwork', r => r.energyInNetwork / r.links.length);
+DEFINE_CACHED_GETTER(Room.prototype, 'energyInNetwork', r => _.sum(r.links, 'energy'));
+DEFINE_CACHED_GETTER(Room.prototype, 'energyCapacityInNetwork', r => _.sum(r.links, 'energyCapacity'));
+DEFINE_CACHED_GETTER(Room.prototype, 'avgInNetwork', r => r.energyInNetwork / r.links.length);
 
 StructureLink.prototype.run = function () {
 	// var {cooldown,energy,pos,room,memory} = this;
@@ -27,13 +29,11 @@ StructureLink.prototype.run = function () {
 		return;
 	if (this.isDeferred() || (Game.time & 3))
 		return;
-	if (this.memory.bits & BIT_LINK_RECEIVE_ONLY)
-		return;
 	if (this.room.links.length <= 1) {
-		this.defer(100);
+		this.defer(LINK_ON_ERROR_DEFER);
 		return;
 	}
-	var avgInNetwork = this.room.avgInNetwork;
+	var { avgInNetwork } = this.room;
 	var diff = Math.floor(this.energy - avgInNetwork);
 	if (diff < LINK_AUTOBALANCE_THRESHOLD)
 		return;
@@ -51,25 +51,26 @@ StructureLink.prototype.run = function () {
 };
 
 /**
- * Link to link transfer enhancement. Denies transfer if destination
- * already has incoming.
+ * Link to link transfer enhancement. Denies transfer if destination already has incoming.
  */
-var te = StructureLink.prototype.transferEnergy;
+const { transferEnergy } = StructureLink.prototype;
 StructureLink.prototype.transferEnergy = function (target, amount) {
+	/* eslint-disable indent */
 	if (!target || !(target instanceof StructureLink)) {
 		return ERR_INVALID_TARGET;
 	}
 
-	if (target && target.isReceiving)
+	if (target.isReceiving || this.isSending)
 		return ERR_BUSY;
 
 	var status;
-	switch ((status = te.apply(this, arguments))) {
-	case OK:
-		target.isReceiving = true;
-		break;
-	case ERR_FULL:
-		Log.warn(`Link at ${target.pos} full ${target.energy}/${amount}`, 'Link');
+	switch ((status = transferEnergy.apply(this, arguments))) {
+		case OK:
+			target.isReceiving = true;
+			this.isSending = true;
+			break;
+		case ERR_FULL:
+			Log.warn(`Link at ${target.pos} full ${target.energy}/${amount}`, 'Link');
 	}
 	return status;
 };

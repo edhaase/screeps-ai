@@ -1,5 +1,13 @@
 /** Market.js - Market code that doesn't fit anywhere else */
-"use strict";
+'use strict';
+
+/* global Log, TERMINAL_TAX */
+
+const Intel = require('Intel');
+
+/* eslint-disable no-magic-numbers */
+global.MARKET_ORDER_LIMIT = 50;
+/* eslint-enable no-magic-numbers */
 
 module.exports = {
 	/**
@@ -21,7 +29,8 @@ module.exports = {
 			transaction = outgoing[j];
 			if (Game.time - transaction.time > freq)
 				break;
-			if (transaction.to && _.get(Game.rooms, transaction.to + '.controller.my', false) === true)
+			// if (transaction.to && _.get(Game.rooms, transaction.to + '.controller.my', false) === true)
+			if (transaction.to && Game.rooms[transaction.to] && Game.rooms[transaction.to].my === true)
 				continue;
 			var { from, to, resourceType, amount, order, recipient } = transaction;
 			distance = Game.map.getRoomLinearDistance(from, to, true);
@@ -48,7 +57,8 @@ module.exports = {
 			if (Game.time - transaction.time > freq)
 				break;
 			var { from, to, resourceType, amount, order, sender } = transaction;
-			if (transaction.from && _.get(Game.rooms, transaction.from + '.controller.my', false) === true)
+			// if (transaction.from && _.get(Game.rooms, transaction.from + '.controller.my', false) === true)
+			if (transaction.from && Game.rooms[transaction.from] && Game.rooms[transaction.from].my === true)
 				continue;
 			distance = Game.map.getRoomLinearDistance(transaction.from, transaction.to, true);
 			// var price = (order.price) ? order.price : 'NA';
@@ -68,9 +78,11 @@ module.exports = {
 
 	updateSender: function (name, roomName, transaction) {
 		Log.info(`Sender info: ${name} in ${roomName}`);
+		Intel.setRoomOwner(roomName, name);
 	},
 
 	updateRecipient: function (name, roomName, transaction) {
 		Log.info(`Recipient info: ${name} in ${roomName}`);
+		Intel.setRoomOwner(roomName, name);
 	}
 };

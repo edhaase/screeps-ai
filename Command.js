@@ -1,7 +1,7 @@
 /**
  *
  */
-"use strict";
+'use strict';
 
 class Command {
 	static getLimit() {
@@ -22,7 +22,7 @@ class Command {
 			cmd = Memory.command.shift();
 			r = eval(cmd);
 			if (r !== undefined)
-				Log.warn(`Result: ${r}`, "Command");
+				Log.debug(`Result: ${r}`, "Command");
 		}
 
 		if (!Memory.command.length)

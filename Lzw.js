@@ -2,7 +2,7 @@
  * Lzw.js
  * Courtesy of @proximo
  */
-"use strict";
+'use strict';
 
 class Lzw {
 	/**

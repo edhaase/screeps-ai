@@ -5,7 +5,11 @@
  */
 'use strict';
 
+/* global DEFINE_CACHE_BACKED_PROPERTY, Log */
+
 /* eslint-disable consistent-return */
+
+const { VisibilityError } = require('Error');
 
 if (!Memory.flags)
 	Memory.flags = {};
@@ -62,7 +66,7 @@ Room.prototype.createLogicFlagAtPos = function (pos, name, color, secondaryColor
 
 RoomPosition.prototype.createLogicFlag = function (name, color, secondaryColor, memory) {
 	if (!Game.rooms[this.roomName])
-		throw new Error("No room visibility");
+		throw new VisibilityError(this.roomName);
 	return Game.rooms[this.roomName].createLogicFlagAtPos(this, name, color, secondaryColor, memory);
 };
 
@@ -71,7 +75,7 @@ RoomPosition.prototype.createLogicFlag = function (name, color, secondaryColor, 
  */
 Flag.prototype.defer = function (ticks) {
 	if (!_.isNumber(ticks))
-		throw new Error('Flag.defer expects numbers');
+		throw new TypeError('Flag.defer expects numbers');
 	if (ticks <= 0)
 		return 0;
 	if (ticks >= Game.time)
@@ -230,29 +234,30 @@ Flag.prototype.runLogic = function () {
 			if (this.room) {
 				const { controller } = this.room;
 				if (controller && controller.my) {
-					Log.warn(`We own the controller in ${this.pos.roomName}, removing self!`, 'Flag');
+					Log.warn(`We own the controller in ${this.pos.roomName}, removing self!`, 'Flag#Reserve');
 					this.remove();
 					return;
 				} else if (controller && controller.owner) {
-					Log.warn(`Controller owned by ${JSON.stringify(controller.owner)} else, unable to reserve`, 'Flag');
+					Log.warn(`Controller owned by ${JSON.stringify(controller.owner)} else, unable to reserve`, 'Flag#Reserve');
 					this.remove();
 					return;
 				} else if (controller && controller.reservation && Player.status(controller.reservation.username) >= PLAYER_NEUTRAL && controller.reservation.username !== WHOAMI) {
-					Log.warn(`Controller reserved by friendly player ${controller.reservation.username}`, 'Flag');
+					Log.warn(`Controller reserved by friendly player ${controller.reservation.username}`, 'Flag#Reserve');
 					this.defer(controller.reservation.ticksToEnd);
 					return;
 				}
 			}
-
-			const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1 });
-			const size = Math.floor((CONTROLLER_RESERVE_MAX - clock) / (CONTROLLER_RESERVE*(CREEP_CLAIM_LIFE_TIME - cost)));
+			const { minCost } = require('role-reserver');
+			const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1, filter: s => s.room.energyCapacityAvailable >= minCost });
+			const size = Math.floor((CONTROLLER_RESERVE_MAX - clock) / (CONTROLLER_RESERVE * (CREEP_CLAIM_LIFE_TIME - cost)));
 			const reserver = this.getAssignedUnit(c => c.getRole() === 'reserver' && this.pos.isEqualToPlain(c.memory.site) && (c.spawning || (c.ticksToLive > (2 * size * CREEP_SPAWN_TIME) + cost)));
 			if (reserver)
 				return this.defer(Math.min(reserver.ticksToLive || CREEP_CLAIM_LIFE_TIME, DEFAULT_SPAWN_JOB_EXPIRE));
-			Log.info(`${this.name} wants to build reserver of size ${size} for room ${this.pos.roomName}`, 'Flag')
+			Log.info(`${this.name} wants to build reserver of size ${size} for room ${this.pos.roomName} with spawn ${spawn}`, 'Flag#Reserve');
 			if (spawn && !spawn.hasJob({ memory: { role: 'reserver', site: this.pos } })) {
 				const prio = Math.clamp(1, Math.ceil(100 * (1 - (clock / MINIMUM_RESERVATION))), 100);
-				require('Unit').requestReserver(spawn, this.pos, prio, size);
+				const status = require('Unit').requestReserver(spawn, this.pos, prio, size);
+				Log.info(`${this.name} status result ${status}`, 'Flag#Reserve');
 			}
 			this.defer(DEFAULT_SPAWN_JOB_EXPIRE);
 			return;
@@ -369,9 +374,10 @@ Flag.prototype.runLogic = function () {
 	 * Remote mining site operations (very similar, but also requires an assigned hauler)
 	 * 2016-10-26: carryCapacity gets weird when creeps get damaged
 	 */
+	const HAULER_MARGIN = 2;
 	if (this.color === FLAG_MINING && this.secondaryColor === SITE_PICKUP && !BUCKET_LIMITER) {
 		if (this.room && !this.room.canMine) {
-			Log.warn(`Cannot mine in ${this.pos.roomName}, deferring.`, 'Flag');
+			Log.warn(`Cannot mine in ${this.pos.roomName}, deferring.`, 'Flag#Hauler');
 			return this.defer(5000);
 		}
 		else if (this.room && this.room.controller && this.room.controller.owner && !this.room.controller.my)
@@ -385,46 +391,61 @@ Flag.prototype.runLogic = function () {
 				//	require('Planner').planRoad(this.pos, { pos: _.create(RoomPosition.prototype, this.memory.dropoff), range: 1 });
 				this.memory.dropoff = undefined; // reset dropoff
 			});
-		if (this.room && (!this.memory.dropoff || (this.memory.step == null || this.memory.step < 0))) {
+		const container = (this.room) ? this.pos.getStructure(STRUCTURE_CONTAINER, 1) : null;
+		const site = (container && container.pos) || this.pos;
+		// @todo pick room by route..
+		// @todo pick structure in room, including containers.
+		if (this.room && (!this.memory.dropoff || (this.memory.step == null || this.memory.step <= 0))) {
 			this.memory.steps = undefined;
-			const storages = _.filter(Game.structures, s => [STRUCTURE_LINK, STRUCTURE_STORAGE, STRUCTURE_TERMINAL].includes(s.structureType));
-			const { goal } = this.pos.findClosestByPathFinder(storages, s => ({ pos: s.pos, range: 1 }));
+			const storages = _.filter(Game.structures, s => [STRUCTURE_LINK, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_CONTROLLER].includes(s.structureType));
+			const { goal, cost, ops, incomplete } = site.findClosestByPathFinder(storages, s => ({ pos: s.pos, range: 1 }));
 			if (goal) {
 				this.memory.dropoff = goal.pos;
-				Log.info(`${this.name} found dropoff goal: ${goal}`, 'Flag');
+				this.memory.range = 1;
+				if (goal instanceof StructureController) {
+					if (goal.container) {
+						this.memory.dropoff = goal.container.pos;
+						this.memory.range = 1;
+					} else {
+						this.memory.range = CREEP_UPGRADE_RANGE;
+					}
+				}
+				Log.info(`${this.name} found dropoff goal: ${goal} ${this.memory.dropoff} range ${this.memory.range} (from ${this.pos}) at cost ${cost} ops ${ops} incomplete ${incomplete}`, 'Flag#Hauler');
 			} else
 				this.assignNearbySpot();
-			this.memory.steps = this.pos.getStepsTo({ pos: this.memory.dropoff, range: 1 });
+			// this.memory.steps = this.pos.getStepsTo({ pos: this.memory.dropoff, range: 1 });
+			this.memory.steps = cost;
 		}
 		if (!this.memory.dropoff) {
-			Log.warn(`No dropoff point for ${this.name}`, 'Flag');
+			Log.warn(`No dropoff point for ${this.name}`, 'Flag#Hauler');
 			return this.defer(MAX_CREEP_SPAWN_TIME);
 		}
 		if (this.room) {
 			const [source] = this.pos.lookFor(LOOK_SOURCES);
 			this.memory.capacity = (source && source.energyCapacity) || SOURCE_ENERGY_CAPACITY;
-			Log.debug(`${this.name} setting capacity to ${this.memory.capacity}`, 'Flag');
+			Log.debug(`${this.name} setting capacity to ${this.memory.capacity}`, 'Flag#Hauler');
 		}
-		const creeps = _.filter(Game.creeps, c => c.memory.role === 'hauler' && this.pos.isEqualToPlain(c.memory.site));
+		// @todo comparing to the site is a recipe for disaster.
+		const creeps = _.filter(Game.creeps, c => c.memory.role === 'hauler' && site.isEqualToPlain(c.memory.site));
 		const assigned = _.sum(creeps, c => c.getBodyParts(CARRY));
 		const { steps, capacity = SOURCE_ENERGY_CAPACITY } = this.memory;
 		const estCarry = CARRY_PARTS(capacity, steps);
-		const reqCarry = Math.ceil(estCarry + 2); // flat 1 + 2 extra carry
+		const reqCarry = HAULER_MARGIN + Math.ceil(estCarry); // flat 1 + 2 extra carry
 		const remaining = Math.max(0, reqCarry - assigned);
-		// Log.info(`${this.pos} assigned: ${assigned}, requested: ${reqCarry}, remaining: ${remaining}`, 'Flag');
-		if (!creeps || remaining > 2) {
+		Log.info(`${this.pos} assigned: ${assigned} steps ${steps} cap ${capacity} est ${estCarry} remaining: ${remaining}`, 'Flag#Hauler');
+		if (!creeps || remaining > HAULER_MARGIN) {
 			/** high cpu - run sparingly */
 			// move out of if, cache steps, reqCarry - sum of carry parts assigned
 			// Log.info(`New hauler: step count ${steps}, estCarry ${estCarry}, reqCarry ${reqCarry}`, "Flag");
 			// let spawn = this.pos.findClosestSpawn();
 			const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1 });
-			// Log.success(`Requesting new hauler to site: ${this.pos} from spawn ${spawn}`, 'Flag');
-			if (spawn && !spawn.hasJob({ memory: { role: 'hauler', site: this.pos, dropoff: this.memory.dropoff } })) {
-				const priority = Math.min(80, 100 - Math.ceil(100 * (assigned / reqCarry))); // Cap at 80%
-				Unit.requestHauler(spawn, { role: 'hauler', site: this.pos, dropoff: this.memory.dropoff, steps: this.memory.steps }, this.memory.hasRoad, remaining, priority, this.pos.roomName);
+			Log.success(`Requesting new hauler to site: ${this.pos} from spawn ${spawn}`, 'Flag#Hauler');
+			if (spawn && !spawn.hasJob({ memory: { role: 'hauler', site, dropoff: this.memory.dropoff } })) {
+				const priority = Math.min(80, Math.ceil(100 * (assigned / reqCarry))); // Cap at 80%				
+				Unit.requestHauler(spawn, { role: 'hauler', site, dropoff: this.memory.dropoff, steps: this.memory.steps }, this.memory.hasRoad, remaining, priority, this.pos.roomName);
 			}
 		} else if (reqCarry - assigned < 0) {
-			Log.warn(`${this.name}/${this.pos} Reporting excess hauler capacity: ${(reqCarry - assigned)}`, 'Flag');
+			Log.warn(`${this.name}/${this.pos} Reporting excess hauler capacity: ${(reqCarry - assigned)}`, 'Flag#Hauler');
 		}
 		this.defer(MAX_CREEP_SPAWN_TIME);
 		return;

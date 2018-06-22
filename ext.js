@@ -3,7 +3,7 @@
  *
  * General purpose extensions, or prototype extensions that don't fit anywhere else.
  */
-"use strict";
+'use strict';
 
 ConstructionSite.prototype.draw = function () {
 	const { room, pos, structureType } = this;

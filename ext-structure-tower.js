@@ -14,10 +14,12 @@
  * @todo assign damage during tick, if no valid targets find targets valid to other towers and assist.
  * @todo: fudge the numbers a little (noise function?!)
  */
-"use strict";
+'use strict';
 
-/* global defineMemoryBackedProperty */
-defineMemoryBackedProperty(StructureTower.prototype, 'range');
+/* global DEFINE_MEMORY_BACKED_PROPERTY */
+DEFINE_MEMORY_BACKED_PROPERTY(StructureTower.prototype, 'range');
+
+const TOWER_REPAIR_MAX_HITS = 20000;
 
 const TOWER_MINIMUM_RESERVE = 0.75;
 // global.TOWER_DAMAGE_EFFECT = [600,600,600,600,600,600,570,540,510,480,450,420,390,360,330,300,270,240,210,180,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150];
@@ -34,7 +36,8 @@ const TOWER_STRATEGY_CLOSEST = 4;		// Closest to tower
 const TOWER_STRATEGY_CLOSEST_CTRL = 5;
 const TOWER_STRATEGY_WEAKEST = 6;		// Most hurt
 const TOWER_STRATEGY_TOUGHEST = 7;		// Most hits
-const MAX_ATTACK_STRATEGY = 7;
+const TOWER_STRATEGY_HEAL = 8;
+const MAX_ATTACK_STRATEGY = 8;
 
 StructureTower.prototype.onWake = function () {
 
@@ -105,6 +108,8 @@ StructureTower.prototype.runAttack = function () {
 		return this.attack(_.min(this.room.hostiles,'hits')) === OK;
 	case TOWER_STRATEGY_TOUGHEST:
 		return this.attack(_.max(this.room.hostiles,'hits')) === OK;
+	case TOWER_STRATEGY_HEAL:
+		return this.runHeal() === OK || this.attack(_.max(this.room.hostiles,'hits')) === OK;
 	}	
 };
 
@@ -143,11 +148,10 @@ StructureTower.prototype.delayNextRepair = function () {
 	return this.memory.repairDelay;
 };
 
+// @todo consider caching this for a couple ticks
 StructureTower.prototype.getRepairTarget = function () {
-	if (this.room.storage && this.room.storage.stock >= 1.0)
-		return this.room.findWeakestStructure(REPAIR_LIMIT[this.room.controller.level]);
-	else
-		return this.room.findWeakestStructure(20000 * this.room.controller.level);
+	const targets = _.filter(this.room.structures, s => s.hits < s.hitsMax && s.hits < TOWER_REPAIR_MAX_HITS);
+	return _.min(targets, 'hits');
 };
 
 StructureTower.prototype.runHeal = function () {

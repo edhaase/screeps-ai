@@ -1,7 +1,9 @@
-/* 
- * Configuration Constants
+/**
+ * global.js - Configuration Constants
  */
-"use strict";
+'use strict';
+
+/* eslint-disable no-magic-numbers, no-undef */
 
 global.WHOAMI = _.find(Game.structures).owner.username;
 global.PREVENT_UNCLAIM = ['E59S39', 'E58S41'];
@@ -48,36 +50,33 @@ global.UPGRADER_PARTS_GOAL = Math.ceil(CONTROLLER_MAX_UPGRADE_PER_TICK / UPGRADE
 global.TICKS_TO_EMPTY_BUCKET = Math.ceil(10000 / (Game.cpu.tickLimit - Game.cpu.limit));
 
 global.BODYPART_MAX_HITS = 100;
-global.UNIT_COST = (body) => _.sum(body, p => BODYPART_COST[p]);
+global.UNIT_COST = (body) => _.sum(body, p => BODYPART_COST[p.type || p]);
 global.UNIT_BUILD_TIME = (body) => CREEP_SPAWN_TIME * body.length;
+global.RENEW_COST = (body) => Math.ceil(SPAWN_RENEW_RATIO * UNIT_COST(body) / CREEP_SPAWN_TIME / body.length);
+global.RENEW_TICKS = (body) => Math.floor(SPAWN_RENEW_RATIO * CREEP_LIFE_TIME / CREEP_SPAWN_TIME / body.length); // Can't renew claim
 
 global.DUAL_SOURCE_MINER_SIZE = (steps, cap = SOURCE_ENERGY_CAPACITY) => Math.ceil((cap * 2) / HARVEST_POWER / (ENERGY_REGEN_TIME - steps * 2));
 global.CARRY_PARTS = (capacity, steps) => Math.ceil(capacity / ENERGY_REGEN_TIME * 2 * steps / CARRY_CAPACITY);
 global.DISMANTLE_RETURN = (workParts) => DISMANTLE_COST * DISMANTLE_POWER * workParts;
 
-global.GCL_LEVEL = (i) => (Math.pow(i, GCL_POW) - Math.pow(i - 1, GCL_POW)) * GCL_MULTIPLY;
-
-global.findNuker = (roomName) => _.find(Game.structures, s => s.structureType === STRUCTURE_NUKER && Game.map.getRoomLinearDistance(s.pos.roomName, roomName) <= NUKE_RANGE);
-global.findAllNukers = (roomName) => _.filter(Game.structures, s => s.structureType === STRUCTURE_NUKER && Game.map.getRoomLinearDistance(s.pos.roomName, roomName) <= NUKE_RANGE);
+global.GCL_LEVEL = (i) => ((i ** GCL_POW) - ((i - 1) ** GCL_POW)) * GCL_MULTIPLY;
 
 /*
 global.CONTROLLER_DOWNGRADE_FULL = {1: CONTROLLER_DOWNGRADE[1]};
 for(i=2; i<=8; i++)
 	CONTROLLER_DOWNGRADE_FULL[i] = CONTROLLER_DOWNGRADE_FULL[i-1] + CONTROLLER_DOWNGRADE[i];	
 */
-global.ticksTillDead = (level, currentTimer) => _.sum(_.slice(_.values(CONTROLLER_DOWNGRADE), 0, level - 1)) + currentTimer;
+global.TICKS_TILL_DEAD = (level, currentTimer) => _.sum(_.slice(_.values(CONTROLLER_DOWNGRADE), 0, level - 1)) + currentTimer;
 
-// 3 energy per 100 ticks? 1 ept to maintain
-// 1000 roads = 1 e/t, or 1000 ticks for 100 hits
-// or 1 energy per 1000 ticks (without load)
-// or 1 energy per hour
+/**
+ * Upkeep costs in energy/tick
+ */
 global.RAMPART_UPKEEP = RAMPART_DECAY_AMOUNT / REPAIR_POWER / RAMPART_DECAY_TIME;
 global.ROAD_UPKEEP = ROAD_DECAY_AMOUNT / REPAIR_POWER / ROAD_DECAY_TIME;
 global.ROAD_UPKEEP_SWAMP = (ROAD_DECAY_AMOUNT * CONSTRUCTION_COST_ROAD_SWAMP_RATIO) / REPAIR_POWER / ROAD_DECAY_TIME;
 global.CONTAINER_UPKEEP = CONTAINER_DECAY / REPAIR_POWER / CONTAINER_DECAY_TIME_OWNED;
 global.REMOTE_CONTAINER_UPKEEP = CONTAINER_DECAY / REPAIR_POWER / CONTAINER_DECAY_TIME;
 
-global.DEFAULT_STORAGE_RESERVE = 100000;
 global.DEFAULT_BUILD_JOB_EXPIRE = 12000;
 global.DEFAULT_BUILD_JOB_PRIORITY = 0.5;
 
@@ -85,7 +84,6 @@ global.SAFE_MODE_IGNORE_TIMER = CREEP_LIFE_TIME + 500;
 
 global.CONTROLLER_EMERGENCY_THRESHOLD = 3000;
 global.MINIMUM_RESERVATION = Math.max(CREEP_LIFE_TIME + 200, Math.ceil(CONTROLLER_RESERVE_MAX / 2));
-global.REDUCED_RAMPART_GOAL = 1000000;
 
 /**
  * Range constants
@@ -95,6 +93,7 @@ global.CREEP_RANGED_ATTACK_RANGE = 3;
 global.CREEP_UPGRADE_RANGE = 3;
 global.CREEP_REPAIR_RANGE = 3;
 global.CREEP_RANGED_HEAL_RANGE = 3;
+global.CREEP_HARVEST_RANGE = 1;
 global.MINIMUM_SAFE_FLEE_DISTANCE = 4; // Because ranged actions as usually 3.
 
 global.FATIGUE_ROAD = 0.5;
@@ -108,17 +107,12 @@ global.BUCKET_LIMITER = true; // Default to enabled during resets.
 global.BUCKET_LIMITER_LOWER = 4000;
 global.BUCKET_LIMITER_UPPER = 6000;
 
-global.CONTROLLER_STRUCTURES_LEVEL_FIRST = [];
-for (var i = 0; i <= 8; i++)
-	CONTROLLER_STRUCTURES_LEVEL_FIRST[i] = _.transform(CONTROLLER_STRUCTURES, (r, v, k) => r[k] = v[i]);
-
 /** Critical infrastructure is auto-ramparted periodically or on creation */
 global.CRITICAL_INFRASTRUCTURE = [STRUCTURE_LINK, STRUCTURE_STORAGE, STRUCTURE_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_NUKER, STRUCTURE_OBSERVER, STRUCTURE_TOWER, STRUCTURE_POWER_SPAWN, STRUCTURE_LAB, STRUCTURE_NUKER, STRUCTURE_POWER_SPAWN];
 
 /** primary flag types */
 global.FLAG_MILITARY = COLOR_RED;	// Military
 global.FLAG_MINING = COLOR_YELLOW;	// Economy
-global.FLAG_TRANSPORT = COLOR_GREY;	// Transport
 
 /** military flags */
 global.STRATEGY_ATTACK = COLOR_RED;	// Murder.
@@ -143,25 +137,10 @@ global.SITE_LAB = COLOR_BROWN;
 global.SITE_REMOTE = COLOR_GREY;
 global.SITE_IDLE = COLOR_WHITE;					// in use, idle sites are ignored
 
-/** transport flags */
-global.TRANSPORT_AVOID = COLOR_RED;		// manually marks an obstacle in the cost matrix
-global.TRANSPORT_A = COLOR_PURPLE;
-global.TRANSPORT_B = COLOR_BLUE;
-global.TRANSPORT_C = COLOR_CYAN;
-global.TRANSPORT_D = COLOR_GREEN;
-global.TRANSPORT_E = COLOR_YELLOW;
-global.TRANSPORT_RESERVE = COLOR_ORANGE;
-global.TRANSPORT_G = COLOR_BROWN;
-global.TRANSPORT_H = COLOR_GREY;	// put a reserver here to hold the room.
-global.TRANSPORT_I = COLOR_WHITE;
-
-global.LOG_TAG_CREEP = 'Creep';
-
 Object.defineProperty(global, 'CPU_LIMITER', {
 	get: function () {
 		// @todo: adjust limit based on remaining bucket, and log function
 		return Game.cpu.getUsed() > Game.cpu.limit - 1;
-		// return Game.cpu.getUsed() > 9;
 	},
 	configurable: true
 });
@@ -218,21 +197,6 @@ global.STRUCTURE_BUILD_PRIORITY = {
 	[STRUCTURE_POWER_SPAWN]: 0.10,
 	[STRUCTURE_LAB]: 0.10
 };
-
-/**
- * Distance factor into this? Walls and ramparts further away take priority?
- */
-global.REPAIR_LIMIT = [
-	5000,		// RCL 0
-	5000,		// RCL 1
-	5000,		// RCL 2
-	18000,		// RCL 3
-	50000,		// RCL 4
-	128000,		// RCL 5
-	128000,		// RCL 6
-	2450000,	// RCL 7
-	3000000,	// RCL 8
-];
 
 /**
  * Directional lookup table
@@ -355,8 +319,9 @@ global.ICONS = {
 
 /**
  * Global functions
+ * @todo stick in actual cache?
  */
-global.defineCachedGetter = function (proto, propertyName, fn, enumerable = false) {
+global.DEFINE_CACHED_GETTER = function (proto, propertyName, fn, enumerable = false) {
 	Object.defineProperty(proto, propertyName, {
 		get: function () {
 			if (this === proto || this == null)
@@ -374,7 +339,7 @@ global.defineCachedGetter = function (proto, propertyName, fn, enumerable = fals
 	});
 };
 
-global.defineGetter = function (proto, propertyName, fn, enumerable = false) {
+global.DEFINE_GETTER = function (proto, propertyName, fn, enumerable = false) {
 	Object.defineProperty(proto, propertyName, {
 		get: function () {
 			return fn.call(this, this);
@@ -384,21 +349,45 @@ global.defineGetter = function (proto, propertyName, fn, enumerable = false) {
 	});
 };
 
-global.defineMemoryBackedProperty = function (proto, propertyName, enumerable = false) {
+global.DEFINE_BACKED_PROPERTY = function (proto, propertyName, store, opts = {}) {
+	const { enumerable = false, key = propertyName } = opts;
 	Object.defineProperty(proto, propertyName, {
 		get: function () {
-			return this.memory[propertyName];
+			return this[store][key];
 		},
-		set: function(v) {
-			return (this.memory[propertyName] = v);
+		set: function (v) {
+			return (this[store][key] = v);
 		},
 		configurable: true,
 		enumerable: enumerable
 	});
 };
 
+global.DEFINE_MEMORY_BACKED_PROPERTY = function (proto, propertyName, opts = {}) {
+	/* const {enumerable = false, key = propertyName} = opts;
+	Object.defineProperty(proto, propertyName, {
+		get: function () {
+			return this.memory[key];
+		},
+		set: function (v) {
+			return (this.memory[key] = v);
+		},
+		configurable: true,
+		enumerable: enumerable
+	}); */
+	DEFINE_BACKED_PROPERTY(proto, propertyName, 'memory', opts);
+};
+
+global.DEFINE_CACHE_BACKED_PROPERTY = function (proto, propertyName, opts = {}) {
+	DEFINE_BACKED_PROPERTY(proto, propertyName, 'cache', opts);
+};
+
+global.STACK_TRACE = function () {
+	return new Error("Stack Trace").stack;
+};
+
 /* global.defineLazyProperties = function(scope, obj) {
-	_.each(obj, (v,k) => defineCachedGetter(scope, k, v));
+	_.each(obj, (v,k) => DEFINE_CACHED_GETTER(scope, k, v));
 }
 
 defineLazyProperties(global, {
@@ -412,35 +401,6 @@ defineLazyProperties(global, {
 	}
 }) */
 
-/**
- * Lookup tables
- */
-/* global.MSG_ERR = _(global)
-	.pick((v,k) => k.startsWith('ERR_'))
-	.invert()
-	.value();
-MSG_ERR[OK] = "OK";
-
-global.MSG_COLOR = _(global)
-	.pick((v,k) => k.startsWith('COLOR_'))
-	.invert()
-	.value();
-	
-global.MSG_FIND = _(global)
-	.pick((v,k) => k.startsWith('FIND_'))
-	.invert()
-	.value();
-	
-global.MSG_STRUCT = _(global)
-	.pick((v,k) => k.startsWith('STRUCTURE_'))
-	.invert()
-	.value();
-	
-global.MSG_RES = _(global)
-	.pick((v,k) => k.startsWith('RESOURCE_'))
-	.invert()
-	.value();
-*/
 /* global.HSV_COLORS = [];
 for(var i=0; i<100; i++)
 	HSV_COLORS[i] = Util.getColorBasedOnPercentage(i);
@@ -489,13 +449,7 @@ global.GC = function () {
 	}
 
 	Memory.rooms = _.omit(Memory.rooms, _.isEmpty);
-	// console.log("Group ids still around: " + ex(groups));
 	Memory.groups = _.omit(Memory.groups, (v, k) => !groups[k]);
-	/* for(var name in Memory.rooms)
-		if(Game.time - (Memory.rooms[name]['tick'] || 0) > 10000) {
-			Log.notify('Garbage collecting old room ' + name);
-			delete Memory.rooms[name];
-		} */
 };
 
 global.GCStructureMemory = function () {
@@ -543,9 +497,9 @@ global.exg = (x) => ex(goid(x));
 global.hl = (x, radius = 5) => x.room.visual.circle(x.pos, { fill: 'red', radius, lineStyle: 'dashed' });
 
 global.wroom = function (roomName, fn) {			// with room
-	let ob = _.find(Game.structures, (s) => s.structureType === STRUCTURE_OBSERVER && Game.map.getRoomLinearDistance(s.pos.roomName, roomName) <= OBSERVER_RANGE);
+	const ob = _.find(Game.structures, (s) => s.structureType === STRUCTURE_OBSERVER && Game.map.getRoomLinearDistance(s.pos.roomName, roomName) <= OBSERVER_RANGE);
 	if (ob)
-		ob.exec(roomName, fn);
+		return ob.exec(roomName, fn);
 	else
 		return "No observer in range";
 };
@@ -554,16 +508,16 @@ global.terminals = function () {
 	var output = '<table>';
 	// border under headers, alternate color
 	// Game.getObjectById('579faa680700be0674d30ef3').progressTotal - Game.getObjectById('579faa680700be0674d30ef3').progress
-	let rooms = _.filter(Game.rooms, r => (_.get(r, 'controller.my', false) && r.terminal != undefined));
-	let terminals = _.map(rooms, 'terminal');
+	const rooms = _.filter(Game.rooms, r => (_.get(r, 'controller.my', false) && r.terminal != null));
+	const terminals = _.map(rooms, 'terminal');
 	// let terminals = _.map(rooms, r => Game.rooms[r].terminal);
-	let headers = ['res'].concat(_.map(rooms, 'name'));
+	const headers = ['res'].concat(_.map(rooms, 'name'));
 	let rows = _.map(RESOURCES_ALL, function (res) {
-		let stored = _.map(terminals, t => _.get(t, 'store.' + res, 0));
+		const stored = _.map(terminals, t => _.get(t, 'store.' + res, 0));
 		return [res].concat(stored);
 	});
-	rows = _.filter(rows, r => _.any(r,(v,k) => v > 0));
-	let totals = _.map(terminals, 'total');
+	rows = _.filter(rows, r => _.any(r, v => v > 0));
+	const totals = _.map(terminals, 'total');
 	rows.unshift(['total'].concat(totals));
 	output += '</table>';
 	console.log(Log.table(headers, rows));
@@ -573,7 +527,7 @@ global.storage = function () {
 	var output = '<table>';
 	// border under headers, alternate color
 	// Game.getObjectById('579faa680700be0674d30ef3').progressTotal - Game.getObjectById('579faa680700be0674d30ef3').progress
-	const rooms = _.filter(Game.rooms, r => (_.get(r, 'controller.my', false) && r.storage != undefined));
+	const rooms = _.filter(Game.rooms, r => (_.get(r, 'controller.my', false) && r.storage != null));
 	const sts = _.map(rooms, 'storage');
 	// let terminals = _.map(rooms, r => Game.rooms[r].terminal);
 	const headers = ['res'].concat(_.map(rooms, 'name'));
@@ -581,7 +535,7 @@ global.storage = function () {
 		const stored = _.map(sts, t => _.get(t, `store.${res}`, 0));
 		return [res].concat(stored);
 	});
-	rows = _.filter(rows, r => _.any(r,(v,k) => v > 0));
+	rows = _.filter(rows, r => _.any(r, v => v > 0));
 	const totals = _.map(sts, 'total');
 	rows.unshift(['total'].concat(totals));
 	output += '</table>';
@@ -620,12 +574,6 @@ global.memStats = function () {
 	return ex(_.mapValues(Memory, (v) => JSON.stringify(v).length));
 };
 
-global.randInt = function randInt(min, max) {
-	min = Math.ceil(min);
-	max = Math.floor(max);
-	return Math.floor(Math.random() * (max - min + 1)) + min;
-};
-
 /**
  * Loops over only functions on the prototype and
  * passes them to a callback function.
@@ -647,9 +595,9 @@ global.forEachFn = function forEachFn(proto, cb) {
 	_.each(ordered, ({time,calls},m) => console.log(`${m} ${time/calls}`));
 } */
 
-global.roomLink = (room,shard='shard0') => `<a href='https://screeps.com/a/#!/room/${shard}/${room}'>${shard}/${room}</a>`;
+global.roomLink = (room, shard = 'shard0') => `<a href='https://screeps.com/a/#!/room/${shard}/${room}'>${shard}/${room}</a>`;
 
 /** Set height of console, author Spedwards */
-global.setConsoleLines = function(lines) {
-	console.log(`<script>document.querySelector(\'.editor-panel\').style.height = "${Math.ceil(lines * 22.5714) + 30}px";</script>`);
+global.setConsoleLines = function (lines) {
+	console.log(`<script>document.querySelector('.editor-panel').style.height = "${Math.ceil(lines * 22.5714) + 30}px";</script>`);
 };

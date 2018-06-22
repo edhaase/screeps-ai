@@ -1,21 +1,20 @@
 /**
- * StructureObserver
- *
- * No further intel gathering at this level. Just room visibility. 
- * Leave the intel stage to room visibility changes. 
- * That way we can also use scouts if an observer is not available.
- * (Also, that keeps this code _much_ simpler)
+ * ext-structure-observer.js
  */
-"use strict";
+'use strict';
 
-global.getRoomNameFromCoord = function (wx, wy) {
+/* global DEFINE_MEMORY_BACKED_PROPERTY */
+
+DEFINE_MEMORY_BACKED_PROPERTY(StructureObserver.prototype, 'lastRoom', { key: 'last' });
+
+global.COORD_TO_ROOM_NAME = function (wx, wy) {
 	var result = "";
 	result += (wx < 0 ? "W" + String(~wx) : "E" + String(wx));
 	result += (wy < 0 ? "N" + String(~wy) : "S" + String(wy));
 	return result;
 };
 
-global.getRoomCoordFromName = function (roomName) {
+global.ROOM_NAME_TO_COORD = function (roomName) {
 	var [, h, wx, v, wy] = roomName.match(/^([WE])([0-9]+)([NS])([0-9]+)$/);
 	wx = parseInt(wx);
 	wy = parseInt(wy);
@@ -53,11 +52,11 @@ StructureObserver.prototype.run = function () {
 		return;
 
 	const { memory } = this;
-	const prevTickRoomName = this.memory.last;
+	const prevTickRoomName = this.lastRoom;
 	const prevRoom = Game.rooms[prevTickRoomName];
-	this.memory.last = undefined; // clear early, in case we set it later
+	this.lastRoom = undefined; // clear early, in case we set it later
 
-	if(prevRoom)
+	if (prevRoom)
 		Intel.scanRoom(prevRoom);
 
 	// Run stored command
@@ -65,12 +64,12 @@ StructureObserver.prototype.run = function () {
 		Log.info(`Observer ${this.pos.roomName} running stored program`, 'Observer');
 		try {
 			const fn = eval(memory.cmd);
-			fn.call(this, Game.rooms[memory.last]);
+			fn.call(this, Game.rooms[this.lastRoom]);
 		} catch (e) {
 			Log.error(e, 'Observer');
 			Log.error(e.stack, 'Observer');
 		}
-		this.memory.last = undefined;
+		this.lastRoom = undefined;
 		this.memory.cmd = undefined;
 		return;
 	}
@@ -90,7 +89,7 @@ StructureObserver.prototype.run = function () {
  */
 StructureObserver.prototype.getRoomCoordinates = function () {
 	if (!this.memory.coord)
-		this.memory.coord = getRoomCoordFromName(this.pos.roomName);
+		this.memory.coord = ROOM_NAME_TO_COORD(this.pos.roomName);
 	return this.memory.coord;
 };
 
@@ -108,7 +107,7 @@ StructureObserver.prototype.getTopLeftCoords = function () {
 
 StructureObserver.prototype.getTopLeftRoomName = function () {
 	var [rx, ry] = this.getTopLeftCoords();
-	return getRoomNameFromCoord(rx, ry);
+	return COORD_TO_ROOM_NAME(rx, ry);
 };
 
 StructureObserver.prototype.getBottomRightCoords = function () {
@@ -119,7 +118,7 @@ StructureObserver.prototype.getBottomRightCoords = function () {
 
 StructureObserver.prototype.getBottomRightRoomName = function () {
 	var [rx, ry] = this.getBottomRightCoords();
-	return getRoomNameFromCoord(rx, ry);
+	return COORD_TO_ROOM_NAME(rx, ry);
 };
 
 /**
@@ -137,7 +136,7 @@ StructureObserver.prototype.getRoomsInRange = function () {
 	var rooms = [];
 	for (y = top; y <= bottom; y++) {
 		for (x = left; x <= right; x++) {
-			roomName = getRoomNameFromCoord(x, y);
+			roomName = COORD_TO_ROOM_NAME(x, y);
 			rooms.push(roomName);
 		}
 	}
@@ -241,7 +240,7 @@ StructureObserver.prototype.observeRoom = function (roomName) {
 	const status = observeRoom.apply(this, arguments);
 	if (status === OK) {
 		this.isBusy = true;
-		this.memory.last = roomName;
+		this.lastRoom = roomName;
 		this.room.visual.text(roomName, this.pos, {
 			color: 'white',
 			background: 'black',

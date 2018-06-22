@@ -3,7 +3,10 @@
  *
  * Reoccuring unit management
  */
-"use strict";
+'use strict';
+
+/* global PRIORITY_MIN, PRIORITY_LOW, PRIORITY_MED, PRIORITY_HIGH, PRIORITY_MAX */
+/* global UNIT_COST, DEFAULT_SPAWN_JOB_EXPIRE */
 
 const Arr = require('Arr');
 
@@ -77,6 +80,15 @@ class Body extends Array {
 global.Body = Body;
 
 module.exports = {
+	/**
+	 * Rather than creating and destroying groups, allow implied groups by id?
+	 * An id might be a position or flag name.
+	 */
+	getCreepsByGroupID() {
+		return _.groupBy(Game.creeps, 'memory.gid');
+	},
+
+
 	Body: Body,
 
 	listAges: () => _.map(Game.creeps, c => Game.time - c.memory.born),
@@ -124,15 +136,16 @@ module.exports = {
 		return Arr.repeat(arr, max);
 	},
 
+	// (spawn, this.pos, this.memory.work, this.pos.roomName
 	requestRemoteMiner: function (spawn, pos, work = SOURCE_HARVEST_PARTS, room) {
-		const body = _.find(REMOTE_MINING_BODIES, b => UNIT_COST(b) <= spawn.room.energyCapacityAvailable && _.sum(b, bp => bp === WORK) <= work);
+		const body = _.find(REMOTE_MINING_BODIES, b => UNIT_COST(b) <= spawn.room.energyCapacityAvailable && _.sum(b, bp => bp === WORK) <= work + 1);
 		const cost = UNIT_COST(body);
 		if (!body || !body.length)
 			return;
 		spawn.submit({
 			body,
 			memory: { role: 'miner', dest: pos, travelTime: 0 },
-			priority: 75,
+			priority: PRIORITY_HIGH,
 			room,
 			expire: DEFAULT_SPAWN_JOB_EXPIRE
 		});
@@ -150,7 +163,7 @@ module.exports = {
 	 * Biggest we can! Limit to 15 work parts
 	 * requestUpgrader(firstSpawn,1,5,49)
 	 */
-	requestUpgrader: function (spawn, home, priority = 3, workDiff) {
+	requestUpgrader: function (spawn, home, priority = PRIORITY_MED, workDiff) {
 		var body = [];
 		if (workDiff <= 0)
 			return ERR_INVALID_ARGS;
@@ -161,8 +174,8 @@ module.exports = {
 		const avail = Math.max(250, spawn.room.energyCapacityAvailable - (SPAWN_ENERGY_CAPACITY * 0.20));
 		if (controller.level <= 2) {
 			body = [CARRY, MOVE, WORK, WORK];
-		} else if(spawn.pos.roomName !== home) {
-			body = Arr.repeat([WORK,CARRY,MOVE], avail);
+		} else if (spawn.pos.roomName !== home) {
+			body = Arr.repeat([WORK, CARRY, MOVE], avail);
 		} else {
 			var count = Math.min(workDiff, 1 + Math.floor((avail - 300) / BODYPART_COST[WORK])) || 1;
 			let ccarry = 1;
@@ -180,16 +193,16 @@ module.exports = {
 
 	requestWarMiner: function (spawn, memory, room) {
 		if (!memory)
-			throw new Error('argument 2 memory cannot be null');
-		const {body} = require('role-war-miner');
-		return spawn.submit({ body, memory, priority: 10, room: room || spawn.pos.roomName });
+			throw new TypeError('Memory must be supplied');
+		const { body } = require('role-war-miner');
+		return spawn.submit({ body, memory, priority: PRIORITY_LOW, room: room || spawn.pos.roomName });
 	},
 
 	/**
 	 * Biggest we can!
 	 * WARNING: _5_ energy per tick per part, not 1.
 	 */
-	requestBuilder: function (spawn, { elimit = 20, home, body, num = 1, priority = 0 } = {}) {
+	requestBuilder: function (spawn, { elimit = 20, home, body, num = 1, priority = PRIORITY_MED } = {}) {
 		// let avail = Math.clamp(300, spawn.room.energyCapacityAvailable, 2000);
 		const partLimit = Math.floor(elimit / BUILD_POWER);
 		const avail = Math.max(SPAWN_ENERGY_START, spawn.room.energyCapacityAvailable * 0.80);
@@ -207,39 +220,33 @@ module.exports = {
 
 	requestBulldozer: function (spawn, roomName) {
 		// const body = [WORK, WORK, MOVE, MOVE];
-		const body = require('role-bulldozer').body({room: spawn.room});
-		return spawn.submit({ body, memory: { role: 'bulldozer', site: roomName }, priority: 10 });
+		const body = require('role-bulldozer').body({ room: spawn.room });
+		return spawn.submit({ body, memory: { role: 'bulldozer', site: roomName }, priority: PRIORITY_LOW });
 	},
 
 	requestDualMiner: function (spawn, home, totalCapacity, steps) {
-		const body = require('role-dualminer').body({totalCapacity, steps});
+		const body = require('role-dualminer').body({ totalCapacity, steps });
 		const cost = UNIT_COST(body);
 		if (spawn.room.energyCapacityAvailable < cost) {
 			Log.warn('Body of creep is too expensive for the closest spawn', 'Controller');
 			return false;
 		}
-		var priority = (spawn.pos.roomName === home) ? 50 : 10;
-		return spawn.submit({ body, memory: { role: 'dualminer', site: home }, priority, home });
+		// var priority = (spawn.pos.roomName === home) ? PRIORITY_MED : 10;
+		return spawn.submit({ body, memory: { role: 'dualminer', site: home }, priority: PRIORITY_MED, home });
 	},
 
 	/**
 	 * Biggest we can!
 	 */
-	requestRepair: function (spawn, home, ept=1) {
-		const pattern = [WORK,CARRY,MOVE,MOVE];
+	requestRepair: function (spawn, home, ept = 1) {
+		const pattern = [WORK, CARRY, MOVE, MOVE];
 		const cost = UNIT_COST(pattern);
 		const can = Math.floor(spawn.room.energyCapacityAvailable / cost);
-		const body = Arr.repeat(pattern, cost*Math.min(ept,can));
-		return spawn.submit({ body, memory: { role: 'repair', home }, priority: 10, expire: DEFAULT_SPAWN_JOB_EXPIRE });
+		const body = Arr.repeat(pattern, cost * Math.min(ept, can));
+		return spawn.submit({ body, memory: { role: 'repair', home }, priority: PRIORITY_LOW, expire: DEFAULT_SPAWN_JOB_EXPIRE });
 	},
 
-	requestHapgrader: function (spawn, site) {
-		const body = [WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE];
-		const memory = { role: 'hapgrader', site: site }
-		return spawn.submit({ body, memory, priority: 10 });
-	},
-
-	requestScav: function (spawn, home = null, canRenew = true, priority = 50, hasRoad = true) {
+	requestScav: function (spawn, home = null, canRenew = true, priority = PRIORITY_MED, hasRoad = true) {
 		var memory = {
 			role: 'scav',
 			eca: spawn.room.energyCapacityAvailable
@@ -279,12 +286,12 @@ module.exports = {
 		return spawn.submit({ body, memory: { role: 'claimer', } });
 	},
 
-	requestScout: function (spawn, memory = {}, priority = 75) {
+	requestScout: function (spawn, memory = {}, priority = PRIORITY_LOW) {
 		memory.role = 'scout';
 		return spawn.submit({ body: [MOVE], memory, priority });
 	},
 
-	requestDefender: function (spawn, roomName, priority = 75) {
+	requestDefender: function (spawn, roomName, priority = PRIORITY_HIGH) {
 		let body = Arr.repeat([TOUGH, ATTACK, MOVE, MOVE], spawn.room.energyCapacityAvailable / 2);
 		// let body = this.repeat([RANGED_ATTACK, MOVE], spawn.room.energyCapacityAvailable / 2);
 		if (_.isEmpty(body))
@@ -292,27 +299,27 @@ module.exports = {
 		return spawn.submit({ body, memory: { role: 'defender', home: roomName }, priority });
 	},
 
-	requestRanger: function (spawn, roomName, priority = 75) {
+	requestRanger: function (spawn, roomName, priority = PRIORITY_HIGH) {
 		const body = Arr.repeat([RANGED_ATTACK, MOVE], spawn.room.energyCapacityAvailable / 2);
 		return spawn.submit({ body, memory: { role: 'defender', home: roomName }, priority });
 	},
 
-	requestPilot: function (spawn, roomName, count = 1) {
+	requestPilot: function (spawn, roomName) {
 		const MAX_PILOT_ENERGY = 750;
 		const amt = Math.clamp(SPAWN_ENERGY_START, spawn.room.energyAvailable, MAX_PILOT_ENERGY);
 		const body = Arr.repeat([WORK, CARRY, MOVE, MOVE], amt);
-		return spawn.submit({ body, memory: { role: 'pilot', home: roomName || spawn.pos.roomName }, priority: 100 });
+		return spawn.submit({ body, memory: { role: 'pilot', home: roomName || spawn.pos.roomName }, priority: PRIORITY_MAX });
 	},
 
 	requestMineralHarvester(spawn, site, cid) {
 		const body = Arr.repeat([WORK, WORK, MOVE], spawn.room.energyCapacityAvailable);
 		const memory = { role: 'harvester', site, cid };
-		return spawn.submit({ body, memory, priority: 10 });
+		return spawn.submit({ body, memory, priority: PRIORITY_LOW });
 	},
 
-	requestReserver: function (spawn, site, priority = 25, size = Infinity) {
+	requestReserver: function (spawn, site, priority = PRIORITY_LOW, size = Infinity) {
 		if (!site)
-			throw new Error('site can not be empty!');
+			throw new Error('Site can not be empty!');
 		const cost = UNIT_COST([MOVE, CLAIM]);
 		const canBuild = Math.floor(spawn.room.energyCapacityAvailable / cost);
 		const remainder = spawn.room.energyCapacityAvailable % cost;	// for spare parts like [MOVE,ATTACK]
@@ -324,7 +331,7 @@ module.exports = {
 			return spawn.submit({ body, room: site.roomName, memory: { role: 'reserver', site }, priority });
 	},
 
-	requestHauler: function (spawn, memory, hasRoad = false, reqCarry = Infinity, priority = 10, room) {
+	requestHauler: function (spawn, memory, hasRoad = false, reqCarry = Infinity, priority = PRIORITY_LOW, room) {
 		var avail = Math.max(SPAWN_ENERGY_START, spawn.room.energyCapacityAvailable) - 250;
 		var body;
 		if (!hasRoad) {
@@ -373,7 +380,7 @@ module.exports = {
 		this.requestAttacker(s2);
 	},
 
-	requestHealer: function (spawn, roomName, priority = 50) {
+	requestHealer: function (spawn, roomName, priority = PRIORITY_MED) {
 		const body = Arr.repeat([MOVE, HEAL], spawn.room.energyCapacityAvailable / 2);
 		if (_.isEmpty(body))
 			return null;
@@ -400,8 +407,8 @@ module.exports = {
 			body = [HEAL, MOVE];
 			const cost = UNIT_COST(body);
 			const avail = Math.floor((spawn.room.energyCapacityAvailable - cost) * 0.80);
-			if(spawn.room.energyCapacityAvailable > 1260) {
-				body = Arr.repeat([HEAL,RANGED_ATTACK,ATTACK,MOVE,MOVE,MOVE],avail);
+			if (spawn.room.energyCapacityAvailable > 1260) {
+				body = Arr.repeat([HEAL, RANGED_ATTACK, ATTACK, MOVE, MOVE, MOVE], avail);
 			} else if (Math.random() < 0.80) {
 				body = body.concat(Arr.repeat([RANGED_ATTACK, MOVE], avail));
 			} else {
@@ -411,7 +418,7 @@ module.exports = {
 		}
 		if (body.length <= 2)
 			body = [RANGED_ATTACK, MOVE];
-		return spawn.submit({ body, memory: { role: 'guard', site: flag, origin: spawn.pos.roomName }, priority: 100, room });
+		return spawn.submit({ body, memory: { role: 'guard', site: flag, origin: spawn.pos.roomName }, priority: PRIORITY_HIGH, room });
 	},
 
 	requestSwampGuard: function (spawn, flag, body, room) {
@@ -419,6 +426,6 @@ module.exports = {
 		const cost = UNIT_COST(body);
 		const avail = Math.floor((spawn.room.energyCapacityAvailable - cost) * 0.75);
 		body = body.concat(Arr.repeat([MOVE, MOVE, MOVE, MOVE, MOVE, RANGED_ATTACK], avail));
-		return spawn.submit({ body, memory: { role: 'guard', site: flag, origin: spawn.pos.roomName }, priority: 100, room });
+		return spawn.submit({ body, memory: { role: 'guard', site: flag, origin: spawn.pos.roomName }, priority: PRIORITY_HIGH, room });
 	}
 };

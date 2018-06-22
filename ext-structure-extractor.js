@@ -5,12 +5,15 @@
  * @todo - if we only have one access point, auto-build the container
  * 2016-11-06: Thanks to NPC buy order nerf, we need another check for full terminals
  */
-"use strict";
+'use strict';
+
+/* global DEFINE_CACHED_GETTER, Log, MAX_CREEP_SPAWN_TIME, TERMINAL_RESOURCE_LIMIT */
 
 const EXTRACTOR_CONTAINER_FULL = 0.80; // 80%
 const EXTRACTOR_DELAY = 50;
+const MINIMUM_LEVEL_FOR_EXTRACTOR = _.findKey(CONTROLLER_STRUCTURES[STRUCTURE_EXTRACTOR]);
 
-defineCachedGetter(StructureExtractor.prototype, 'mineral', s => _.first(s.pos.lookFor(LOOK_MINERALS)));
+DEFINE_CACHED_GETTER(StructureExtractor.prototype, 'mineral', s => _.first(s.pos.lookFor(LOOK_MINERALS)));
 
 StructureExtractor.prototype.onWake = function () {
 	var { mineral } = this;
@@ -26,7 +29,7 @@ StructureExtractor.prototype.run = function () {
 		return;
 
 	// We don't need to run very often, and if we've downgraded, don't bother runnng.
-	if (Game.time % 5 || !this.isActive() || BUCKET_LIMITER)
+	if (Game.time % EXTRACTOR_COOLDOWN || !this.isActive() || BUCKET_LIMITER)
 		return;
 
 	// (Optional) if we don't have a terminal in the room, don't run.
@@ -89,5 +92,5 @@ StructureExtractor.prototype.rampartContainer = function () {
 };
 
 StructureExtractor.prototype.isActive = function () {
-	return (!this.room.controller || this.room.controller.level >= 6);
+	return (!this.room.controller || this.room.controller.level >= MINIMUM_LEVEL_FOR_EXTRACTOR);
 };

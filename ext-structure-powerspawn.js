@@ -7,11 +7,11 @@
  * 
  * Bucket limiter check disabled, no real logic to run in it's test, the intent cpu isn't my biggest problem.
  */
-"use strict";
+'use strict';
+
+/* global DEFAULT_SPAWN_JOB_PRIORITY */
 
 StructurePowerSpawn.prototype.run = function () {
-	// if(BUCKET_LIMITER)
-	//	return;
 	if (Game.time % (CREEP_LIFE_TIME + 200) === 0 && !this.power)
 		this.runReload();
 	// Not needed, this meets the special case of `checkStructureAgainstController`.
@@ -34,7 +34,7 @@ StructurePowerSpawn.prototype.runReload = function () {
 		const move = carry / 2;
 		const body = Util.RLD([carry, CARRY, move, MOVE]);
 		const memory = { role: 'filler', src: terminal.id, dest: this.id, res: RESOURCE_POWER, amt: amt };
-		spawn.submit({ body, memory, priority: 50 });
+		spawn.submit({ body, memory, priority: PRIORITY_MIN });
 		Log.info(`Power spawn requesting filler with ${carry} carry and ${move} move at ${this.pos.roomName}`, 'PowerSpawn');
 	}
 };

@@ -3,35 +3,41 @@
  * 
  * Prototype extensions for creeps
  */
-"use strict";
+'use strict';
 
-defineCachedGetter(Creep.prototype, 'ticksToLiveMax', (c) => c.hasBodypart(CLAIM) ? CREEP_CLAIM_LIFE_TIME : CREEP_LIFE_TIME);
-defineCachedGetter(Creep.prototype, 'carryTotal', (c) => _.sum(c.carry));
-defineCachedGetter(Creep.prototype, 'carryCapacityAvailable', (c) => c.carryCapacity - c.carryTotal);
-defineCachedGetter(Creep.prototype, 'cost', (c) => _.sum(c.body, p => BODYPART_COST[p.type]));
+/* global DEFINE_CACHED_GETTER, DEFINE_GETTER, CREEP_RANGED_ATTACK_RANGE, UNIT_COST */
+/* global Player, PLAYER_TRUSTED, */
+/* global FATIGUE_BASE, FATIGUE_SWAMP, FATIGUE_ROAD */
+
+
+DEFINE_CACHED_GETTER(Creep.prototype, 'ticksToLiveMax', (c) => c.hasBodypart(CLAIM) ? CREEP_CLAIM_LIFE_TIME : CREEP_LIFE_TIME);
+DEFINE_CACHED_GETTER(Creep.prototype, 'ttlPct', (c) => c.ticksToLive / c.ticksToLiveMax);
+DEFINE_CACHED_GETTER(Creep.prototype, 'carryTotal', (c) => _.sum(c.carry));
+DEFINE_CACHED_GETTER(Creep.prototype, 'carryCapacityAvailable', (c) => c.carryCapacity - c.carryTotal);
+DEFINE_CACHED_GETTER(Creep.prototype, 'cost', ({ body }) => UNIT_COST(body));
 
 const COST_PER_TICK_PRECISION = 3;
-defineCachedGetter(Creep.prototype, 'cpt', (c) => _.round(c.cost / c.ticksToLiveMax, COST_PER_TICK_PRECISION));
+DEFINE_CACHED_GETTER(Creep.prototype, 'cpt', (c) => _.round(c.cost / c.ticksToLiveMax, COST_PER_TICK_PRECISION));
 
-defineGetter(Creep.prototype, 'hitPct', c => c.hits / c.hitsMax); // Not cached as this can change mid-tick
+DEFINE_GETTER(Creep.prototype, 'hitPct', c => c.hits / c.hitsMax); // Not cached as this can change mid-tick
 
-defineCachedGetter(Creep.prototype, 'canMove', (c) => c.fatigue === 0);
-defineCachedGetter(Creep.prototype, 'canAttack', (c) => c.hasActiveBodypart(ATTACK));
-defineCachedGetter(Creep.prototype, 'canRanged', (c) => c.hasActiveBodypart(RANGED_ATTACK));
-defineCachedGetter(Creep.prototype, 'canHeal', (c) => c.hasActiveBodypart(HEAL));
-defineCachedGetter(Creep.prototype, 'canFight', (c) => c.canAttack || c.canRanged);
+DEFINE_CACHED_GETTER(Creep.prototype, 'canMove', (c) => c.fatigue === 0);
+DEFINE_CACHED_GETTER(Creep.prototype, 'canAttack', (c) => c.hasActiveBodypart(ATTACK));
+DEFINE_CACHED_GETTER(Creep.prototype, 'canRanged', (c) => c.hasActiveBodypart(RANGED_ATTACK));
+DEFINE_CACHED_GETTER(Creep.prototype, 'canHeal', (c) => c.hasActiveBodypart(HEAL));
+DEFINE_CACHED_GETTER(Creep.prototype, 'canFight', (c) => c.canAttack || c.canRanged);
 
 /** Scores */
-defineCachedGetter(Creep.prototype, 'harvestPower', (c) => c.calcEffective(HARVEST_POWER, WORK, 'harvest'));
-defineCachedGetter(Creep.prototype, 'repairPower', (c) => c.calcEffective(DISMANTLE_POWER, WORK, 'repair'));
-defineCachedGetter(Creep.prototype, 'dismantlePower', (c) => c.calcEffective(DISMANTLE_POWER, WORK, 'dismantle'));
-defineCachedGetter(Creep.prototype, 'buildPower', (c) => c.calcEffective(BUILD_POWER, WORK, 'build'));
-defineCachedGetter(Creep.prototype, 'attackPower', (c) => c.calcEffective(ATTACK_POWER, ATTACK, 'attack'));
-defineCachedGetter(Creep.prototype, 'upgradePower', (c) => c.calcEffective(UPGRADE_CONTROLLER_POWER, WORK, 'upgradeController'));
-defineCachedGetter(Creep.prototype, 'rangedAttackPower', (c) => c.calcEffective(RANGED_ATTACK_POWER, RANGED_ATTACK, 'rangedAttack'));
-defineCachedGetter(Creep.prototype, 'rangedMassAttackPower', (c) => c.calcEffective(RANGED_ATTACK_POWER, RANGED_ATTACK, 'rangedMassAttack'));
-defineCachedGetter(Creep.prototype, 'healPower', (c) => c.calcEffective(HEAL_POWER, HEAL, 'heal'));
-defineCachedGetter(Creep.prototype, 'rangedHealPower', (c) => c.calcEffective(RANGED_HEAL_POWER, HEAL, 'rangedHeal'));
+DEFINE_CACHED_GETTER(Creep.prototype, 'harvestPower', (c) => c.calcEffective(HARVEST_POWER, WORK, 'harvest'));
+DEFINE_CACHED_GETTER(Creep.prototype, 'repairPower', (c) => c.calcEffective(DISMANTLE_POWER, WORK, 'repair'));
+DEFINE_CACHED_GETTER(Creep.prototype, 'dismantlePower', (c) => c.calcEffective(DISMANTLE_POWER, WORK, 'dismantle'));
+DEFINE_CACHED_GETTER(Creep.prototype, 'buildPower', (c) => c.calcEffective(BUILD_POWER, WORK, 'build'));
+DEFINE_CACHED_GETTER(Creep.prototype, 'attackPower', (c) => c.calcEffective(ATTACK_POWER, ATTACK, 'attack'));
+DEFINE_CACHED_GETTER(Creep.prototype, 'upgradePower', (c) => c.calcEffective(UPGRADE_CONTROLLER_POWER, WORK, 'upgradeController'));
+DEFINE_CACHED_GETTER(Creep.prototype, 'rangedAttackPower', (c) => c.calcEffective(RANGED_ATTACK_POWER, RANGED_ATTACK, 'rangedAttack'));
+DEFINE_CACHED_GETTER(Creep.prototype, 'rangedMassAttackPower', (c) => c.calcEffective(RANGED_ATTACK_POWER, RANGED_ATTACK, 'rangedMassAttack'));
+DEFINE_CACHED_GETTER(Creep.prototype, 'healPower', (c) => c.calcEffective(HEAL_POWER, HEAL, 'heal'));
+DEFINE_CACHED_GETTER(Creep.prototype, 'rangedHealPower', (c) => c.calcEffective(RANGED_HEAL_POWER, HEAL, 'rangedHeal'));
 
 
 /**
@@ -102,7 +108,7 @@ Creep.prototype.hasActiveBodypart = function (type) {
  * Good for determining if something is a threat.
  */
 Creep.prototype.hasActiveNonMovePart = function () {
-	var i, body = this.body;
+	var i, { body } = this;
 	for (i = body.length - 1; i >= 0; i--) {
 		if (body[i].hits <= 0)
 			break;
@@ -116,7 +122,7 @@ Creep.prototype.hasActiveNonMovePart = function () {
  * Loop over active body parts and do.. something.
  */
 Creep.prototype.forActiveBodyparts = function (fn, filter = null) {
-	var i, part, body = this.body;
+	var i, part, { body } = this;
 	for (i = body.length - 1; i >= 0; i--) {
 		part = body[i];
 		if (part.hits <= 0)
@@ -128,7 +134,7 @@ Creep.prototype.forActiveBodyparts = function (fn, filter = null) {
 };
 
 Creep.prototype.getUsedCarryParts = function () {
-	var i, cap, body = this.body;
+	var i, cap, { body } = this;
 	var amount = _.sum(this.carry);
 	var count = 0;
 	for (i = body.length - 1; i >= 0; i--) {
@@ -152,7 +158,7 @@ Creep.prototype.getRangedMassAttackPotentialToTarget = function (target, power =
 	if (!target.hits || target.my)
 		return 0;
 	var range = this.pos.getRangeTo(target);
-	if (range > 3)
+	if (range > CREEP_RANGED_ATTACK_RANGE)
 		return 0;
 	if (!(target instanceof StructureRampart) && target.pos.hasRampart())
 		return 0;
@@ -164,8 +170,8 @@ Creep.prototype.getRangedMassAttackPotentialToTarget = function (target, power =
 Creep.prototype.getRangedMassAttackPotential = function () {
 	var dmg = 0;
 	var power = this.calcEffective(RANGED_ATTACK_POWER, RANGED_ATTACK, 'rangedMassAttack');
-	dmg += _.sum(this.pos.findInRange(FIND_HOSTILE_CREEPS, 3), c => this.getRangedMassAttackPotentialToTarget(c, power));
-	dmg += _.sum(this.pos.findInRange(FIND_HOSTILE_STRUCTURES, 3), s => this.getRangedMassAttackPotentialToTarget(s, power));
+	dmg += _.sum(this.pos.findInRange(FIND_HOSTILE_CREEPS, CREEP_RANGED_ATTACK_RANGE), c => this.getRangedMassAttackPotentialToTarget(c, power));
+	dmg += _.sum(this.pos.findInRange(FIND_HOSTILE_STRUCTURES, CREEP_RANGED_ATTACK_RANGE), s => this.getRangedMassAttackPotentialToTarget(s, power));
 	return dmg;
 };
 
@@ -184,7 +190,7 @@ Creep.prototype.calcEffective = function (base, type, method) {
  * Iterate over active body parts, scoring them and summing a result
  */
 Creep.prototype.sumActiveBodyparts = function (fn = () => 1, filter = null) {
-	var i, part, {body} = this;
+	var i, part, { body } = this;
 	var total = 0;
 	for (i = body.length - 1; i >= 0; i--) {
 		part = body[i];
@@ -226,17 +232,17 @@ Creep.prototype.isWorthRecycling = function (minReturn = DEFAULT_MINIMUM_RECYCLE
 	return this.ticksToLive >= ((minReturn * this.ticksToLiveMax) + (steps * this.cost)) / this.cost;
 };
 
-defineCachedGetter(Creep.prototype, 'weight', function (creep) {
+DEFINE_CACHED_GETTER(Creep.prototype, 'weight', function (creep) {
 	return _.sum(creep.body, p => (p.type !== MOVE && p.type !== CARRY)) + Math.ceil(this.carryTotal / CARRY_CAPACITY);
 });
 
-defineCachedGetter(Creep.prototype, 'totalMove', (c) => c.getActiveBodyparts(MOVE));
+DEFINE_CACHED_GETTER(Creep.prototype, 'totalMove', (c) => c.getActiveBodyparts(MOVE));
 /**
  * Speed across various terrains
  */
-defineCachedGetter(Creep.prototype, 'plainSpeed', (creep) => Math.ceil(FATIGUE_BASE * creep.weight / creep.totalMove));
-defineCachedGetter(Creep.prototype, 'swampSpeed', (creep) => Math.ceil(FATIGUE_SWAMP * creep.weight / creep.totalMove));
-defineCachedGetter(Creep.prototype, 'roadSpeed', (creep) => Math.ceil(FATIGUE_ROAD * creep.weight / creep.totalMove));
+DEFINE_CACHED_GETTER(Creep.prototype, 'plainSpeed', (creep) => Math.ceil(FATIGUE_BASE * creep.weight / creep.totalMove));
+DEFINE_CACHED_GETTER(Creep.prototype, 'swampSpeed', (creep) => Math.ceil(FATIGUE_SWAMP * creep.weight / creep.totalMove));
+DEFINE_CACHED_GETTER(Creep.prototype, 'roadSpeed', (creep) => Math.ceil(FATIGUE_ROAD * creep.weight / creep.totalMove));
 
 Creep.prototype.findCarry = function () {
 	return _.findKey(this.carry, (amt) => amt > 0);
@@ -257,7 +263,7 @@ Creep.prototype.isCarryingNonEnergyResource = function () {
 	return _.any(this.carry, (amt, key) => amt > 0 && key !== RESOURCE_ENERGY);
 };
 
-defineCachedGetter(Creep.prototype, 'threat', function () {
+DEFINE_CACHED_GETTER(Creep.prototype, 'threat', function () {
 	if (this.my) // don't attack friendlies.
 		return 0;
 	if (Player.status(this.owner.username) >= PLAYER_TRUSTED)

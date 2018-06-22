@@ -4,8 +4,9 @@
  * Chance of invasion goes up with amount mined. Roughly around 73k is the lowest it goes.
  * Around 73k to 120k we should consider defense creeps.
  */
-"use strict";
-/* global defineCachedGetter Player Filter CRITICAL_INFRASTRUCTURE */
+'use strict';
+
+/* global DEFINE_CACHED_GETTER, Player, Filter, CRITICAL_INFRASTRUCTURE, Log */
 
 global.BIT_LOW_POWER = (1 << 1);
 global.BIT_DISABLE_CONSTRUCTION = (1 << 2);
@@ -19,53 +20,44 @@ if (!Memory.rooms) {
 /**
  * Room properties
  */
-defineCachedGetter(Room.prototype, 'structures', r => r.find(FIND_STRUCTURES) || []);
-defineCachedGetter(Room.prototype, 'structuresMy', r => r.find(FIND_MY_STRUCTURES) || []);
-defineCachedGetter(Room.prototype, 'structuresByType', r => _.groupBy(r.structures, 'structureType'));
-defineCachedGetter(Room.prototype, 'structureCountByType', r => _.countBy(r.structures, 'structureType'));
-defineCachedGetter(Room.prototype, 'mineral', r => r.find(FIND_MINERALS)[0]);
-defineCachedGetter(Room.prototype, 'containers', r => r.structuresByType[STRUCTURE_CONTAINER] || []);
-defineCachedGetter(Room.prototype, 'hurtCreeps', r => r.find(FIND_CREEPS, { filter: c => c.hitPct < 1 && (c.my || Player.status(c.owner.username) === PLAYER_ALLY) }));
-defineCachedGetter(Room.prototype, 'nuker', r => r.findOne(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_NUKER } }));
-defineCachedGetter(Room.prototype, 'observer', r => r.findOne(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_OBSERVER } }));
-defineCachedGetter(Room.prototype, 'resources', r => r.find(FIND_DROPPED_RESOURCES, { filter: Filter.droppedResources }));
-defineCachedGetter(Room.prototype, 'energyPct', r => r.energyAvailable / r.energyCapacityAvailable);
+DEFINE_CACHED_GETTER(Room.prototype, 'structures', r => r.find(FIND_STRUCTURES) || []);
+DEFINE_CACHED_GETTER(Room.prototype, 'structuresMy', r => r.find(FIND_MY_STRUCTURES) || []);
+DEFINE_CACHED_GETTER(Room.prototype, 'structuresByType', r => _.groupBy(r.structures, 'structureType'));
+DEFINE_CACHED_GETTER(Room.prototype, 'structureCountByType', r => _.countBy(r.structures, 'structureType'));
+DEFINE_CACHED_GETTER(Room.prototype, 'mineral', r => r.find(FIND_MINERALS)[0]);
+DEFINE_CACHED_GETTER(Room.prototype, 'containers', r => r.structuresByType[STRUCTURE_CONTAINER] || []);
+DEFINE_CACHED_GETTER(Room.prototype, 'hurtCreeps', r => r.find(FIND_CREEPS, { filter: c => c.hitPct < 1 && (c.my || Player.status(c.owner.username) === PLAYER_ALLY) }));
+DEFINE_CACHED_GETTER(Room.prototype, 'nuker', r => r.findOne(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_NUKER } }));
+DEFINE_CACHED_GETTER(Room.prototype, 'observer', r => r.findOne(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_OBSERVER } }));
+DEFINE_CACHED_GETTER(Room.prototype, 'resources', r => r.find(FIND_DROPPED_RESOURCES, { filter: Filter.droppedResources }));
+DEFINE_CACHED_GETTER(Room.prototype, 'energyPct', r => r.energyAvailable / r.energyCapacityAvailable);
 
-defineCachedGetter(Room.prototype, 'creeps', r => r.find(FIND_MY_CREEPS) || []);
-defineCachedGetter(Room.prototype, 'creepsByRole', r => _.groupBy(r.creeps, c => c.getRole()));
-defineCachedGetter(Room.prototype, 'creepCountByRole', r => _.countBy(r.creeps, c => c.getRole()));
-defineCachedGetter(Room.prototype, 'sources', r => r.find(FIND_SOURCES));
+DEFINE_CACHED_GETTER(Room.prototype, 'creeps', r => r.find(FIND_MY_CREEPS) || []);
+DEFINE_CACHED_GETTER(Room.prototype, 'creepsByRole', r => _.groupBy(r.creeps, c => c.getRole()));
+DEFINE_CACHED_GETTER(Room.prototype, 'creepCountByRole', r => _.countBy(r.creeps, c => c.getRole()));
+DEFINE_CACHED_GETTER(Room.prototype, 'sources', r => r.find(FIND_SOURCES));
 
-/**
- * Room ownership shortcuts
- */
-defineCachedGetter(Room.prototype, 'my', r => _.get(r, 'controller.my', false));
-defineCachedGetter(Room.prototype, 'owned', r => _.has(r, 'controller.owner.username'));
-defineCachedGetter(Room.prototype, 'owner', r => _.get(r, 'controller.owner.username'));
-defineCachedGetter(Room.prototype, 'reserved', r => _.has(r, 'controller.reservation.username'));
-defineCachedGetter(Room.prototype, 'reserver', r => _.get(r, 'controller.reservation.username'));
+/** Room ownership shortcuts */
+DEFINE_CACHED_GETTER(Room.prototype, 'my', r => _.get(r, 'controller.my', false));
+DEFINE_CACHED_GETTER(Room.prototype, 'owned', r => _.has(r, 'controller.owner.username'));
+DEFINE_CACHED_GETTER(Room.prototype, 'owner', r => _.get(r, 'controller.owner.username'));
+DEFINE_CACHED_GETTER(Room.prototype, 'reserved', r => _.has(r, 'controller.reservation.username'));
+DEFINE_CACHED_GETTER(Room.prototype, 'reserver', r => _.get(r, 'controller.reservation.username'));
 
-defineCachedGetter(Room.prototype, 'fleeMatrix', function (room) {
+DEFINE_CACHED_GETTER(Room.prototype, 'FLEE_MATRIX', function (room) {
 	const matrix = ARENA_MATRIX.clone();
-	room
-		.find(FIND_STRUCTURES, { filter: Filter.isObstacle })
-		.forEach(s => matrix.set(s.pos.x, s.pos.y, 0xFF));
-	room
-		.find(FIND_MY_CONSTRUCTION_SITES, { filter: Filter.isObstacle })
-		.forEach(s => matrix.set(s.pos.x, s.pos.y, 0xFF));
-	room
-		.find(FIND_CREEPS)
-		.forEach(c => matrix.set(c.pos.x, c.pos.y, 0x15));
+	matrix.setFixedObstacles(room);
+	matrix.setDynamicObstacles(room);
+	matrix.setSKLairs(room);
+	matrix.setCreeps(room);
+	matrix.setRoads(room);
 	return matrix;
 });
-
-// Building planner stuff
-defineCachedGetter(Room.prototype, 'controllerStructures', room => CONTROLLER_STRUCTURES_LEVEL_FIRST[room.controller.level]);
 
 /**
  * Pretty much true unless I don't own the room.
  */
-defineCachedGetter(Room.prototype, 'canMine', function ({ controller }) {
+DEFINE_CACHED_GETTER(Room.prototype, 'canMine', function ({ controller }) {
 	if (controller == null)
 		return true;
 	if (controller.reservation && controller.reservation.username !== WHOAMI)
@@ -79,7 +71,7 @@ defineCachedGetter(Room.prototype, 'canMine', function ({ controller }) {
  * 2016-11-06: Safe mode rooms ignore hostiles
  * 2017-01-07: Threat value not needed to tell if hostile.
  */
-defineCachedGetter(Room.prototype, 'hostiles', function (room) {
+DEFINE_CACHED_GETTER(Room.prototype, 'hostiles', function (room) {
 	if (_.get(room, 'controller.safeMode', 0) < SAFE_MODE_IGNORE_TIMER) // abritary tick count before re-engaging
 		return room.find(FIND_HOSTILE_CREEPS, { filter: c => Filter.unauthorizedHostile(c) && !c.pos.isOnRoomBorder() });
 	return [];
@@ -234,9 +226,9 @@ Room.prototype.updateBuild = function () {
 		return ERR_BUSY;
 	if (this.hostiles && this.hostiles.length)
 		return ERR_BUSY;
-	var sites = this.find(FIND_MY_CONSTRUCTION_SITES);
-	if (sites && sites.length >= 1) {
-		this.memory.cid = sites[0].id;
+	const [site] = this.find(FIND_MY_CONSTRUCTION_SITES, {filter: s => s.structureType !== STRUCTURE_CONTAINER});
+	if (site) {
+		this.memory.cid = site.id;
 		return ERR_FULL;
 	}
 	delete this.memory.cid;
@@ -258,22 +250,27 @@ Room.prototype.updateBuild = function () {
 		&& !pos.hasStructure(STRUCTURE_RAMPART)
 		&& pos.createConstructionSite(STRUCTURE_RAMPART) === OK) // This might fail at RCL 1, let's not lock up the room.
 		return OK;
+	if (structureType === STRUCTURE_ROAD && pos.hasObstacle()) {
+		Log.info(`Dropping ${structureType} from ${pos} due to obstacle`, 'Room');
+		this.memory.bq.shift();
+		return this.updateBuild();
+	}
 	var status = pos.createConstructionSite(structureType);
 	switch (status) {
-	case OK: {
-		if (structureType === STRUCTURE_SPAWN && _.isEmpty(this.find(FIND_MY_SPAWNS))) {
-			const smStatus = this.controller.activateSafeMode();
-			Log.notify(`${this.name}: Activating safe mode to protect critical construction, status ${smStatus}`);
-		}
-		break;
-	} case ERR_INVALID_TARGET:
-		_.remove(this.memory.bq, _.matches(job));
-		break;
-	case ERR_RCL_NOT_ENOUGH:
-		_.remove(this.memory.bq, j => j.structureType === structureType);
-		break;
-	default:
-		Log.error(`Placing ${structureType} site at ${pos} status ${status}`, 'Room');
+		case OK: {
+			if (structureType === STRUCTURE_SPAWN && _.isEmpty(this.find(FIND_MY_SPAWNS))) {
+				const smStatus = this.controller.activateSafeMode();
+				Log.notify(`${this.name}: Activating safe mode to protect critical construction, status ${smStatus}`);
+			}
+			break;
+		} case ERR_INVALID_TARGET:
+			_.remove(this.memory.bq, _.matches(job));
+			break;
+		case ERR_RCL_NOT_ENOUGH:
+			_.remove(this.memory.bq, j => j.structureType === structureType);
+			break;
+		default:
+			Log.error(`Placing ${structureType} site at ${pos} status ${status}`, 'Room');
 	}
 	return OK;
 };
@@ -337,6 +334,10 @@ Room.prototype.drawBuildPlan = function () {
 
 
 Room.deserializePath = _.memoize(Room.deserializePath);
+/* Room.deserializePath = _.memoize(function(s) {
+	Log.warn(`Desearizling path`);
+	return Room.deserializePath(s);
+}); */
 
 /**
  * Bitwise operators for room.
@@ -417,7 +418,7 @@ Room.prototype.findPath = function (fromPos, toPos, opts = {}) {
 		return opts.serialize ? '' : [];
 	var resultPath = [];
 	var { path } = PathFinder.search(fromPos, { range: Math.max(1, opts.range || 1), pos: toPos }, {
-		roomCallback: opts.costCallback || ((rN) => LOGISTICS_MATRIX[rN]),
+		roomCallback: opts.costCallback || ((rN) => LOGISTICS_MATRIX.get(rN)),
 		maxOps: opts.maxOps || 20000,
 		maxRooms: opts.maxRooms,
 		plainCost: opts.ignoreRoads ? 1 : 2,
@@ -451,7 +452,7 @@ Room.prototype.findPath = function (fromPos, toPos, opts = {}) {
 };
 
 // Fuckkk this part
-defineCachedGetter(Room.prototype, 'stored', function () {
+DEFINE_CACHED_GETTER(Room.prototype, 'stored', function () {
 	const stored = _.filter(this.containers, c => c.pos.getRangeTo(c.room.controller) > 3 || c.store.energy > 500);
 	if (this.storage
 		&& ((this.energyAvailable / this.energyCapacityAvailable) < 0.5
@@ -466,13 +467,6 @@ defineCachedGetter(Room.prototype, 'stored', function () {
 		stored.push(this.terminal);
 	return stored;
 });
-
-// Time.measure( () => Game.rooms['E57S47'].getLowChargeStructures() )
-Room.prototype.getLowChargeStructures = function () {
-	if (this._lowcharge === undefined) // || !_.isEmpty(this._lowcharge))
-		this._lowcharge = this.find(FIND_MY_STRUCTURES, { filter: Filter.lowEnergyStructures });
-	return this._lowcharge;
-};
 
 Room.prototype.updateThreats = function () {
 	if (this.controller && this.controller.safeMode) // Safe mode active, we don't need to sweat threats.
@@ -494,10 +488,8 @@ Room.prototype.updateThreats = function () {
 		}
 
 		this.cache.threatDecay = Game.time + _.max(threats, 'ticksToLive').ticksToLive;
-	} else {
-		if (this.cache.threatDecay && (Game.time >= this.cache.threatDecay)) {
-			this.onHighAlertExit();
-		}
+	} else if (this.cache.threatDecay && (Game.time >= this.cache.threatDecay)) {
+		this.onHighAlertExit();
 	}
 };
 
@@ -543,37 +535,10 @@ Room.prototype.getAdjacentRooms = function () {
 	return _.values(Game.map.describeExits(this.name));
 };
 
-Room.prototype.disable = function (ticks = CREEP_LIFE_TIME) {
-	_.invoke(this.find(FIND_MY_CREEPS), 'setRole', 'recycle');
-	_.invoke(this.find(FIND_FLAGS), 'defer', ticks);
-};
-
 Room.prototype.getUpkeep = function () {
 	const s = this.structuresByType;
 	return (_.get(s, STRUCTURE_ROAD + '.length', 0) * ROAD_UPKEEP)
 		+ (_.get(s, STRUCTURE_CONTAINER + '.length', 0) * (_.get(this, 'controller.my', false) ? CONTAINER_UPKEEP : REMOTE_CONTAINER_UPKEEP))
 		+ (_.get(s, STRUCTURE_RAMPART + '.length', 0) * RAMPART_UPKEEP)
 		;
-};
-
-Room.prototype.stats = function () {
-	return JSON.stringify(_.countBy(this.find(FIND_STRUCTURES), 'structureType'), null, 2);
-};
-
-// 2016-10-14: switched to flat minimum hits, as roads were being ignored and decaying when the limit increased.
-Room.prototype.findWeakestStructure = function (limit = 5000) {
-	if (!this._weakest)
-		this._weakest = {};
-
-	if (this._weakest[limit] === undefined) {
-		// console.log('findWeakest: ' + this.name + ' limit: ' + limit);
-		var weak = _.filter(this.structures, s => s.hits && (s.hits / s.hitsMax < 0.95) && (s.hits < limit));
-		if (_.isEmpty(weak))
-			this._weakest[limit] = null;
-		else {
-			// this._weakest[limit] = _.min(weak, s => s.hits / Math.min(s.hitsMax,limit));
-			this._weakest[limit] = _.min(weak, 'hits');
-		}
-	}
-	return this._weakest[limit];
 };

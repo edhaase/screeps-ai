@@ -17,7 +17,18 @@
  *		Wall off exits with alternating walls and ramparts
  *		
  */
-"use strict";
+'use strict';
+
+/* global Command, Log, Util */
+/* global BUCKET_LIMITER, DEFAULT_BUILD_JOB_EXPIRE, STRUCTURE_BUILD_PRIORITY */
+/* global CREEP_UPGRADE_RANGE */
+/* global CRITICAL_INFRASTRUCTURE, CONTROLLER_STRUCTURES_LEVEL_FIRST */
+
+
+/* eslint-disable consistent-return */
+
+const { VisibilityError } = require('Error');
+const DEFAULT_ORIGIN_RADIUS = 1;
 
 // @todo Find way to preserve road plan from expiring.
 // @todo Put terminal within range 2 of controller.
@@ -30,19 +41,31 @@
 // Current build power needed: _.sum(Game.constructionSites, s => s.progressTotal - s.progress);
 // _(Game.flags).filter('color', COLOR_BLUE).map('pos').invoke('createConstructionSite', STRUCTURE_ROAD)
 
-/* var a = {
-	[STRUCTURE_NUKER]: CONTROLLER_STRUCTURES[STRUCTURE_NUKER][level],	
-} */
-/* global CRITICAL_INFRASTRUCTURE */
-global.BIT_BUILD_ROAD = (1 << 0); // Enable road building
-
 // Labs must be built close together.
 // Roads fill in the gaps
 // Links go near controllers, sources, and terminal/storage (if multiple points, pick closer?)
 const RANDO_STRUCTURES = [STRUCTURE_LAB, STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_POWER_SPAWN, STRUCTURE_NUKER, STRUCTURE_OBSERVER];
-// const RANDO_STRUCTURES = [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_POWER_SPAWN, STRUCTURE_NUKER, STRUCTURE_OBSERVER];
+const MINIMUM_LEVEL_FOR_EXIT_WALLS = 3;
 const MINIMUM_LEVEL_FOR_LINKS = _.findKey(CONTROLLER_STRUCTURES[STRUCTURE_LINK]);
-const MIN_LEVEL_FOR_RAMPARTS = _.findKey(CONTROLLER_STRUCTURES[STRUCTURE_RAMPART]);
+const MINIMUM_LEVEL_FOR_RAMPARTS = _.findKey(CONTROLLER_STRUCTURES[STRUCTURE_RAMPART]);
+const MINIMUM_LEVEL_FOR_TERMINAL = _.findKey(CONTROLLER_STRUCTURES[STRUCTURE_TERMINAL]);
+const DEFAULT_STUFF_TO_PLAN = Util.RLD([1, STRUCTURE_TERMINAL, CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][8], STRUCTURE_EXTENSION, 3, STRUCTURE_SPAWN, 1, STRUCTURE_OBSERVER, 1, STRUCTURE_STORAGE, 1, STRUCTURE_POWER_SPAWN, 1, STRUCTURE_NUKER, 6, STRUCTURE_TOWER]);
+
+global.CONTROLLER_STRUCTURES_LEVEL_FIRST = [];
+for (var i = 0; i <= 8; i++)
+	CONTROLLER_STRUCTURES_LEVEL_FIRST[i] = _.transform(CONTROLLER_STRUCTURES, (r, v, k) => r[k] = v[i]);
+
+const STRUCTURE_MIN_RANGE = { // Range 2 for nuke safety?	
+	[STRUCTURE_SPAWN]: 2,	// Minimum two to prevent blockage and nukes
+	[STRUCTURE_LINK]: 2,	// Minimum two to prevent blockage
+	[STRUCTURE_TOWER]: 2,
+	[STRUCTURE_TERMINAL]: 2,
+	[STRUCTURE_STORAGE]: 2,
+	[STRUCTURE_EXTENSION]: 1,
+	[STRUCTURE_ROAD]: 1,
+	[STRUCTURE_CONTROLLER]: 2,
+	[STRUCTURE_POWER_SPAWN]: 2,
+};
 
 /**
  *
@@ -72,19 +95,6 @@ Room.prototype.getStructuresWeCanBuild = function () {
 	return _.mapValues(CONTROLLER_STRUCTURES, (v, k) => v[level] - (have[k] || 0));
 };
 
-const STRUCTURE_MIN_RANGE =
-	{ // Range 2 for nuke safety?	
-		[STRUCTURE_SPAWN]: 2,	// Minimum two to prevent blockage and nukes
-		[STRUCTURE_LINK]: 2,	// Minimum two to prevent blockage
-		[STRUCTURE_TOWER]: 2,
-		[STRUCTURE_TERMINAL]: 2,
-		[STRUCTURE_STORAGE]: 2,
-		[STRUCTURE_EXTENSION]: 1,
-		[STRUCTURE_ROAD]: 1,
-		[STRUCTURE_CONTROLLER]: 2,
-		[STRUCTURE_POWER_SPAWN]: 2,
-	};
-
 /**
  * ES6 class for searching for build locations with PathFinder.search
  * in flee mode.
@@ -95,6 +105,7 @@ const STRUCTURE_MIN_RANGE =
  * (new CFleePlanner(null,new RoomPosition(12,35,'W3N9'))).mergeCurrentPlan().run().draw(true)
  * 
  * Note: The first structures in the array tend to be towards the center.
+ * @todo coroutine iterative planner (each cycle rebuild )
  */
 class FleePlanner {
 	// Single-pass priority queue, two cost matricies, and a stored plan.
@@ -102,16 +113,16 @@ class FleePlanner {
 	 * Goals should be pre-built.
 	 * Cost matrix should be pre-built if goals.
 	 */
-	constructor(goals, origin = new RoomPosition(17, 24, 'W2N2'), opts = {}) {
+	constructor(goals, origin, opts = {}) {
 		this.origin = origin;								// Initial point to expand outwards from.
-		this.radius = opts.radius || 1;						// Minimum radius from initial point.
+		this.radius = opts.radius || DEFAULT_ORIGIN_RADIUS;	// Minimum radius from initial point.
 		this.minRange = 1;									// Minimum range a structure must be from another.
 		this.maxRange = 4;									// Maximum range a structure can be from another.
 
-		this.goals = goals || [{ pos: this.origin, range: this.radius || 2 }];
+		this.goals = goals || [{ pos: this.origin, range: this.radius }];
 		this.cm = opts.cm || new PathFinder.CostMatrix;
 		this.plan = [];
-		this.stuffToAdd = opts.stuffToAdd || Util.RLD([1, STRUCTURE_TERMINAL, CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][8], STRUCTURE_EXTENSION, 3, STRUCTURE_SPAWN, 1, STRUCTURE_OBSERVER, 1, STRUCTURE_STORAGE, 1, STRUCTURE_POWER_SPAWN, 1, STRUCTURE_NUKER, 6, STRUCTURE_TOWER]);
+		this.stuffToAdd = opts.stuffToAdd || DEFAULT_STUFF_TO_PLAN;
 		if (opts.shuffle)
 			this.stuffToAdd = _.shuffle(this.stuffToAdd);
 		this.seed = 4;										// If we use a pRNG we want a seed.
@@ -140,7 +151,7 @@ class FleePlanner {
 		var room = Game.rooms[this.origin.roomName];
 		room.find(FIND_SOURCES).forEach(s => this.goals.push({ pos: s.pos, range: 3 }));
 		room.find(FIND_MINERALS).forEach(s => this.goals.push({ pos: s.pos, range: 2 }));
-		room.find(FIND_NUKES).forEach(s => this.goals.push({ pos: s.pos, range: NUKE_EFFECT_RANGE+1 }));
+		room.find(FIND_NUKES).forEach(s => this.goals.push({ pos: s.pos, range: NUKE_EFFECT_RANGE + 1 }));
 		room.find(FIND_EXIT).forEach(exit => this.goals.push({ pos: exit, range: 5 }));
 		room.find(FIND_STRUCTURES).forEach(({ pos, structureType }) => this.set(pos, structureType, false));
 		return this;
@@ -266,9 +277,6 @@ class FleePlanner {
 }
 global.CFleePlanner = FleePlanner;
 
-// @todo: Account for the structures gained at each level,
-// or just pre-plan it all and deal with it?
-// @todo: Keep the shuffle or drop it? I kind of like the randomness.
 class BuildPlanner {
 	static pushRoomUpdates() {
 		var rooms = _.filter(Game.rooms, 'my');
@@ -277,69 +285,59 @@ class BuildPlanner {
 	}
 
 	/**
-	 * Automates room construction - Currently centered around room controller.
+	 * Automates room construction
 	 *
 	 * Very, very high cpu. Won't run with bucket limiter engaged.
 	 * This should probably not be run for more than one room per tick. 
 	 *
 	 * Likely to be called by the room controller periodically, or on level up.
-	 * should have controller bit for disabling this.
 	 *
 	 * @param Room room - current room object needed
-	 * Use time estimations (progress()?) to defer things 
-	 * ex: Call every CREEP_LIFE_TIME + margin to rebuild
-	 * ex: Suggest calling from controller? Planner.buildRoom(this.room)
 	 */
 	static buildRoom(room) {
 		if (BUCKET_LIMITER)
 			return ERR_TIRED;
 		var { level } = room.controller;
-		if (level < 1) // Let's get the easy stuff out of the way.
+		if (level < 1) // Sanity check
 			return ERR_RCL_NOT_ENOUGH; // We can't build anything at rcl 0
 		if (!room.isBuildQueueEmpty())
 			return ERR_BUSY;
-		if (!_.isEmpty(room.find(FIND_MY_CONSTRUCTION_SITES)))
+		if (!_.isEmpty(room.find(FIND_MY_CONSTRUCTION_SITES, { filter: s => s.structureType !== STRUCTURE_CONTAINER })))
 			return ERR_BUSY;
 		Log.warn(`Building room: ${room.name} on tick ${Game.time}`, 'Planner');
-		var {pos,radius} = room.getOrigin();
+		const origin = room.getOrigin();
 		var avail = room.getStructuresWeCanBuild();
 		var want = [];
-		_.each(RANDO_STRUCTURES, (type) => {
-			want.push(avail[type]);
-			want.push(type);
-		});
+		for (const type of RANDO_STRUCTURES)
+			want.push(avail[type], type);
 		want = Util.RLD(want);
 		if (_.isEmpty(want)) {
 			Log.debug('Nothing to build', 'Planner');
 			// return;
 		} else {
-			var fleePlanner = new FleePlanner(null, pos, {
+			var fleePlanner = new FleePlanner(null, origin.pos, {
 				stuffToAdd: want
 			});
 			fleePlanner.mergeCurrentPlan().run().draw(true);
-			var {plan} = fleePlanner;
-			// @todo move to build planner
-			// _.each(plan, ({pos,structureType}) => pos.createConstructionSite(structureType));
-			var room = Game.rooms[pos.roomName], prio;
-			_.each(plan, ({ pos, structureType }) => {
-				prio = STRUCTURE_BUILD_PRIORITY[structureType] || 0.5
-				room.addToBuildQueue(pos, structureType, DEFAULT_BUILD_JOB_EXPIRE, prio);
-			});
+			for (const { pos, structureType } of fleePlanner.plan)
+				room.addToBuildQueue(pos, structureType, DEFAULT_BUILD_JOB_EXPIRE, STRUCTURE_BUILD_PRIORITY[structureType]);
 		}
 		// Then build other stuff
 		this.placeRamparts(room);
-		// this.placeRampartsOnWalls(room); // Really a waste of energy over a second layer of wall
+		// Don't build this stuff until we have a tower up
 		if (level >= 3) {
-			this.buildSourceRoads(room, pos, room.controller.level === 3);
-			this.buildControllerWall(pos, room.controller);
-			this.planRoad(pos, {pos: room.controller.pos, range: CREEP_UPGRADE_RANGE}, {container: false, initial: 1} );
+			// this.buildSourceRoads(room, pos, room.controller.level >= 3);
+			this.buildSourceRoads(room, origin.pos, false);
+			this.buildControllerWall(origin, room.controller);
+			this.planRoad(origin.pos, { pos: room.controller.pos, range: CREEP_UPGRADE_RANGE }, { container: false, initial: 1 });
 		}
 		if (level >= MINIMUM_LEVEL_FOR_LINKS)
-			this.buildLinks(pos,level);
+			this.buildLinks(origin.pos, level);
 		this.findRoadMisplacements(room).invoke('destroy').commit();
-		if(level >= 7)
-			this.exitPlanner(room.name, {commit: true});
-		if (level >= 6) {
+		// Find a happy medium for these?
+		if (level >= MINIMUM_LEVEL_FOR_EXIT_WALLS)
+			this.exitPlanner(room.name, { commit: true });
+		if (level >= MINIMUM_LEVEL_FOR_TERMINAL) {
 			const { mineral } = room;
 			if (mineral && !mineral.pos.hasStructure(STRUCTURE_EXTRACTOR)) {
 				room.addToBuildQueue(mineral.pos, STRUCTURE_EXTRACTOR);
@@ -358,15 +356,15 @@ class BuildPlanner {
 			throw new Error('Expects origin point');
 		const room = Game.rooms[origin.roomName];
 		if (!room)
-			throw new Error('Room must be visible');
-		const { controller, sources, links=[] } = room;
+			throw new VisibilityError(origin.roomName);
+		const { controller, sources, links = [] } = room;
 		const linksAllowed = CONTROLLER_STRUCTURES[STRUCTURE_LINK][controller.level];
-		if(links.length >= linksAllowed)
+		if (links.length >= linksAllowed)
 			return Log.debug(`${room.name}: No links remaining`, 'Planner');
 		Log.debug(`Building links from ${origin} for level ${level}`, 'Planner');
 		// controller first, leave room at least 1 upgrader at range 3
 		// by parking the link at range 4
-		let status = controller.planLink(CREEP_UPGRADE_RANGE,2);
+		let status = controller.planLink(CREEP_UPGRADE_RANGE, 2);
 		Log.debug(`${room.name}: Plan controller link: ${status}`, 'Planner');
 		// now sources
 		for (var s = 0; s < sources.length; s++) {
@@ -378,17 +376,18 @@ class BuildPlanner {
 	}
 
 	/**
+	 * Places ramparts around controller
 	 * @param {*} origin
 	 * @param {*} controller
 	 */
 	static buildControllerWall(origin, controller) {
-		if(!origin || !controller)
+		if (!origin || !controller)
 			throw new Error("Invalid args");
-		Log.debug(`${controller.pos.roomName}: Barricading controller`, 'Planner');
 		const tiles = _.reject(controller.pos.getOpenNeighbors(), p => p.hasStructure(STRUCTURE_RAMPART));
-		tiles.forEach(t => controller.room.addToBuildQueue(t,STRUCTURE_RAMPART));
+		Log.debug(`${controller.pos.roomName}: Barricading controller`, 'Planner');
+		tiles.forEach(t => controller.room.addToBuildQueue(t, STRUCTURE_RAMPART));
 	}
-	
+
 	/**
 	 * Distance transform - An image procesing technique.
 	 * Rosenfeld and Pfaltz 1968 algorithm
@@ -434,6 +433,10 @@ class BuildPlanner {
 		return topDownPass;
 	}
 
+	/**
+	 * 
+	 * @param {*} room 
+	 */
 	static drawAvgRange(room) {
 		var roomName = room.name;
 		var vis = room.visual;
@@ -441,7 +444,6 @@ class BuildPlanner {
 		var c = room.controller;
 		var s = room.find(FIND_SOURCES);
 		var points = [c, ...s];
-		console.log('points: ' + points);
 		// var maxv = 0, maxp = null;
 		for (y = 49; y >= 0; --y) {
 			for (x = 49; x >= 0; --x) {
@@ -452,18 +454,21 @@ class BuildPlanner {
 				// value = cm.get(x,y) / (dist / 25);
 				if (dist < 3)
 					continue;
-				vis.circle(x, y, { fill: 'red', radius: dist / 75 });
+				// vis.circle(x, y, { fill: 'red', radius: dist / 75 });
+				vis.text(dist, x, y);
 			}
 		}
 	}
 
 	/**
 	 * Finds a position in a room to expand outwards from.
-	 * 
+	 * Ignores minerals (they aren't a serious )
 	 * @param {Room} room - Room object to analyze
 	 * @param {Number} maxClearance - Score above which extra clearance doesn't really matter
+	 * @todo If we hit max clear, should we stop early?
 	 */
 	static distanceTransformWithController(room, maxClearance = 5) {
+		const MINIMUM_CLEARANCE = 3;
 		var roomName = room.name;
 		var cm = this.distanceTransform(roomName);
 		var vis = new RoomVisual(roomName);
@@ -475,15 +480,11 @@ class BuildPlanner {
 		for (y = 49; y >= 0; --y) {
 			for (x = 49; x >= 0; --x) {
 				pos = new RoomPosition(x, y, roomName);
-				// dist = pos.getRangeTo(c);
 				dist = Math.ceil(pos.getAverageRange(points));
-				// value = cm.get(x,y) / (dist / 25);
-				if (dist < 3)
+				if (dist < MINIMUM_CLEARANCE)
 					continue;
-				// value = Math.pow(cm.get(x,y),2);
 				clear = Math.min(cm.get(x, y), maxClearance);
-				value = Math.pow(clear, 2);
-				value /= dist;
+				value = (clear ** 2) / dist;
 				if (value > maxv) {
 					maxv = value;
 					maxp = pos;
@@ -493,7 +494,6 @@ class BuildPlanner {
 			}
 		}
 		console.log(`Best position: ${maxp} with score ${maxv} and clearance ${maxc}`);
-		// console.log('Best position: ' + maxp + ' with score ' + maxv);
 		return maxp;
 	}
 
@@ -501,11 +501,11 @@ class BuildPlanner {
 	 * Must path within range (Adjacent for source), but road can stop one shorter.
 	 * For controller, road only needs to path to range 3.
 	 */
-	static buildSourceRoads(room, origin, containers = true) {
+	static buildSourceRoads(room, origin, container = false) {
 		if (origin == null)
 			throw new Error("Origin position required");
 		const sources = room.find(FIND_SOURCES);
-		_.each(sources, source => this.planRoad(origin, { pos: source.pos, range: 1 }, { rest: 1, initial: 1, container: containers }));
+		_.each(sources, source => this.planRoad(origin, { pos: source.pos, range: 1 }, { rest: 1, initial: 1, container }));
 		if (room.controller && room.controller.level >= 6 && sources.length > 1) {
 			var [s1, s2] = sources;
 			this.planRoad(s1, { pos: s2.pos, range: 1 }, { rest: 1, initial: 1 });
@@ -514,48 +514,42 @@ class BuildPlanner {
 
 	/**
 	 * Game.rooms['W6N3'].visual.poly(PathFinder.search(new RoomPosition(44,41,'W6N3'), new RoomPosition(7,42,'W6N3'), {heuristicWeight: 1.2, plainCost: 2, swampCost: 2}).path)
+	 * @todo add existing road to plan
 	 */
 	static planRoad(fromPos, toPos, opts = {}) {
-		// Planner.planRoad(Game.getObjectById('0cca984923d4f5a78ed40185').pos, Game.spawns.Spawn1.pos)
+		// const {dry=false,cmFm,container=false,rest,initial} = opts;
 		if (fromPos.pos)
 			fromPos = fromPos.pos;
-		// if(toPos.pos)
-		//	toPos = toPos.pos;
 		if (opts.cmFn === undefined)
-			opts.cmFn = (rN) => FIXED_OBSTACLE_MATRIX[rN];
+			opts.cmFn = (rN) => FIXED_OBSTACLE_MATRIX.get(rN);
 		try {
-			// if(_.isObject(toPos) && !(toPos instanceof RoomPosition))
-			//	toPos = [toPos];
 			var result = PathFinder.search(fromPos, toPos, {
 				plainCost: 2, // prefer existing roads
 				swampCost: 2,
 				maxOps: 16000,
-				maxRooms: (fromPos.roomName === (toPos.roomName || toPos.pos.roomName))?1:16,
+				maxRooms: (fromPos.roomName === (toPos.roomName || toPos.pos.roomName)) ? 1 : 16,
 				roomCallback: opts.cmFn
 			});
-			var { path, incomplete, cost, ops } = result;
-			if (incomplete || !path || _.isEmpty(path)) {
+			var { path = [], incomplete, cost, ops } = result;
+			if (incomplete || !path.length) {
 				Log.warn(`No path to goal ${JSON.stringify(toPos)}, cost ${cost} ops ${ops} steps ${path.length}`, 'Planner');
-				Log.warn(JSON.stringify(fromPos) + ', ' + JSON.stringify(toPos));
-				Log.warn(JSON.stringify(result));
 				return ERR_NO_PATH;
-			}
-			path = _.drop(path, opts.rest);
-			if (opts.container && path && path.length) {
-				var end = _.last(path);
+			} else if (opts.container) {
+				const end = _.last(path);
 				if (end && !end.hasStructure(STRUCTURE_CONTAINER))
 					Game.rooms[end.roomName].addToBuildQueue(end, STRUCTURE_CONTAINER);
 			}
-			path = _.dropRight(path, opts.initial);
-			if(!path || !path.length)
+			path = path.slice(opts.rest, path.length - opts.initial);
+			if (!path || !path.length)
 				return Log.debug(`No road needed for ${fromPos} to ${toPos}`, 'Planner');
 			new RoomVisual(path[0].roomName).poly(path);
 			Log.debug(`Road found, cost ${cost} ops ${ops} incomplete ${incomplete}`, 'Planner');
-			if (!opts.dry) {
-				_.each(path, p => {
-					if (!p.hasStructure(STRUCTURE_ROAD))
-						Game.rooms[p.roomName].addToBuildQueue(p, STRUCTURE_ROAD);
-				});
+			if (opts.dry)
+				return;
+			for (const indx in path) {
+				const p = path[indx];
+				if (!p.hasStructure(STRUCTURE_ROAD))
+					Game.rooms[p.roomName].addToBuildQueue(p, STRUCTURE_ROAD);
 			}
 		} catch (e) {
 			console.log(e.stack);
@@ -624,8 +618,7 @@ class BuildPlanner {
 		}
 
 		var used = Game.cpu.getUsed() - start;
-		console.log('Used: ' + used);
-		console.log('Count: ' + count);
+		console.log(`Used: ${used}, Count: ${count}`);
 		return rtn;
 	}
 
@@ -637,44 +630,19 @@ class BuildPlanner {
 	 * Note: The look call saves us cpu.
 	 */
 	static placeRamparts(room) {
-		// Maybe lower this to 2.
-		// if (_.get(room, 'controller.level', 0) < 3) // ignore until we get a tower up
-		//	return ERR_RCL_NOT_ENOUGH;
-		if(_.get(room, 'controller.level', 0) < MIN_LEVEL_FOR_RAMPARTS)
+		if (_.get(room, 'controller.level', 0) < MINIMUM_LEVEL_FOR_RAMPARTS)
 			return ERR_RCL_NOT_ENOUGH;
 		var start = Game.cpu.getUsed();
 		var structures = room.find(FIND_MY_STRUCTURES, { filter: s => s.structureType !== STRUCTURE_RAMPART });
-		/* if (!_.any(structures, s => s.structureType === STRUCTURE_TOWER)) {
-			Log.error(`No towers in ${room.name}, unable to auto-rampart`, 'Planner');
-			return ERR_NOT_FOUND;
-		} */
-		_.each(structures, function (s) {
-			if (!CRITICAL_INFRASTRUCTURE.includes(s.structureType) || s.pos.hasRampart())
-				return;
-			Log.debug(`Creating rampart for ${s} at pos ${s.pos}`,'Planner');
-			room.addToBuildQueue(s.pos, STRUCTURE_RAMPART, DEFAULT_BUILD_JOB_EXPIRE, 1.0);
-		});
+		for (const { structureType, pos } of structures) {
+			if (!CRITICAL_INFRASTRUCTURE.includes(structureType) || pos.hasRampart())
+				continue;
+			Log.debug(`Creating rampart for ${structureType} at pos ${pos}`, 'Planner');
+			room.addToBuildQueue(pos, STRUCTURE_RAMPART, DEFAULT_BUILD_JOB_EXPIRE, 1.0);
+		}
 		var used = Game.cpu.getUsed() - start;
 		Log.info(`Updating auto-ramparts in ${room.name} took ${used} cpu`, 'Planner');
 		return used;
-	}
-
-	/**
-	 * Auto-rampart any walls at max hits.
-	 * 
-	 * Probably to be called almost never.
-	 */
-	static placeRampartsOnWalls(room) {
-		var walls = room.find(FIND_STRUCTURES, {
-			filter: s => s.structureType === STRUCTURE_WALL && s.hits === s.hitsMax
-		});
-		_.each(walls, function (wall) {
-			if (CPU_LIMITER || wall.pos.hasRampart() || wall.pos.isEnclosed())
-				return;
-			// wall.pos.createConstructionSite(STRUCTURE_RAMPART);
-			room.addToBuildQueue(wall.pos, STRUCTURE_RAMPART);
-			Log.notify(`Wall at ${wall.pos} at full hits, ramparting!`);
-		});
 	}
 
 	/**
@@ -694,51 +662,42 @@ class BuildPlanner {
 	 * Time.measure( () => Planner.exitPlanner('W7N2') )
 	 */
 	static exitPlanner(roomName, opts = {}) {
-		opts = _.defaults(opts, {
-			visualize: true,
-			commit: false,
-			ignorePlan: false
-		});
-		var cm = new PathFinder.CostMatrix;
-		var room = Game.rooms[roomName];
-		// var visual = room.visual;		
-		var visual = new RoomVisual(roomName);
-		if (room) {
-			if (!opts.origin)
-				opts.origin = _.create(RoomPosition.prototype, room.memory.origin);
-			if (!opts.origin) {
-				Log.warn('No origin');
-				return;
-			}
-			var exits = room.find(FIND_EXIT).map(e => ({ pos: e, range: 0 }));
-			if (!opts.ignorePlan)
-				room.find(FIND_STRUCTURES).forEach(({ pos, structureType }) => {
-					if (structureType === STRUCTURE_RAMPART || OBSTACLE_OBJECT_TYPES.includes(structureType))
-						cm.set(pos.x, pos.y, 255);
-				});
-		} else {
-			console.log('No room object');
+		const {
+			origin = Game.rooms[roomName].getOrigin().pos,
+			visualize = true, visualizePath = true,
+			param = FIND_EXIT,
+			commit = false,
+			ignorePlan = false } = opts;
+		const cm = new PathFinder.CostMatrix;
+		const room = Game.rooms[roomName];
+		const visual = (room && room.visual) || new RoomVisual(roomName);
+		const exits = room.find(param).map(e => ({ pos: e, range: 0 }));
+		if (!exits || !exits.length)
+			return ERR_NOT_FOUND;
+		if (!ignorePlan) {
+			room.find(FIND_STRUCTURES).forEach(({ pos, structureType }) => {
+				if (structureType === STRUCTURE_RAMPART || OBSTACLE_OBJECT_TYPES.includes(structureType))
+					cm.set(pos.x, pos.y, 255);
+			});
 		}
 		/* eslint no-constant-condition: 0 */
+		const params = { roomCallback: () => cm, maxRooms: 1 };
 		while (true) {
-			var { path, incomplete } = PathFinder.search(opts.origin, exits, { roomCallback: () => cm, maxRooms: 1 });
+			const { path, incomplete } = PathFinder.search(origin, exits, params);
 			if (incomplete)
 				break;
-			// console.log(JSON.stringify(path));
-			var pos = path[path.length - 3];
+			const pos = path[path.length - 3];
 			cm.set(pos.x, pos.y, 255);
-			// var wallOrRampart = (pos.x + pos.y) % 2;
-			var wallOrRampart = (pos.x + pos.y) % 3;
-			if (opts.commit) {
-				var type = (wallOrRampart ? STRUCTURE_WALL : STRUCTURE_RAMPART);
-				if (pos.hasStructure(type))
-					continue;
-				room.addToBuildQueue(pos, type);
+			const wallOrRampart = (pos.x + pos.y) % 3;
+			if (commit) {
+				var type = wallOrRampart ? STRUCTURE_WALL : STRUCTURE_RAMPART;
+				if (!pos.hasStructure(type))
+					room.addToBuildQueue(pos, type);
 			}
-			if (opts.visualize) {
-				// visual.poly(path);
+			if (visualize) {
+				if (visualizePath)
+					visual.poly(path);
 				visual.circle(pos, { fill: (wallOrRampart ? 'black' : 'green'), opacity: 0.75 });
-				// visual.circle(pos, {fill:'red', opacity: 0.75});
 			}
 		}
 	}
@@ -746,14 +705,13 @@ class BuildPlanner {
 	/**
 	 * Transforms controller structures
 	 */
-	static structuresAllowable(room) {
-		if (_.isString(room))
-			room = Game.rooms[room];
+	static structuresAllowable(roomName) {
+		const room = Game.rooms[roomName];
 		if (!room)
 			return "You don't have visibility in this room";
 		return _.transform(CONTROLLER_STRUCTURES, (r, v, k) => r[k] = v[room.controller.level]);
 	}
-	
+
 }
 
 module.exports = BuildPlanner;

@@ -1,17 +1,19 @@
 /**
  * Creates property energyPct on structures, that we can group and sort by
  */
-"use strict";
+'use strict';
 
-defineCachedGetter(Structure.prototype, 'cost', ({ structureType }) => CONSTRUCTION_COST[structureType]);
-defineCachedGetter(Structure.prototype, 'energyPct', s => s.energy / s.energyCapacity);
-defineCachedGetter(Structure.prototype, 'energyCapacityAvailable', s => s.energyCapacity - s.energy);
-defineCachedGetter(Structure.prototype, 'hitPct', s => s.hits / s.hitsMax);
-defineCachedGetter(Structure.prototype, 'storedTotal', s => _.sum(s.store));
+/* global DEFINE_CACHED_GETTER, Log, STACK_TRACE */
 
-StructureRampart.prototype.upkeep = RAMPART_UPKEEP;
-defineCachedGetter(StructureRoad.prototype, 'upkeep', r => (Game.map.getTerrainAt(r.pos) === 'swamp') ? ROAD_UPKEEP_SWAMP : ROAD_UPKEEP );
-defineCachedGetter(StructureContainer.prototype, 'upkeep', c => c.room.my ? CONTAINER_UPKEEP : REMOTE_CONTAINER_UPKEEP);
+DEFINE_CACHED_GETTER(Structure.prototype, 'cost', ({ structureType }) => CONSTRUCTION_COST[structureType]);
+DEFINE_CACHED_GETTER(Structure.prototype, 'energyPct', s => s.energy / s.energyCapacity);
+DEFINE_CACHED_GETTER(Structure.prototype, 'energyCapacityAvailable', s => s.energyCapacity - s.energy);
+DEFINE_CACHED_GETTER(Structure.prototype, 'hitPct', s => s.hits / s.hitsMax);
+DEFINE_CACHED_GETTER(Structure.prototype, 'storedTotal', s => _.sum(s.store));
+DEFINE_CACHED_GETTER(Structure.prototype, 'storedPct', ({ storedTotal, storeCapacity }) => storedTotal / storeCapacity);
+
+DEFINE_CACHED_GETTER(StructureRoad.prototype, 'upkeep', r => (Game.map.getTerrainAt(r.pos) === 'swamp') ? ROAD_UPKEEP_SWAMP : ROAD_UPKEEP);
+DEFINE_CACHED_GETTER(StructureContainer.prototype, 'upkeep', c => c.room.my ? CONTAINER_UPKEEP : REMOTE_CONTAINER_UPKEEP);
 
 
 /* Object.defineProperty(Structure.prototype, "dismantleReturn", {
@@ -48,7 +50,7 @@ Structure.prototype.isActive = function () {
 Structure.prototype.say = function (msg, color = 'yellow') {
 	var { x, y, roomName } = this.pos;
 	var newPos = new RoomPosition(x, y - 0.75, roomName);
-	this.room.visual.text(msg, newPos, { color });
+	this.room.visual.text(msg, newPos, { color, stroke: 'black' });
 };
 
 /**
@@ -56,15 +58,15 @@ Structure.prototype.say = function (msg, color = 'yellow') {
  * to decide if it wants to make that check at all.
  */
 OwnedStructure.prototype.defer = function (ticks) {
-	if (!_.isNumber(ticks))
+	if (typeof ticks !== 'number')
 		throw new TypeError('OwnedStructure.defer expects numbers');
 	if (ticks >= Game.time)
-		Log.notify(`[WARNING] Structure ${this.id} at ${this.pos} deferring for unusually high ticks!`);
+		Log.notify(`[WARNING] Structure ${this.id} at ${this.pos} deferring for unusually high ticks! ${STACK_TRACE()}`);
 	if (Memory.structures[this.id] === undefined)
 		Memory.structures[this.id] = {};
 	if (!this.isDeferred())
 		this.onDefer(ticks);
-	Memory.structures[this.id].defer = Game.time + ticks;
+	return (Memory.structures[this.id].defer = Game.time + ticks);
 };
 
 OwnedStructure.prototype.clearDefer = function () {
