@@ -1,68 +1,111 @@
-/*
- * role-scientist
- * Transfers resources to and from labs
+/**
+ * role-scientist - Transfers resources to and from labs
+ * 
+ * example: .submit({memory:{role:'scientist}})
+ * 
+ * @todo add to expense?
  */
-"use strict";
+'use strict';
 
-const STATE_LOAD = 'l';
-const STATE_RESET = 'r';
-const STATE_DEFAULT = STATE_LOAD;
+/* global Log, RENEW_TICKS */
+/* global RECIPES, BOOST_PARTS, REACTION_TIME */
+/* glboal TERMINAL_MAINTAIN_RESERVE */
+/* eslint-disable consistent-return */
 
-module.exports = function (creep) {
-	let { site, lab1, lab2, r1, r2, lab3 } = creep.memory;
-	let terminal = creep.room.terminal;
-	lab1 = Game.getObjectById(lab1);
-	lab2 = Game.getObjectById(lab2);
-	lab3 = Game.getObjectById(lab3); // destination lab
-	let limit = Math.floor(creep.carryCapacity / 3);
-	let threshold = 250;
-	let r3 = REACTIONS[r1][r2];
+// @todo fiddle with this
+const MINIMUM_TIME_TO_LOAD = 15; // 15 ticks to load
+const AMOUNT_TO_LOAD = TERMINAL_MAINTAIN_RESERVE;
 
-	// Clear all the labs
-	if (creep.getState() === STATE_RESET) {
-		creep.withdraw(lab3, lab3.mineralType, Math.min(limit, lab3.mineralAmount));
-		creep.withdraw(lab2, lab2.mineralType, Math.min(limit, lab2.mineralAmount));
-		creep.withdraw(lab1, lab1.mineralType, Math.min(limit, lab1.mineralAmount));
-		let res = _.findKey(creep.carry, (v, key) => v > 0);
-		creep.transfer(terminal, res);
-		if (lab1.mineralAmount === 0 && lab2.mineralAmount === 0 && lab3.mineralAmount === 0) {
-			creep.setState(STATE_LOAD);
-			creep.say('Loading!');
-			Log.info('[SCIENTIST] Switching to load at ' + creep.pos);
+// LAB_MINERAL_CAPACITY: 3000,
+// LAB_ENERGY_CAPACITY: 2000,
+// LAB_BOOST_ENERGY: 20,
+// LAB_BOOST_MINERAL: 30,
+
+/**
+ * Only spawns if have a terminal with compounds and labs with energy
+ * Not critical to economy, but damn useful if available
+ */
+module.exports = {
+	boosts: [],
+	priority: function () {
+		// (Optional)
+	},
+	minBody: [MOVE, CARRY],
+	body: function () {
+		// (Optional) Used if no body supplied
+		// Expects conditions..
+	},
+	init: function () {
+		this.memory.minRenew = CREEP_LIFE_TIME - RENEW_TICKS(this.body);
+	},
+	run: function () {
+		const { terminal } = this.room;
+		const labs = this.room.find(FIND_MY_STRUCTURES, { filter: s => s.structureType === STRUCTURE_LAB });
+		const orderedLabs = _.sortByAll(labs, [l => l.pos.getRangeTo(terminal), 'id']);
+		const spawns = this.room.find(FIND_MY_SPAWNS);
+		const active = _.sortBy(_.filter(spawns, s => s.spawning), 'remainingTime');
+
+		if (this.carryTotal > 0) {
+			this.pushState('Transfer', { res: _.findKey(this.carry), dst: terminal.id });
 		}
-		return;
+
+		// Idle conditions
+		if (!terminal || !labs || !labs.length)
+			return this.setRole('recycle');
+		if (Math.random() > 0.90 || this.memory.stuck > 15) {
+			return this.pushState("MoveTo", { pos: _.sample(labs).pos, range: 1 });
+		} else if (Math.random() > (this.ticksToLive / this.memory.minRenew))
+			return this.pushState("MoveTo", { pos: _.sample(spawns).pos, range: 1 });
+
+		// If still idle, find work, push states.
+		if (!active || !active.length) {
+			this.say('Wait!');
+			return this.defer(5);
+		}
+
+		// @todo look at spawn queue as well
+		var current = [];
+		for (const { spawning } of active) {
+			const { name, remainingTime } = spawning;
+			if (remainingTime < MINIMUM_TIME_TO_LOAD || current.length >= labs.length)
+				continue;
+			const creep = Game.creeps[name];
+			const boosts = _.sortByOrder(creep.module.boosts, b => REACTION_TIME[b], 'desc');
+			if (!boosts || !boosts.length)
+				continue;
+			const demand = _.unique(boosts, false, b => terminal.store[b] >= 750 && BOOST_PARTS[b]);
+			for (const resource of demand) {
+				current.push(resource);
+				if (current.length >= labs.length)
+					break;
+			}
+			Log.debug(`${this.name} wants to support creep ${name} in under ${remainingTime} with ${demand}`, 'Creep');
+		}
+		if (!current || !current.length) {
+			this.say('Wait!');
+			return this.defer(5);
+		}
+		// Log.warn(`${this.name} wants to load ${current} compounds in ${orderedLabs}!`);
+		// We're all ready to go! Start pushing states for next tick!
+		// @todo loop backwards since this is a push?
+		// @todo better calc amount
+		let amt;
+		for (var i = 0; i < current.length; i++) {
+			const lab = orderedLabs[i];
+			const compound = current[i];
+			amt = AMOUNT_TO_LOAD;
+			if (lab.mineralType && lab.mineralType === compound)
+				amt -= lab.mineralAmount;
+			if (amt <= 0)
+				continue;
+			Log.warn(`Loading ${amt} ${compound} to ${lab} (${lab.mineralAmount})`);
+			this.pushState('Transfer', { src: terminal.id, dst: lab.id, res: compound, amt }, false);
+			if (lab.mineralType && lab.mineralType !== compound) {
+				Log.warn(`Scientest needs to unload lab first`);
+				this.pushState('Transfer', { src: lab.id, dst: terminal.id, amt: lab.mineralAmount, res: lab.mineralType }, false);
+				console.log(ex(this.memory.state));
+				console.log(ex(this.memory.stack));
+			}
+		}
 	}
-
-	if (creep.ticksToLive < 3) {
-		// stop working?
-	}
-
-	var flag = Game.flags[site];
-	if (!creep.pos.isEqualTo(flag.pos))
-		creep.moveTo(flag);
-
-	// Destination lab
-	// if(_.get(creep.carry, r3, 0) > 0)
-	//	creep.transfer(terminal, r3);
-	let carry = _.keys(_.omit(creep.carry, ['energy', r2, r1]));
-	if (carry && carry.length)
-		creep.transfer(terminal, carry[0]);
-	if (_.get(creep.carry, RESOURCE_ENERGY, 0) > 0)
-		creep.transfer(terminal, RESOURCE_ENERGY);
-	if (lab3.mineralAmount > 0)
-		creep.withdraw(lab3, lab3.mineralType, limit);
-
-	// fill it up a ways so it'll keep cracking after we're dead.
-	if (_.get(creep.carry, r1, 0) === 0 && lab1.mineralAmount < threshold)
-		creep.withdraw(terminal, r1, limit);
-	else
-		creep.transfer(lab1, r1);
-
-	if (_.get(creep.carry, r2, 0) === 0 && lab2.mineralAmount < threshold)
-		creep.withdraw(terminal, r2, limit);
-	else
-		creep.transfer(lab2, r2);
-	// {role: 'scientist', site: 'Flag30', lab1: '57b9408859a1e18b580876ba', lab2: '57b930b3d2e24cac5e6945ac', lab3: '57b9e98c7df220956c1a6b8a', r1: 'U', r2: 'O'}
-	// Game.spawns.Spawn1.createCreep([CARRY,MOVE], null, {role: 'scientist', site: 'Flag30', lab1: '57b9408859a1e18b580876ba', lab2: '57b930b3d2e24cac5e6945ac', lab3: '57b9e98c7df220956c1a6b8a', r1: 'U', r2: 'O'})
-	// Game.creeps['Isabelle'].transfer(Game.getObjectById("57ac9d174556ddcc49344c2c"), 'O')
 };

@@ -1,11 +1,21 @@
+/**
+ * role-noop.js - Basic do-nothing role template.
+ */
 // Game.spawns.Spawn1.submit({body: [MOVE], memory: {role: 'noop'}, priority: 100})
 // Game.spawns.Spawn1.submit({body: [MOVE], memory: {role: 'noop',stack:[['runFleeRoom','W7N2']]}, priority: 100})
-"use strict";
+'use strict';
 
 module.exports = {
-	boosts: ['LH', 'LH2O', 'XLH2O'],	
+	boosts: [],	// Default boosts
 	priority: function () {
-
+		// (Optional) Used for census
+	},
+	body: function() {
+		// (Optional) Used if no body supplied
+		// Expects conditions..
+	},
+	init: function() {
+		// Called on succesful create
 	},
 	run: function () {
 		// does nothing

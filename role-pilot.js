@@ -7,9 +7,18 @@
 
 /* eslint-disable consistent-return */
 module.exports = {
+	boosts: [], // If we got boosts available, maybe?
+	priority: function () {
+		// (Optional)
+	},
+	body: function() {
+		// (Optional) Used if no body supplied
+		// Expects conditions..
+	},
 	init: function () {
 
 	},
+	/* eslint-disable consistent-return */
 	run: function () {
 		if (this.carry[RESOURCE_ENERGY] <= 0)
 			return this.pushState('AcquireEnergy', { allowMove: true, allowHarvest: true });

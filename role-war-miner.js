@@ -1,118 +1,117 @@
 /**
- * role-war-miner
+ * role-war-miner.js
  *
  * Economy/Combat unit. Mines SK sources and minerals, prioritizes combat and SK spawning.
+ * 
  * @todo: heal nearby allies
- * @todo: builder own container
+ * @todo: build own container
+ * 
  * 2016-12-17: Now groups up on all non source-keepers, not just invaders.
  */
-"use strict";
+'use strict';
 var ignoreCreeps = true;
 
 // Only need 6.66 work (7 work), but time spent fighting SK and healing
-// Util.RLD([10,WORK,20,MOVE,15,ATTACK,5,HEAL])
-// Game.spawns['E54S47_1'].enqueue(Util.RLD([10,WORK,20,MOVE,15,ATTACK,5,HEAL]), null, {role:'war-miner',target:'579fab9f43bc207b0c99a339',pos:new RoomPosition(45,45,'E54S46')})
-// Game.spawns['E54S47_1'].enqueue(Util.RLD([10,WORK,20,MOVE,15,ATTACK,5,HEAL]), null, {role:'war-miner',target:'579faa2c0700be0674d308db',pos:new RoomPosition(33,5,'E54S46')})
 module.exports = {
-	init: function(creep) {
-
+	boosts: [],
+	priority: function () {
+		// (Optional)
 	},
-	run: function (creep) {
-		let { target, pos, cid, csid } = creep.memory;
+	minBody: Util.RLD([9, WORK, 19, MOVE, 1, CARRY, 3, RANGED_ATTACK, 13, ATTACK, 4, HEAL, 1, MOVE]), // Cost: 4440
+	init: function () {
+		this.notifyWhenAttacked(false);
+	},
+	/* eslint-disable consistent-return */
+	run: function () {
+		let { target, pos, cid, csid } = this.memory;
 		let goal = Game.getObjectById(target);
 		const container = Game.getObjectById(cid);
 		const consite = Game.getObjectById(csid);
 		const rpos = _.create(RoomPosition.prototype, pos);
 
-		if (creep.cache.notify == null) {
-			creep.notifyWhenAttacked(false);
-			creep.cache.notify = true;
-		}
-
-
 		// Kill threat first.
-		creep.say('act!');
-		// let threats = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 5, {filter: Filter.unauthorizedHostile});
-		// let threats = creep.room.hostiles;
-		// threats = _.filter(threats, t => creep.pos.getRangeTo(t) <= 4 || t.owner.username !== 'Source Keeper' );
+		this.say('act!');
+		// let threats = this.pos.findInRange(FIND_HOSTILE_CREEPS, 5, {filter: Filter.unauthorizedHostile});
+		// let threats = this.room.hostiles;
+		// threats = _.filter(threats, t => this.pos.getRangeTo(t) <= 4 || t.owner.username !== 'Source Keeper' );
 		// if(threats && !_.isEmpty(threats)) {
 		const threat = this.getTarget(
 			({ room }) => room.hostiles,
-			(t) => creep.pos.getRangeTo(t) <= 4 || t.owner.username !== 'Source Keeper',
-			(candidates) => _.min(candidates, t => creep.pos.getRangeTo(t))
+			(t) => this.pos.getRangeTo(t) <= 4 || t.owner.username !== 'Source Keeper',
+			(candidates) => _.min(candidates, t => this.pos.getRangeTo(t))
 		);
 		if (threat) {
-			creep.say('threat!');
+			this.say('threat!');
 			// let threat = _.first(threats);
 			// let threat = _.min(threats, 'hits');
-			// let threat = _.min(threats, t => creep.pos.getRangeTo(t));
-			if (creep.hasActiveBodypart(ATTACK)) {
-				if (creep.attack(threat) === ERR_NOT_IN_RANGE) {
-					// creep.moveTo(threat);
-					creep.intercept(threat);
-					creep.heal(creep);
+			// let threat = _.min(threats, t => this.pos.getRangeTo(t));
+			if (this.hasActiveBodypart(ATTACK)) {
+				if (this.attack(threat) === ERR_NOT_IN_RANGE) {
+					// this.moveTo(threat);
+					this.intercept(threat);
+					this.heal(this);
 				}
 			}
 
-			if (creep.hasActiveBodypart(RANGED_ATTACK)) {
-				creep.rangedAttack(threat);
-				creep.rangedMassAttack();
+			if (this.hasActiveBodypart(RANGED_ATTACK)) {
+				this.rangedAttack(threat);
+				this.rangedMassAttack();
 			}
 			return;
 		} else {
 			// Heal self
-			if (creep.hits < creep.hitsMax && creep.hasActiveBodypart(HEAL)) {
-				creep.say('heal!');
-				creep.heal(creep);
-				if (creep.pos.isNearTo(rpos))
+			if (this.hits < this.hitsMax && this.hasActiveBodypart(HEAL)) {
+				this.say('heal!');
+				this.heal(this);
+				if (this.pos.isNearTo(rpos))
 					return;
 			}
 
-			if (creep.pos.isEqualTo(rpos)) {
+			if (this.pos.isEqualTo(rpos)) {
 				// on arrival
-				if (!creep.memory.target) {
-					const [mineral] = _.map(creep.lookForNear(LOOK_MINERALS, true), LOOK_MINERALS);
-					const [source] = _.map(creep.lookForNear(LOOK_SOURCES, true), LOOK_SOURCES);
-					const structures = creep.room.lookForAt(LOOK_STRUCTURES, rpos);
-					const sites = creep.room.lookForAt(LOOK_CONSTRUCTION_SITES, rpos);
+				if (!this.memory.target) {
+					const [mineral] = _.map(this.lookForNear(LOOK_MINERALS, true), LOOK_MINERALS);
+					const [source] = _.map(this.lookForNear(LOOK_SOURCES, true), LOOK_SOURCES);
+					const structures = this.room.lookForAt(LOOK_STRUCTURES, rpos);
+					const sites = this.room.lookForAt(LOOK_CONSTRUCTION_SITES, rpos);
 
 					target = source || mineral;
 					if (!_.isEmpty(structures)) {
 						// _.each(structures, s => console.log(ex(s)));
-						let cont = _.find(structures, s => s.structureType === STRUCTURE_CONTAINER);
+						const cont = _.find(structures, s => s.structureType === STRUCTURE_CONTAINER);
 						if (cont)
-							creep.memory.cid = cont.id;
+							this.memory.cid = cont.id;
 					}
 					if (!_.isEmpty(sites)) {
-						creep.memory.csid = _.first(sites).id;
+						this.memory.csid = _.first(sites).id;
 					}
 
 					if (target) {
-						creep.say('found!');
-						console.log(`Creep ${creep.name} found ${target}`);
-						creep.memory.target = target.id;
+						this.say('found!');
+						console.log(`this ${this.name} found ${target}`);
+						this.memory.target = target.id;
 						goal = target;
 					}
 				} else {
-					if (container && container.hitsMax - container.hits > creep.getActiveBodyparts(WORK) * REPAIR_POWER)
-						creep.repair(container);
-					if (consite && creep.carry.energy > 40)
-						creep.build(consite);
+					if (container && container.hitsMax - container.hits > this.getActiveBodyparts(WORK) * REPAIR_POWER)
+						this.repair(container);
+					if (consite && this.carry.energy > 40)
+						this.build(consite);
 				}
 
-				creep.say('harvest!');
-				if (creep.harvest(goal) === ERR_NOT_ENOUGH_RESOURCES) {
-					if (goal.ticksToRegeneration && goal.ticksToRegeneration > creep.ticksToLive)
-						creep.memory.role = 'recycle';
+				this.say('harvest!');
+				if (this.harvest(goal) === ERR_NOT_ENOUGH_RESOURCES) {
+					if (goal.ticksToRegeneration && goal.ticksToRegeneration > this.ticksToLive)
+						this.memory.role = 'recycle';
 					Log.warn(`[Mining] ${this.name} exhausted source with ${goal.ticksToRegeneration} ticks left`);
 				}
-				// if(creep.harvest(goal) === OK && goal instanceof Mineral)
-				// creep.defer(EXTRACTOR_COOLDOWN);
+				// if(this.harvest(goal) === OK && goal instanceof Mineral)
+				// this.defer(EXTRACTOR_COOLDOWN);
 			} else {
-				creep.say('move!');
-				creep.moveTo(rpos, {
+				this.say('move!');
+				this.moveTo(rpos, {
 					reusePath: 5,
-					ignoreCreeps: (creep.memory.stuck < 3) ? ignoreCreeps : false,
+					ignoreCreeps: (this.memory.stuck < 3) ? ignoreCreeps : false,
 					maxRooms: (this.pos.roomName === rpos.roomName) ? 1 : undefined
 				});
 			}

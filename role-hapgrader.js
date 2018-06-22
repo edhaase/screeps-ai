@@ -1,29 +1,37 @@
 /**
- * role-hapgrader
+ * role-hapgrader.js
  */
-"use strict";
+'use strict';
+
+/* global CREEP_UPGRADE_RANGE */
+
+/* const memory = { role: 'hapgrader', site: site };
+return spawn.submit({ body, memory, priority: 10 });
+}, */
 
 module.exports = {
-	init: function(creep) {
-		creep.memory.site = creep.room.controller.pos.findFirstInRange(FIND_SOURCES, CREEP_UPGRADE_RANGE).id;
+	body: [WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE],
+	init: function () {
+		this.memory.site = this.room.controller.pos.findFirstInRange(FIND_SOURCES, CREEP_UPGRADE_RANGE).id;
 	},
-	run: function (creep) {
-		var source = Game.getObjectById(creep.memory.site);
-		if (!creep.pos.isNearTo(source))
-			creep.moveTo(source, { reusePath: 5, range: 1 });
+	run: function () {
+		var source = Game.getObjectById(this.memory.site);
+		if (!this.pos.isNearTo(source))
+			this.moveTo(source, { reusePath: 5, range: 1 });
 
-		if (creep.ticksToLive & 1 === 0) {
-			creep.harvest(source);
+		if (this.ticksToLive & 1 === 0) {
+			this.harvest(source);
 		}
 
-		switch (creep.upgradeController(creep.room.controller)) {
-		case OK:
-			if (!creep.memory.arrival)
-				creep.memory.arrival = CREEP_LIFE_TIME - creep.ticksToLive;
-			break;
-		case ERR_NOT_IN_RANGE:
-			creep.moveTo(source, { reusePath: 5, range: CREEP_UPGRADE_RANGE });
-			break;
+		/* eslint-disable indent */
+		switch (this.upgradeController(this.room.controller)) {
+			case OK:
+				if (!this.memory.arrival)
+					this.memory.arrival = CREEP_LIFE_TIME - this.ticksToLive;
+				break;
+			case ERR_NOT_IN_RANGE:
+				this.moveTo(source, { reusePath: 5, range: CREEP_UPGRADE_RANGE });
+				break;
 		}
 	}
 };

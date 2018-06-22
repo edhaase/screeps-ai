@@ -1,19 +1,25 @@
 /**
+ * role-claimer.js
+ *
  * Simple claimer. Moves to a position and claims a controller.
  */
-"use strict";
+'use strict';
 
-module.exports = function(creep) {
-	// var flag = Game.flags['Claim'];
-	var pos = _.create(RoomPosition.prototype, creep.memory.pos);
-	if(!creep.pos.isNearTo(pos)) {
-		creep.moveTo(pos, {reusePath: 5, range: 1});
-	} else {
-		var status = creep.claimController(creep.room.controller);
-		console.log(`Claimer: ${status}`);
-		if(status === OK) {
-			Log.notify(`Claimed room ${creep.pos.roomName}`);
-			creep.setRole('recycle');
+/* global Log */
+
+module.exports = {
+	body: [CLAIM, MOVE],
+	init: function () {
+		this.pushState("EvadeMove", { pos: this.memory.pos, range: 1 });
+	},
+	/* eslint-disable consistent-return */
+	run: function () {
+		var status = this.claimController(this.room.controller);
+		if (status === OK) {
+			Log.notify(`Claimed room ${this.pos.roomName}`);
+			this.setRole('recycle');
+		} else {
+			Log.warn(`Unable to claim ${this.pos.roomName} status ${status}`, 'Claimer');
 		}
 	}
 };

@@ -3,13 +3,27 @@
  */
 'use strict';
 
+/* global UNIT_COST */
+/* global Player, PLAYER_HOSTILE */
 /* eslint-disable consistent-return */
+
 module.exports = {
-	init: function (creep) {
-		creep.pushStates([
-			['MoveTo', {pos: creep.memory.site, range: 1}]
+	boosts: [],
+	priority: function () {
+		// (Optional)
+	},
+	minBody: [CLAIM,CLAIM,MOVE,MOVE],
+	minCost: UNIT_COST([CLAIM,CLAIM,MOVE,MOVE]),
+	body: function() {
+		// (Optional) Used if no body supplied
+		// Expects conditions..
+	},
+	init: function () {
+		this.pushStates([
+			['MoveTo', {pos: this.memory.site, range: 1}]
 		]);
 	},
+	/* eslint-disable consistent-return */
 	run: function () {
 		const { controller } = this.room;
 		if (!controller || this.pos.roomName !== this.memory.site.roomName)

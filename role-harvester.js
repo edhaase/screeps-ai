@@ -7,39 +7,47 @@
  * 		site: mineral id
  *		cid: container id
  */
-"use strict";
+'use strict';
 
 module.exports = {
-	init: function(creep) {
-		const work = creep.getActiveBodyparts(WORK);
-		creep.memory.w = work;
+	boosts: [],
+	priority: function () {
+		// (Optional)
 	},
-	run: function (creep) {
-		const { site, cid } = creep.memory;
+	body: function() {
+		// (Optional) Used if no body supplied
+		// Expects conditions..
+	},
+	init: function() {
+		this.memory.w = this.getActiveBodyparts(WORK);
+	},
+	/* eslint-disable consistent-return */
+	run: function () {
+		const { site, cid } = this.memory;
 		const mineral = Game.getObjectById(site);
 		const container = Game.getObjectById(cid);
 
 		// Move to position
-		if (container && !creep.pos.isEqualTo(container))
-			return creep.moveTo(container, { reusePath: 7, range: 0 });
-		else if (!creep.pos.isNearTo(mineral))
-			return creep.moveTo(mineral, { reusePath: 7, range: 1 });
+		if (container && !this.pos.isEqualTo(container))
+			return this.moveTo(container, { reusePath: 7, range: 0 });
+		else if (!this.pos.isNearTo(mineral))
+			return this.moveTo(mineral, { reusePath: 7, range: 1 });
 
 		// Harvest by the clock.
 		if (Game.time % (EXTRACTOR_COOLDOWN + 1))
 			return;
 
 		// Don't overflow the container.
-		if (container && container.storedTotal > CONTAINER_CAPACITY - (HARVEST_MINERAL_POWER * creep.memory.w)) {
-			creep.say('\u26F5', true);
+		if (container && container.storedTotal > CONTAINER_CAPACITY - (HARVEST_MINERAL_POWER * this.memory.w)) {
+			this.say('\u26F5', true);
 			return;
 		}
 
 		// Harvest!
-		switch (creep.harvest(mineral)) {
+		switch (this.harvest(mineral)) {
 		case ERR_NOT_ENOUGH_RESOURCES:
-			if (mineral.ticksToRegeneration > creep.ticksToLive) {
-				creep.setRole('recycle');
+			if (mineral.ticksToRegeneration > this.ticksToLive) {
+				this.setRole('recycle');
 			} else {
 				this.defer(mineral.ticksToRegeneration);
 			}

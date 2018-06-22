@@ -3,6 +3,8 @@
  */
 'use strict';
 
+/* global LOGISTICS_MATRIX */
+
 const STATE_GATHER = 'G';
 const STATE_UNLOAD = 'U';
 const STATE_SHIP = 'S';		// Straight to the terminal
@@ -19,7 +21,7 @@ const STATE_DEFAULT = STATE_GATHER;
 
 const TRANSITIONS = {
 	[STATE_GATHER]: [
-		[(c) => c.carryTotal >= c.carryCapacity, STATE_UNLOAD, (c) => c.clearTarget()],		
+		[(c) => c.carryTotal >= c.carryCapacity, STATE_UNLOAD, (c) => c.clearTarget()],
 		[(c) => c.carryTotal > 0 && c.memory.tid == null, STATE_UNLOAD, (c) => c.say('SAVE')],
 	],
 	[STATE_UNLOAD]: [
@@ -45,12 +47,14 @@ const getPickupSiteWithTerminal = createUniqueTargetSelector(
 			col = col.concat([...room.links, room.storage, room.terminal]);
 		if (room.terminal && room.storage && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_RESOURCE_LIMIT && room.storage.stock < 1)
 			col.push(room.terminal);
+		if (room.terminal && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_RESOURCE_LIMIT * 1.25)
+			col.push(room.terminal);
 		if (room.storage && room.storage.stock > 1)
 			col.push(room.storage);
 		return col;
 	},
 	({ room }) => room.find(FIND_MY_CREEPS, { filter: c => c.getRole() === 'scav' && c.memory.tid }).map(c => c.memory.tid),
-	t => Filter.canProvideEnergy(t, TERMINAL_MIN_ENERGY) || Filter.droppedResources(t) || ((t instanceof StructureContainer) && t.storedTotal > 100),
+	t => (Filter.canProvideEnergy(t, TERMINAL_MINIMUM_ENERGY) || Filter.droppedResources(t) || ((t instanceof StructureContainer) && t.storedTotal > 100)) && !t.isControllerContainer,
 	(candidates, creep) => _.max(candidates, t => Math.min(getAmt(t), creep.carryCapacityAvailable) / creep.pos.getRangeTo(t.pos))
 );
 
@@ -60,7 +64,7 @@ const getPickupSite = createUniqueTargetSelector(
 	(s, creep) => {
 		if (creep.room.energyPct > 0.5 && (s.structureType === STRUCTURE_LINK || s.structureType === STRUCTURE_STORAGE))
 			return false;
-		return Filter.canProvideEnergy(s);
+		return Filter.canProvideEnergy(s) && !s.isControllerContainer;
 	},
 	(candidates, creep) => _.max(candidates, t => Math.min(getAmt(t), creep.carryCapacityAvailable) / creep.pos.getRangeTo(t.pos))
 );
@@ -70,34 +74,40 @@ const getDropoffSite = createUniqueTargetSelector(
 		if (Filter.canReceiveEnergy(sel) <= 0)
 			return false;
 		if (sel instanceof Creep) {
-			return ['upgrader', 'builder', 'repair'].includes(sel.getRole());
+			return ['upgrader', 'builder', 'repair'].includes(sel.getRole()) && sel.memory.stuck > 2;
 		} else if (sel instanceof StructureLink)
 			return false;
-		else if(sel instanceof StructureNuker && (!room.storage || room.storage.stock < 1.0))
+		else if (sel instanceof StructureNuker && (!room.storage || room.storage.stock < 1.0))
 			return false;
 		if (sel.store != null)
 			return false;
 		return true;
 	}),
 	({ room }) => room.find(FIND_MY_CREEPS, { filter: c => c.getRole() === 'scav' && c.memory.tid }).map(c => c.memory.tid),
-	(c,creep) => Filter.canReceiveEnergy(c) && c.pos.roomName === creep.pos.roomName && c.id !== creep.memory.avoid, // currently don't fill stores this way
-	(candidates,creep) => _.min(candidates, s => (1 + Filter.canReceiveEnergy(s)) * s.pos.getRangeTo(creep.pos))
+	(c, creep) => Filter.canReceiveEnergy(c) && c.pos.roomName === creep.pos.roomName && c.id !== creep.memory.avoid, // currently don't fill stores this way
+	(candidates, creep) => _.min(candidates, s => (1 + Filter.canReceiveEnergy(s)) * s.pos.getRangeTo(creep.pos))
 );
 
 module.exports = {
-	init: function (creep) {
-		
+	boosts: [],
+	priority: function () {
+		// (Optional)
 	},
 	body: function () {
+		// (Optional) Used if no body supplied
+		// Expects conditions..
+	},
+	init: function (creep) {
 
 	},
+	/* eslint-disable consistent-return */
 	run: function () {
 		var goal;
 		if (this.memory.stuck > 15) {
 			this.wander();
 			return;
-		}		
-		if(this.hitPct < 0.50) {
+		}
+		if (this.hitPct < 0.50) {
 			this.pushState('HealSelf');
 			return;
 		}
@@ -122,7 +132,7 @@ module.exports = {
 					ignoreRoads: (this.carryTotal <= (this.carryCapacity / 2)),
 					ignoreCreeps: this.memory.stuck < 3,
 					maxRooms: 1,
-					costCallback: r => LOGISTICS_MATRIX[r]
+					costCallback: r => LOGISTICS_MATRIX.get(r)
 				});
 			else if (status !== OK) {
 				Log.error(`${this.name} unable to collect from ${goal}, status ${status}`, 'Creep');
@@ -137,20 +147,26 @@ module.exports = {
 				const MAX_OVERSTOCK = 3.0;
 				if (!goal) {
 					if (terminal && terminal.my
-					&& (terminal.store[RESOURCE_ENERGY] < TERMINAL_MIN_ENERGY * 2 || (storage && storage.stock >= 1))
-					&& terminal.storedTotal < terminal.storeCapacity)
+						&& (terminal.store[RESOURCE_ENERGY] < TERMINAL_MINIMUM_ENERGY * 2) // || (storage && storage.stock >= 1))
+						&& terminal.storedTotal < terminal.storeCapacity)
 						goal = terminal;
 					else if (storage && storage.my
-					&& (storage.store[RESOURCE_ENERGY] / storage.storeCapacity < 0.9)
-					&& storage.stock < MAX_OVERSTOCK)
+						&& (storage.store[RESOURCE_ENERGY] / storage.storeCapacity < 0.9)
+						// && storage.stock < 1.0)
+						&& storage.stock < MAX_OVERSTOCK)
 						goal = storage;
+					else if (controller.container && controller.container.storedPct < 1.0)
+						goal = controller.container;
 					else
 						goal = controller;
+					// Log.warn(`Failover target ${goal}`);
 					this.setTarget(goal);
 				}
 			}
-			if (!goal && this.carry[RESOURCE_ENERGY] > 0)
+			/* if (!goal && this.carry[RESOURCE_ENERGY] > 0) {
 				goal = terminal || storage || controller; // 1 work part and high carry means ~800 ticks of sitting around upgrading.
+				Log.warn(`Still no goal set`);
+			} */
 			let status = OK;
 			if (goal instanceof StructureTerminal)
 				status = this.transferAny(goal);
@@ -162,7 +178,7 @@ module.exports = {
 					ignoreRoads: (this.carryTotal <= (this.carryCapacity / 2)),
 					ignoreCreeps: this.memory.stuck < 3,
 					maxRooms: 1,
-					costCallback: r => LOGISTICS_MATRIX[r]
+					costCallback: r => LOGISTICS_MATRIX.get(r)
 				});
 			} else if (status === ERR_FULL) {
 				this.say('full!');
@@ -177,8 +193,8 @@ module.exports = {
 					ignoreRoads: (this.carryTotal <= (this.carryCapacity / 2)),
 					ignoreCreeps: this.memory.stuck < 3,
 					maxRooms: 1,
-					costCallback: r => LOGISTICS_MATRIX[r]
+					costCallback: r => LOGISTICS_MATRIX.get(r)
 				});
 		}
-	}	
+	}
 };

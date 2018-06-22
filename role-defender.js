@@ -1,4 +1,8 @@
 /**
+ * role-defender.js
+ *
+ * Local room guard
+ *
  * @todo: support ranged attack for crippling enemies
  * @todo: request fire support from towers?
  * @todo: intercept
@@ -6,33 +10,53 @@
  * @todo: heal friendlies
  * @todo: kite?
  */
-"use strict";
+'use strict';
 
-module.exports = function (creep) {
-	var threat = creep.pos.findClosestByRange(creep.room.hostiles);
-	// var threat = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-	if (threat == null) {
-		if(creep.ticksToLive & 63 === 0)
-			creep.wander();
-		return;
-	}
+/* global CREEP_RANGED_ATTACK_RANGE, SAFE_MODE_IGNORE_TIMER */
+/* global Filter */
 
-	if (this.hasActiveBodypart(RANGED_ATTACK)) {
-		if (creep.rangedAttack(threat) === OK) {
-			this.flee();
-			creep.rangedMassAttack();
+module.exports = {
+	boosts: [],
+	want: function (census) {
+		if ((census.room.controller.safeMode || 0) > SAFE_MODE_IGNORE_TIMER)
+			return 0;
+		const towers = _.size(census.room.find(FIND_MY_STRUCTURES, { filter: Filter.loadedTower }));
+		if (towers > 0 && census.room.hostiles.length < towers)
+			return 0;
+		return Math.clamp(1, census.room.hostiles.length * 2, 8);
+	},
+	body: function () {
+		// pick ranged or melee at random?
+		// (Optional) Used if no body supplied
+		// Expects conditions..
+	},
+	/* eslint-disable consistent-return */
+	run: function () {
+		var threat = this.pos.findClosestByRange(this.room.hostiles);
+		// var threat = this.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+		if (threat == null) {
+			if (this.ticksToLive & 63 === 0)
+				this.wander();
+			return;
+		}
+
+		if (this.hasActiveBodypart(RANGED_ATTACK)) {
+			if (this.rangedAttack(threat) === OK) {
+				this.flee();
+				this.rangedMassAttack();
+			} else {
+				this.moveTo(threat, {
+					reusePath: 5, ignoreRoads: true, range: CREEP_RANGED_ATTACK_RANGE
+				}); // If the position changes this rebuilds anyways.
+			}
 		} else {
-			creep.moveTo(threat, {
-				reusePath: 5, ignoreRoads: true, range: CREEP_RANGED_ATTACK_RANGE
+			this.moveTo(threat, {
+				reusePath: 5, ignoreRoads: true
 			}); // If the position changes this rebuilds anyways.	
 		}
-	} else {
-		creep.moveTo(threat, {
-			reusePath: 5, ignoreRoads: true
-		}); // If the position changes this rebuilds anyways.	
-	}
-	if (creep.canAttack && creep.attack(threat) === ERR_NOT_IN_RANGE) {
-		if (creep.hits < creep.hitsMax && creep.hasActiveBodypart(HEAL))
-			creep.heal(creep);
+		if (this.canAttack && this.attack(threat) === ERR_NOT_IN_RANGE) {
+			if (this.hits < this.hitsMax && this.hasActiveBodypart(HEAL))
+				this.heal(this);
+		}
 	}
 };

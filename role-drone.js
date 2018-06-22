@@ -3,7 +3,7 @@
  *
  * Example: Game.spawns.Spawn1.createCreep([MOVE], null, {role: 'drone', program: '() => this.move(LEFT)'});
  */
-"use strict";
+'use strict';
 
 module.exports = {
 	run: function () {

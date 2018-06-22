@@ -1,93 +1,106 @@
-/*
- * ROLE-GUARD
+/**
+ * role-guard.js
+ * 
  * Multi-purpose role. Primarily designed to protect remote mines.
  *  If equipped with rangedAttack, will fight from a distance and attempt to kite.
  *  If equipped with melee, will attack directly. (Or if he cannot kite)
  *  If equipped with a heal, will heal himself during combat.
  *  If equipped with a heal, will heal allies once threats are removed. 
  */
-"use strict";
+'use strict';
+
+/* global CREEP_RANGED_ATTACK_RANGE, CREEP_RANGED_HEAL_RANGE */
+
+const IDLE_DISTANCE = 3;
 
 module.exports = {
+	boosts: [],
+	priority: function () {
+		// (Optional)
+	},
+	body: function() {
+		// (Optional) Used if no body supplied
+		// Expects conditions..
+	},
 	init: function () {
 		// this.pushState('MoveTo', {pos: Game.flags[this.memory.site].pos, range: 3});
 		this.pushState('MoveToRoom', Game.flags[this.memory.site].pos.roomName);
 	},
-	run: function (creep) {
-		var { site } = creep.memory;
+	/* eslint-disable consistent-return */
+	run: function () {
+		var { site } = this.memory;
 		if (!site) return;
 
 		var flag = Game.flags[site];
-		var threats = creep.pos.findInRange(creep.room.hostiles, CREEP_RANGED_ATTACK_RANGE);
-		var threat = creep.pos.findClosestByRange(creep.room.hostiles);
-		var noRoomHealer = !_.any(creep.room.find(FIND_MY_CREEPS), c => (c.pos.roomName === creep.pos.roomName && c.hasActiveBodypart(HEAL)));
-		const IDLE_DISTANCE = 3;
+		var threats = this.pos.findInRange(this.room.hostiles, CREEP_RANGED_ATTACK_RANGE);
+		var threat = this.pos.findClosestByRange(this.room.hostiles);
+		var noRoomHealer = !_.any(this.room.find(FIND_MY_CREEPS), c => (c.pos.roomName === this.pos.roomName && c.hasActiveBodypart(HEAL)));
 
 		// Perform combat logic.
-		if (creep.hits < creep.hitsMax && creep.canHeal && !creep.canFight) {
+		if (this.hits < this.hitsMax && this.canHeal && !this.canFight) {
 			// We're wounded, we can heal but not attack. Just heal, and kite if possible.
-			creep.heal(creep);
-			if (creep.canMove && threat)
-				creep.flee(10);
-		} else if (threat && creep.canFight) {
-			if (creep.canAttack && creep.pos.isNearTo(threat)) {
+			this.heal(this);
+			if (this.canMove && threat)
+				this.flee(10);
+		} else if (threat && this.canFight) {
+			if (this.canAttack && this.pos.isNearTo(threat)) {
 				// We're melee and adjacent, smack them in their stupid face.
-				creep.attack(threat);
-				if (creep.canRanged && threat.canAttack)
-					creep.flee(CREEP_RANGED_ATTACK_RANGE);
-			} else if (creep.canRanged && creep.pos.inRangeTo(threat, CREEP_RANGED_ATTACK_RANGE)) {
+				this.attack(threat);
+				if (this.canRanged && threat.canAttack)
+					this.flee(CREEP_RANGED_ATTACK_RANGE);
+			} else if (this.canRanged && this.pos.inRangeTo(threat, CREEP_RANGED_ATTACK_RANGE)) {
 				// We're ranged and in range, shoot them in the face.
 				if(threats && threats.length > 1)
-					creep.rangedMassAttack();
+					this.rangedMassAttack();
 				else
-					creep.rangedAttack(threat);
+					this.rangedAttack(threat);
 				// @todo: or massAttack?
-				if (creep.canAttack && !threat.canAttack)
-					creep.moveTo(threat, { rangee: 1 });
+				if (this.canAttack && !threat.canAttack)
+					this.moveTo(threat, { rangee: 1 });
 				else if(threat.canAttack)
-					creep.flee(CREEP_RANGED_ATTACK_RANGE);
-				if (creep.hits < creep.hitsMax)
-					creep.heal(creep);
+					this.flee(CREEP_RANGED_ATTACK_RANGE);
+				if (this.hits < this.hitsMax)
+					this.heal(this);
 			} else {
 				// We're able to fight but out of any form of range. DRIVE ME CLOSER SO I CAN HIT THEM WITH MY SWORD.
-				if (creep.canFight) {
-					if (!creep.canRanged) // Math.random() < 0.75)
-						creep.intercept(threat);
+				if (this.canFight) {
+					if (!this.canRanged) // Math.random() < 0.75)
+						this.intercept(threat);
 					else
-						creep.moveTo(threat, {
+						this.moveTo(threat, {
 							ignoreDestructibleStructures: false,
 							ignoreRoads: true,
-							range: (creep.canRanged) ? CREEP_RANGED_ATTACK_RANGE : 1
+							range: (this.canRanged) ? CREEP_RANGED_ATTACK_RANGE : 1
 						});
 				}
-				if (creep.canHeal && creep.hits < creep.hitsMax)
-					creep.heal(creep);
+				if (this.canHeal && this.hits < this.hitsMax)
+					this.heal(this);
 			}
-		} else if (creep.canHeal && creep.hits < creep.hitsMax) {
+		} else if (this.canHeal && this.hits < this.hitsMax) {
 			// No threats (or we can't fight), but we're wounded so patch ourselves up first.
-			creep.heal(creep);
-		} else if (creep.canHeal) {
+			this.heal(this);
+		} else if (this.canHeal) {
 			// Patch up an allies if we can.
 			// @todo target lock patient
-			var patient = creep.pos.findClosestByRange(FIND_MY_CREEPS, { filter: c => c.hits < c.hitsMax });
-			// var patient = creep.pos.findClosestByRange(FIND_CREEPS, { filter: c => c.hits < c.hitsMax && !Filter.unauthorizedHostile(c) });
+			var patient = this.pos.findClosestByRange(FIND_MY_CREEPS, { filter: c => c.hits < c.hitsMax });
+			// var patient = this.pos.findClosestByRange(FIND_CREEPS, { filter: c => c.hits < c.hitsMax && !Filter.unauthorizedHostile(c) });
 			if (!patient) {
-				if (flag && creep.pos.roomName !== flag.pos.roomName) {
-					creep.moveToRoom(flag.pos.roomName);
+				if (flag && this.pos.roomName !== flag.pos.roomName) {
+					this.moveToRoom(flag.pos.roomName);
 				}
-			} else if (creep.pos.isNearTo(patient)) {
-				creep.heal(patient);
+			} else if (this.pos.isNearTo(patient)) {
+				this.heal(patient);
 			} else {
-				if (creep.pos.inRangeTo(patient, CREEP_RANGED_HEAL_RANGE))
-					creep.rangedHeal(patient);
-				creep.moveTo(patient);
+				if (this.pos.inRangeTo(patient, CREEP_RANGED_HEAL_RANGE))
+					this.rangedHeal(patient);
+				this.moveTo(patient);
 			}
-		} else if (noRoomHealer && (creep.hits < creep.hitsMax) && !creep.memory.noflee) {
+		} else if (noRoomHealer && (this.hits < this.hitsMax) && !this.memory.noflee) {
 			// No threats (or can't fight) and wounded. Limp home for tower repairs.
-			if (creep.memory.origin && (creep.pos.roomName !== creep.memory.origin || creep.pos.isOnRoomBorder()))
-				creep.moveToRoom(creep.memory.origin);
-		} else if (flag && creep.pos.roomName !== flag.pos.roomName) {
-			creep.moveToRoom(flag.pos.roomName);
+			if (this.memory.origin && (this.pos.roomName !== this.memory.origin || this.pos.isOnRoomBorder()))
+				this.moveToRoom(this.memory.origin);
+		} else if (flag && this.pos.roomName !== flag.pos.roomName) {
+			this.moveToRoom(flag.pos.roomName);
 		}
 	}
 };

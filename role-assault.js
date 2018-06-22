@@ -6,7 +6,7 @@
  * var mod = require('role-attack');
  * mod.thing == 'a thing'; // true
  */
-"use strict";
+'use strict';
 module.exports.run = function (creep) {
 	// var target = creep.memory.target;
 	var flag = Game.flags["Kill"].pos;

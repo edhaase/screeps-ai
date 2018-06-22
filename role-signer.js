@@ -6,14 +6,23 @@
  *	dest: position of controller
  *	msg: what to set the controller to. Empty string to remove.
  *
- * example: Game.spawns.Spawn1.enqueue([MOVE], null, {role: 'signer', dest: new RoomPosition(21,41,'W2N7'), msg: 'Zenity'}, 1);
- * example: Game.spawns.Spawn1.enqueue([MOVE], null, {role: 'signer', room: 'W1N7', msg: 'Zenity'}, 1)
- * example: Game.spawns.Spawn1.enqueue([MOVE], null, {role: 'signer', room: 'W1N7', msg: ''}, 1)
- * example: Game.spawns.Spawn2.submit({body:[MOVE], memory: {role: 'signer', room: 'W3N3', msg: 'Test'}, priority: 100})
+ * example:  {role: 'signer', dest: new RoomPosition(21,41,'W2N7'), msg: 'Zenity'}, 1);
+ * example:  {role: 'signer', room: 'W1N7', msg: 'Zenity'}, 1)
+ * example:  {role: 'signer', room: 'W1N7', msg: ''}, 1)
+ * example:  {role: 'signer', room: 'W3N3', msg: 'Test'}, priority: 100})
  */
-"use strict";
+'use strict';
 
 module.exports = {
+	boosts: [],
+	priority: function () {
+		// (Optional)
+	},
+	body: function() {
+		// (Optional) Used if no body supplied
+		// Expects conditions..
+	},
+	/* eslint-disable consistent-return */
 	run: function () {
 		var { room, dest, msg } = this.memory;
 		if (dest == null && room != null) {
@@ -38,6 +47,14 @@ module.exports = {
 
 
 module.exports = {
+	boosts: [],
+	priority: function () {
+		// (Optional)
+	},
+	body: function() {
+		// (Optional) Used if no body supplied
+		// Expects conditions..
+	},
 	init: function(creep) {
 		creep.pushStates([
 			['SetRole', 'recycle'],

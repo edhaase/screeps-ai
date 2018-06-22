@@ -3,6 +3,9 @@
  */
 'use strict';
 
+/* global Log */
+/* global FLAG_MINING, FLAG_MILITARY, SITE_REMOTE, SITE_PICKUP, STRATEGY_RESERVE, STRATEGY_RESPOND */
+
 module.exports = {
 	boosts: [],
 	priority: function () {
@@ -12,7 +15,7 @@ module.exports = {
 		// (Optional) Used if no body supplied
 		// Expects conditions..
 	},
-	init: function (creep) {
+	init: function () {
 
 	},
 	/* eslint-disable consistent-return */
@@ -30,6 +33,7 @@ module.exports = {
 		Log.debug(`${this.name} picked room ${roomName}`,'Creep');
 		this.say('Arrived!');
 		require('Intel').scanRoom(room);
+		// Remote mining flags..
 		if (!this.room.my && Memory.empire && Memory.empire.remoteMine && _.any(exits, exit => Game.rooms[exit] && Game.rooms[exit].my)) {
 			this.say('Want!');
 			if(Room.getType(this.pos.roomName) !== 'SourceKeeper' && this.room.controller && !this.room.controller.owner) {
