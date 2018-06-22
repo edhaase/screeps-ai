@@ -19,14 +19,18 @@
  * @todo Hapgrader. Adjusts projected income, projected rcl, and eliminates static upgrader and link.
  * @todo Size scavs better. Maybe based on projected income?
  * @todo Minerals in source list for SK rooms?
+ * @todo Assign boosts to labs. Pick available compounds from the terminal with amount >= LAB_BOOST_MINERAL
  */
-"use strict";
+'use strict';
+
+/* global DEFINE_CACHED_GETTER, Log, Filter, UNIT_BUILD_TIME */
+/* global CREEP_UPGRADE_RANGE */
 
 /**
  * This is the rate we need to maintain to reach RCL 3 before safe mode drops.
  * Preferentially, we want to significantly exceed that so we have time to build the tower.
  */
-global.DESIRED_UPGRADE_RATE = (CONTROLLER_LEVELS[1] + CONTROLLER_LEVELS[2]) / SAFE_MODE_DURATION;
+const DESIRED_UPGRADE_RATE = (CONTROLLER_LEVELS[1] + CONTROLLER_LEVELS[2]) / SAFE_MODE_DURATION;
 
 // Maximum upgraders:
 // Math.pow((2*CREEP_UPGRADE_RANGE+1),2) - 1; // 48, max 49 work parts = 2352 ept
@@ -57,15 +61,21 @@ global.BIT_CTRL_REMOTE_MINERL_MINING = (1 << 3);	// Do we enable mineral harvest
 global.BIT_DISABLE_TOWER_REPAIR = (1 << 4);
 global.BIT_DISABLE_TOWER_HEAL = (1 << 5);
 
+const SAFE_MODE_LOW_COOLDOWN = 2000;
+const SAFE_MODE_LOW_TICKS = 4000;
+const CONTROLLER_NOTIFICATION_DELAY = 100;
+
 const CONTROLLER_SAFEMODE_MARGIN = 500;
 const EMERGENCY_THRESHOLD = _.mapValues(CONTROLLER_DOWNGRADE, v => v - CONTROLLER_DOWNGRADE_SAFEMODE_THRESHOLD + CONTROLLER_SAFEMODE_MARGIN);
+const EMERGENCY_NOTIFICATION_THRESHOLD = _.mapValues(EMERGENCY_THRESHOLD, v => v - CONTROLLER_NOTIFICATION_DELAY);
 const MINIMUM_REQUIRED_SAFE_MODE = 300;
 
 /**
  * Custom properties
  */
-defineCachedGetter(StructureController.prototype, 'progressRemaining', con => con.progressTotal - con.progress);
-defineCachedGetter(StructureController.prototype, 'age', con => Game.time - con.memory.claimedAt);
+DEFINE_CACHED_GETTER(StructureController.prototype, 'progressRemaining', con => con.progressTotal - con.progress);
+DEFINE_CACHED_GETTER(StructureController.prototype, 'age', con => Game.time - con.memory.claimedAt);
+DEFINE_CACHED_GETTER(StructureController.prototype, 'container', con => con.pos.getStructure(STRUCTURE_CONTAINER, CREEP_UPGRADE_RANGE));
 
 // Game.rooms['E59S39'].visual.rect(33-3,40-3,6,6)
 
@@ -105,10 +115,6 @@ StructureController.prototype.run = function () {
 				this.evacuate(Game.time + nuke.timeToLand + 1);
 			} else {
 				this.runCensus();
-				/* _.each(Game.map.describeExits(this.pos.roomName), rn => {
-					if(Game.rooms[rn] && !Game.rooms[rn].my && Room.getType(rn) !== 'SourceKeeper')
-						this.runCensus(rn);
-				}); */
 			}
 		} catch (e) {
 			Log.error(`Error in controller ${this.pos.roomName}: ${e}`);
@@ -174,6 +180,45 @@ StructureController.prototype.updateNukeDetection = function () {
 };
 
 /**
+ * 
+ */
+const CENSUS_ROLES = ['builder', 'defender', 'dualminer', 'healer', 'miner', 'pilot', 'repair', 'scav', 'scientist', 'scout', 'upgrader'];
+StructureController.prototype.runAdaptiveCensus = function () {
+	// Create census object (stats, spawns)
+	// Get available spawns (by distance?)
+	if (Game.census == null) {
+		const creepsFiltered = _.filter(Game.creeps, c => c.ticksToLive == null || c.ticksToLive > UNIT_BUILD_TIME(c.body));
+		Game.census = _.groupBy(creepsFiltered, c => `${c.memory.home || c.memory.origin || c.pos.roomName}_${c.memory.role}`);
+		Game.creepsByRoom = _.groupBy(creepsFiltered, c => `${c.memory.home || c.memory.origin || c.pos.roomName}`);
+		// Game.censusFlags = _.groupBy(Game.flags, f => `${f.color}_${f.secondaryColor}`);
+		Log.debug(`Generating census report`, 'Controller');
+	}
+	const census = {
+		creeps: Game.census,
+		roomName: this.room.name,
+		room: this.room,
+		controller: this
+	};
+	for (const roleName of CENSUS_ROLES) {
+		const role = require(`role-${roleName}`);
+		const want = (role.want && role.want(census)) || 0;
+		if (!want)
+			continue;
+		const have = (role.have && role.have(census)) || (census.creeps[`${census.roomName}_${roleName}`] || []).length;
+		const priority = (have / want); // lower is better, null for not wanted
+		if (priority == null || priority === Infinity || have >= want)
+			continue;
+		const bodies = (role.body && role.body(census)) || role.minBody;
+		Log.info(`Adaptive spawning: ${roleName} ${have} < ${want} (${priority})`, 'Controller');
+		// figure out memory. beyond role, we _may_ need origin or home
+		// find "best" spawn to submit job to.
+		// const spawn = 
+		// multiple bodies?
+		// spawn.submit({ body, memory, priority, expire, notify });
+	}
+};
+
+/**
  * Unit census - Expect this to be expensive
  * 
  * Basic premise - Since each creep expires or can be killed, there needs
@@ -199,12 +244,7 @@ StructureController.prototype.updateNukeDetection = function () {
  * 2017-02-04: Repair units only spawn if we have a use for them
  * 2016-12-13: Increased maximum repair unit energy from 900 to 1800
  */
-StructureController.prototype.runCensus = function (roomName = this.pos.roomName) {
-	var room = Game.rooms[roomName];
-	if (!room)
-		throw new Error(`No visibility on ${roomName}`);
-	if (roomName !== this.pos.roomName && room.my)
-		throw new Error("This room under acting under another controller");
+StructureController.prototype.runCensus = function () {
 	var spawns = this.room.find(FIND_MY_SPAWNS);
 	var [spawn] = spawns;
 	const { storage, terminal } = this.room;
@@ -214,7 +254,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 
 	/** This is really all we need.. */
 	if (Game.census == null) {
-		const creepsFiltered = _.filter(Game.creeps, c => c.ticksToLive == null || c.ticksToLive > c.body.length * CREEP_SPAWN_TIME);
+		const creepsFiltered = _.filter(Game.creeps, c => c.ticksToLive == null || c.ticksToLive > UNIT_BUILD_TIME(c.body));
 		Game.census = _.groupBy(creepsFiltered, c => `${c.memory.home || c.memory.origin || c.pos.roomName}_${c.memory.role}`);
 		Game.creepsByRoom = _.groupBy(creepsFiltered, c => `${c.memory.home || c.memory.origin || c.pos.roomName}`);
 		// Game.censusFlags = _.groupBy(Game.flags, f => `${f.color}_${f.secondaryColor}`);
@@ -222,6 +262,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	}
 
 	// Creeps
+	const { roomName } = this.pos;
 	const creeps = Game.creepsByRoom[roomName];
 	const { census } = Game;
 
@@ -239,7 +280,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	const dualminers = census[`${roomName}_dualminer`] || [];
 	const assistingSpawn = this.getAssistingSpawn();
 
-	var resDecay = _.sum(room.resources, 'decay');
+	var resDecay = _.sum(this.room.resources, 'decay');
 
 	// Income
 	const sources = this.room.find(FIND_SOURCES);
@@ -248,6 +289,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	const reactor = (this.room.energyAvailable >= SPAWN_ENERGY_START) ? 0 : spawns.length;
 	const overstock = Math.floor((storage && storedEnergy * Math.max(0, storage.stock - 1) || 0) / CREEP_LIFE_TIME);
 	const income = base + remote + reactor + overstock;
+	Log.info(`${this.pos.roomName}: Base ${base} Remote ${remote} Reactor ${reactor} Over ${overstock}`, 'Controller');
 
 	const upkeep = _.sum(creeps, 'cpt') + _.sum(this.room.structures, 'upkeep');
 	const expense = 0;
@@ -329,14 +371,15 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 		sources.forEach(source => {
 			const [, cost,] = source.getClosestSpawn({}, 'cache');
 			const miner = _.findWhere(miners, { memory: { dest: source.pos, role: 'miner' } });
-			if (!miner || (miner.ticksToLive && this.room.energyCapacityAvailable < 600 && miner.ticksToLive < UNIT_BUILD_TIME(miner.body) + (assistCost||cost))) {
-				prio = 75;
+			if (!miner || (miner.ticksToLive && this.room.energyCapacityAvailable < 600 && miner.ticksToLive < UNIT_BUILD_TIME(miner.body) + (assistCost || cost))) {
+				/* prio = 75;
 				if (storedEnergy > 10000)
 					prio = 50;
 				else if (storedEnergy <= 0)
 					prio = 100;
 				if (source.pos.roomName !== roomName)
-					prio = 1;
+					prio = 1; */
+				prio = PRIORITY_HIGH;
 				// Log.warn(`Requesting miner to ${pos} from ${spawn.pos.roomName} priority ${prio}`);
 				if (this.room.energyCapacityAvailable < 600)
 					require('Unit').requestMiner(assistingSpawn || spawn, source.pos, prio);
@@ -347,7 +390,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	}
 	// }
 
-	const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
+	const sites = this.room.find(FIND_MY_CONSTRUCTION_SITES);
 	if (sites && sites.length && builders.length < (numSources || 1)) { // && (this.room.energyAvailable > 200 || storedEnergy > 110000)) {
 		const buildRemaining = _.sum(sites, s => s.progressTotal - s.progress);	// Total energy required to finish all builds
 		const score = Math.ceil(buildRemaining / CREEP_LIFE_TIME / BUILD_POWER);
@@ -359,7 +402,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 			useSpawn = assistingSpawn;
 		if (!useSpawn)
 			Log.warn(`No spawn available to request builders for ${this.pos.roomName}`, 'Controller');
-		prio = Math.clamp(0, 100 - Math.ceil(100 * (builders.length / numSources)), 90);
+		prio = Math.clamp(0, Math.ceil(100 * (builders.length / numSources)), 90);
 		var elimit = (storedEnergy > 10000) ? Infinity : (10 * numSources);
 		require('Unit').requestBuilder(useSpawn, { elimit, home: roomName, priority: prio });
 	}
@@ -368,12 +411,12 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 	// @todo If not enclosed, requesting ranged kiters.
 	// @todo Compare my damage output versus heal in the room.
 	if ((this.safeMode || 0) < SAFE_MODE_IGNORE_TIMER) {
-		const towers = _.size(room.find(FIND_MY_STRUCTURES, { filter: Filter.loadedTower }));
+		const towers = _.size(this.room.find(FIND_MY_STRUCTURES, { filter: Filter.loadedTower }));
 		// if (!_.isEmpty(hostiles) && room.my && (towers <= 0 || hostiles.length > towers)) {
-		if (towers <= 0 || room.hostiles.length > towers) {
-			const desired = Math.clamp(1, room.hostiles.length * 2, 8);
+		if (towers <= 0 || this.room.hostiles.length > towers) {
+			const desired = Math.clamp(1, this.room.hostiles.length * 2, 8);
 			for (var di = defenders.length; di < desired; di++) {
-				prio = Math.max(50, 100 - Math.ceil(100 * (di / desired)));
+				prio = Math.min(PRIORITY_MED, Math.ceil(100 * (di / desired)));
 				const supplier = _.sample(['requestDefender', 'requestRanger']);
 				require('Unit')[supplier](spawn, roomName, prio);
 			}
@@ -384,9 +427,9 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 
 	// Healers
 	// @todo Disabled until we can prevent these spawning for injured creeps in other rooms.
-	// if (healers.length < 1 && _.any(creeps, c => c.hits < c.hitsMax)) {
-	//	require('Unit').requestHealer(spawn, roomName);
-	// }
+	if (healers.length < 1 && _.any(creeps, c => c.hits < c.hitsMax)) {
+		require('Unit').requestHealer(spawn, roomName);
+	}
 
 	// beyond this point, room-local spawns only
 	if (roomName !== this.pos.roomName)
@@ -414,7 +457,7 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 			return;
 		}
 		// prio = 100 - Math.ceil(100 * (scavHave / scavNeed));
-		prio = Math.clamp(25, 100 - Math.ceil(100 * (scavHave / scavNeed)), 100);
+		prio = Math.clamp(0, Math.ceil(100 * (scavHave / scavNeed)), 75);
 		if (scavHave <= 0 && assistingSpawn)
 			spawn = assistingSpawn;
 		// Log.warn("Short on scavengers at " + this.pos.roomName + ' (prio: ' + prio + ')');		
@@ -425,6 +468,8 @@ StructureController.prototype.runCensus = function (roomName = this.pos.roomName
 
 	// @todo conflict mode reduce this
 	// @todo did we beak RCL 8 low power mode?
+	// @todo CREEP_SPAWN_TIME * 6 needs a better scale calc
+	// @todo if rcl 8 and empire doesn't want to expand, scale back
 	const MAX_UPGRADER_COUNT = 6;
 	if ((!this.upgradeBlocked || this.upgradeBlocked < CREEP_SPAWN_TIME * 6)) {
 		const workAssigned = _.sum(upgraders, c => c.getBodyParts(WORK));
@@ -512,8 +557,6 @@ StructureController.prototype.updateNeighbors = function () {
 /**
  * Safe mode automation
  */
-const SAFE_MODE_LOW_COOLDOWN = 2000;
-const SAFE_MODE_LOW_TICKS = 4000;
 StructureController.prototype.updateSafeMode = function () {
 	if (this.safeModeCooldown === SAFE_MODE_LOW_COOLDOWN)
 		Log.notify(`${this.pos.roomName}: Safe mode cooldown almost complete`);
@@ -523,9 +566,9 @@ StructureController.prototype.updateSafeMode = function () {
 		this.onSafeModeExit();
 	if (this.safeMode === SAFE_MODE_LOW_TICKS)
 		Log.notify(`${this.room.name}: Safe mode expiring soon!`);
-	if (this.ticksToDowngrade === EMERGENCY_THRESHOLD[this.level])
+	if (this.ticksToDowngrade === EMERGENCY_NOTIFICATION_THRESHOLD[this.level])
 		Log.warn(`${this.pos.roomName}: Low ticksToDowngrade, Safe mode at risk`, 'Controller');
-	else if (this.ticksToDowngrade > EMERGENCY_THRESHOLD[this.level] && this.memory.ticksToDowngrade <= EMERGENCY_THRESHOLD[this.level] && !this.safeModeCooldown) {
+	else if (this.ticksToDowngrade > EMERGENCY_NOTIFICATION_THRESHOLD[this.level] && this.memory.ticksToDowngrade <= EMERGENCY_NOTIFICATION_THRESHOLD[this.level] && !this.safeModeCooldown) {
 		Log.warn(`${this.pos.roomName}: Safe mode unblocked`, 'Controller');
 	}
 
