@@ -16,7 +16,10 @@ module.exports = {
 		// Expects conditions..
 	},
 	init: function () {
-
+		// Since we can't call this while spawning..
+		this.pushState('EvalOnce', {script: 'this.notifyWhenAttacked(false)'});
+		// const status = this.notifyWhenAttacked(false);
+		// Log.debug(`Scout set notifyWhenAttacked(false) status ${status}`);
 	},
 	/* eslint-disable consistent-return */
 	run: function () {
