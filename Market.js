@@ -19,10 +19,22 @@ module.exports = {
 		this.updateOutgoingMarket(freq);
 	},
 
+	resyncEmpireCredits: function () {
+		const creditsInUse = _.sum(Memory.structures, 'c');
+		const creditsWeThinkWeHave = Memory.empire.credits;
+		const creditsWeActuallyHave = Game.market.credits - creditsInUse;
+		const diff = Math.abs(creditsWeThinkWeHave - creditsWeActuallyHave);
+		if (diff > 100)
+			Log.notify(`Empire market adjustment ${diff} credits skew`); // Did we lose a building?
+		if (diff <= 0)
+			Log.notify(`Empire market adjustment reports that we are accurate!`);
+		Memory.empire.credits = creditsWeActuallyHave;
+	},
+
 	/**
 	 * Outgoing notifications
 	 */
-	updateOutgoingMarket: function(freq = 5) {
+	updateOutgoingMarket: function (freq = 5) {
 		var outgoing = Game.market.outgoingTransactions;
 		var transaction, j, len, total, distance;
 		for (j = 0, len = outgoing.length; j < len; j++) {
@@ -37,6 +49,7 @@ module.exports = {
 			if (order && order.price) {
 				total = amount * order.price;
 				Game.rooms[from].terminal.credits += (total * (1.0 - TERMINAL_TAX));
+				Memory.empire.credits += (total * TERMINAL_TAX);
 				Log.info(`Outbound transaction from ${from} to ${to} (dist: ${distance}): ${amount} ${resourceType} at ${order.price} for ${total} total`, 'Market');
 			} else {
 				Log.info(`Outbound transaction from ${from} to ${to} (dist: ${distance}): ${amount} ${resourceType}`, 'Market');
@@ -49,7 +62,7 @@ module.exports = {
 	/**
 	 * Incoming notifications
 	 */
-	updateIncomingMarket: function(freq = 5) {
+	updateIncomingMarket: function (freq = 5) {
 		var incoming = Game.market.incomingTransactions;
 		var transaction, i, len, total, distance, desc;
 		for (i = 0, len = incoming.length; i < len; i++) {

@@ -11,7 +11,7 @@
  */
 'use strict';
 
-/* global Log */
+/* global Log, Market */
 /* global PRIORITY_MIN, PRIORITY_LOW, PRIORITY_MED, PRIORITY_HIGH, PRIORITY_MAX */
 
 const Intel = require('Intel');
@@ -19,9 +19,10 @@ const Intel = require('Intel');
 const EMPIRE_EXPANSION_FREQUENCY = 4095; // Power of 2, minus 1
 const GCL_MOVING_AVG_DURATION = 1000;
 const GCL_EXPANSION_GOAL = 10;
+const EMPIRE_MARKET_RESYNC_FREQUENCY = 4095;
 
 if (Memory.empire == null) {
-	Memory.empire = { autoExpand: true };
+	Memory.empire = { autoExpand: true, credits: 0 };
 }
 
 class Empire {
@@ -29,6 +30,9 @@ class Empire {
 		Empire.updateGCL();
 		// var used = Time.measure( () => this.drawVisuals() );
 		// console.log('used: ' + used);
+
+		if (!(Game.time & EMPIRE_MARKET_RESYNC_FREQUENCY))
+			Market.resyncEmpireCredits();
 
 		if (Game.time & EMPIRE_EXPANSION_FREQUENCY)
 			return;
@@ -87,7 +91,7 @@ class Empire {
 		if (!spawns || !spawns.length)
 			return Log.error(`No available spawn for expansion`, 'Empire');
 		const candidates = this.getAllCandidateRoomsByScore().value();
-		if(!candidates || !candidates.length)
+		if (!candidates || !candidates.length)
 			return Log.error(`No expansion candidates`, 'Empire');
 		else
 			Log.warn(`Candidate rooms: ${candidates}`, 'Empire');
@@ -102,24 +106,24 @@ class Empire {
 	}
 
 
-	static getAllCandidateRooms(range=3) {
+	static getAllCandidateRooms(range = 3) {
 		return _(this.ownedRooms())
 			.map(m => this.getCandidateRooms(m.name, range))
 			.flatten()
 			.unique()
 			.filter(r => Intel.isClaimable(r))
-		;
+			;
 	}
 
 	// @todo Fuzz factor is still problematic.
-	static getAllCandidateRoomsByScore(range=3) {
+	static getAllCandidateRoomsByScore(range = 3) {
 		return this
 			.getAllCandidateRooms(range)
 			// .map(r => ({name: r, score: Intel.scoreRoomForExpansion(r) * (0.1+Math.random() * 0.1)}))
 			// .sortByOrder(r => r.score, ['desc'])
-			.sortByOrder(r => Intel.scoreRoomForExpansion(r) * (0.1+Math.random() * 0.1), ['desc'])
-			// .sortByOrder(r => Intel.scoreRoomForExpansion(r), ['desc'])
-	}	
+			.sortByOrder(r => Intel.scoreRoomForExpansion(r) * (0.1 + Math.random() * 0.1), ['desc'])
+		// .sortByOrder(r => Intel.scoreRoomForExpansion(r), ['desc'])
+	}
 
 	/**
 	 * Find expansion candidates.
