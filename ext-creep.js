@@ -212,7 +212,7 @@ Creep.prototype.hasBodypart = function (type) {
  * Should be clamped to 0 <= x <= this.cost
  */
 Creep.prototype.getRecycleWorth = function (modifier = 0) {
-	return Math.floor(this.cost * 1 * Math.max(0, this.ticksToLive - modifier) / this.ticksToLiveMax);
+	return Math.floor(Math.min(this.cost, this.body.length * CREEP_PART_MAX_ENERGY) * 1 * Math.max(0, this.ticksToLive - modifier) / this.ticksToLiveMax);
 };
 
 Creep.prototype.getSuicideWorth = function () {
@@ -229,7 +229,8 @@ Creep.prototype.getSuicideWorth = function () {
  */
 const DEFAULT_MINIMUM_RECYCLE_RETURN = 10;
 Creep.prototype.isWorthRecycling = function (minReturn = DEFAULT_MINIMUM_RECYCLE_RETURN, steps = 0) {
-	return this.ticksToLive >= ((minReturn * this.ticksToLiveMax) + (steps * this.cost)) / this.cost;
+	const maxReturn = Math.min(this.cost, this.body.length * CREEP_PART_MAX_ENERGY);
+	return this.ticksToLive >= ((minReturn * this.ticksToLiveMax) + (steps * maxReturn)) / maxReturn;
 };
 
 DEFINE_CACHED_GETTER(Creep.prototype, 'weight', function (creep) {
