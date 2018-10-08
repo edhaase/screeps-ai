@@ -90,10 +90,11 @@ class CostMatrix extends PathFinder.CostMatrix {
 	}
 
 	applyInRoomRadius(fn, pos, radius) {
+		const terrain = Game.map.getRoomTerrain(pos.roomName);
 		var dx, dy, ax = pos.x, ay = pos.y;
 		for (dx = -radius; dx <= radius; dx++)
 			for (dy = -radius; dy <= radius; dy++)
-				if (Game.map.getTerrainAt(ax + dx, ay + dy, pos.roomName) !== 'wall')
+				if (!(terrain.get(ax + dx, ay + dy) & TERRAIN_MASK_WALL))
 					fn.call(this, ax + dx, ay + dy);
 		return this;
 	}
@@ -205,9 +206,10 @@ class CostMatrix extends PathFinder.CostMatrix {
 	}
 
 	setTerrainWalls(roomName, score = 255) {
+		const terrain = Game.map.getRoomTerrain(roomName);
 		for (var x = 0; x < 50; x++) {
 			for (var y = 0; y < 50; y++) {
-				if (Game.map.getTerrainAt(x, y, roomName) !== 'wall')
+				if (!(terrain.get(x, y) & TERRAIN_MASK_WALL))
 					continue;
 				this.set(x, y, score);
 			}

@@ -111,9 +111,10 @@ class Intel {
 	static scoreTerrain(roomName) {
 		/* eslint-disable no-magic-numbers */
 		var x, y, score = 0;
+		const terrain = Game.map.getRoomTerrain(roomName);
 		for (x = 2; x < 47; x++)
 			for (y = 2; y < 47; y++)
-				score += (Game.map.getTerrainAt(x, y, roomName) === 'plain');
+				score += terrain.get(x,y) === 0; /* No obstacles */
 		return score / 45 ** 2;
 	}
 

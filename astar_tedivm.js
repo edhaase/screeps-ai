@@ -96,9 +96,9 @@ Astar.defaults = {
 		'ignore': false,
 		'creep': 10,
 		'terrain': {
-			'swamp': 2,
-			'plain': 2,
-			'wall': 0,
+			[TERRAIN_MASK_SWAMP]: 2,
+			0: 2, /* plains */
+			[TERRAIN_MASK_WALL]: 0,
 		},
 		'structures': {
 			'default': 0,
@@ -141,6 +141,8 @@ Astar.prototype.search = function (start, end, user_options = {}) {
 	} else {
 		heuristic = this.heuristics.manhattan;
 	}
+
+	this.terrain = Game.map.getRoomTerrain(start.roomName); /* Only handles one room right now anyways */
 
 	// Support for passing a custom scoring function
 	if (typeof options.weight == 'function') {
@@ -294,7 +296,7 @@ Astar.prototype.heuristics = {
 /**
  * Astar scoring function
  */
-Astar.prototype.scoring = function (room, x, y, scoring={}) {
+Astar.prototype.scoring = function (room, x, y, scoring = {}) {
 	var pos = room.getPositionAt(x, y);
 
 	if (typeof scoring.filter === 'function') {
@@ -305,13 +307,20 @@ Astar.prototype.scoring = function (room, x, y, scoring={}) {
 
 	var score = 0;
 	// var terrain = room.lookForAt('terrain', pos)[0]
-	var terrain = Game.map.getTerrainAt(pos.x, pos.y, pos.roomName);
+	const terrain = this.terrain.get(pos.x, pos.y);
 
-	if (!scoring.terrain[terrain]) {
+	/* todo: fix scoring */
+	if (terrain & TERRAIN_MASK_WALL)
+		score = scoring.terrain[TERRAIN_MASK_WALL];
+	else if (terrain & TERRAIN_MASK_SWAMP)
+		score = scoring.terrain[TERRAIN_MASK_SWAMP];
+	else if (terrain === 0)
+		score = scoring.terrain[0]; /* No flag for plains */
+	/* if (!scoring.terrain[terrain]) {
 		score = 0;
 	} else {
 		score = scoring.terrain[terrain];
-	}
+	} */
 
 	if (score <= 0) {
 		return 0;
@@ -322,7 +331,7 @@ Astar.prototype.scoring = function (room, x, y, scoring={}) {
 		if (structures.length > 0) {
 			for (var structure of structures) {
 
-				var {structureType} = structure;
+				var { structureType } = structure;
 
 				if (scoring.structures[structureType] == null) {
 					structure = 'default';
@@ -430,7 +439,7 @@ Graph.prototype.getNode = function (x, y) {
 			// this.room.visual.circle(x,y,{fill: Astar.colors.tested});
 			this.room.visual.circle(x, y, {
 				fill:
-				(weight < 1) ? 'red' : Astar.colors.tested,
+					(weight < 1) ? 'red' : Astar.colors.tested,
 				opacity: 1.0
 			});
 		}
@@ -441,7 +450,7 @@ Graph.prototype.getNode = function (x, y) {
 
 Graph.prototype.neighbors = function (node) {
 	var ret = [];
-	var {x,y} = node;
+	var { x, y } = node;
 
 	// West
 	if (x - 1 >= 0) {
@@ -532,6 +541,7 @@ class ESGraph extends Graph {
 		this.scoring = scoring;
 		this.diagonal = diagonal;
 		this.grid = new Array(2500);
+		this.terrain = Game.map.getRoomTerrain(room.name); /* Not sure how out this context is messed up so badly */
 	}
 
 	getNode(x, y) {
@@ -550,7 +560,7 @@ class ESGraph extends Graph {
 			if (Astar.display && Astar.colors.tested) {
 				this.room.visual.circle(x, y, {
 					fill:
-					(weight < 1) ? 'red' : Astar.colors.tested,
+						(weight < 1) ? 'red' : Astar.colors.tested,
 					opacity: 1.0
 				});
 			}
@@ -590,7 +600,7 @@ GridNode.prototype.isBlocked = function () {
 };
 
 GridNode.prototype.getDirectionFrom = function (node) {
-	var {x,y} = this;
+	var { x, y } = this;
 	// Node is to the left
 	if (node.x < x) {
 		// Node is to the top
@@ -679,7 +689,7 @@ function BinaryHeap(scoreFunction) {
 
 BinaryHeap.prototype = {
 	push: function (element) {
-		var {content} = this;
+		var { content } = this;
 		// Add the new element to the end of the array.
 		content.push(element);
 
@@ -687,7 +697,7 @@ BinaryHeap.prototype = {
 		this.sinkDown(content.length - 1);
 	},
 	pop: function () {
-		var {content} = this;
+		var { content } = this;
 		// Store the first element so we can return it later.
 		var [result] = content;
 		// Get the element at the end of the array.
@@ -701,7 +711,7 @@ BinaryHeap.prototype = {
 		return result;
 	},
 	remove: function (node) {
-		var {content} = this;
+		var { content } = this;
 		var i = content.indexOf(node);
 
 		// When it is found, the process seen in 'pop' is repeated
@@ -725,7 +735,7 @@ BinaryHeap.prototype = {
 		this.sinkDown(this.content.indexOf(node));
 	},
 	sinkDown: function (n) {
-		var {content,scoreFunction} = this;
+		var { content, scoreFunction } = this;
 		// Fetch the element that has to be sunk.
 		var element = content[n];
 		//
@@ -751,9 +761,9 @@ BinaryHeap.prototype = {
 		}
 	},
 	bubbleUp: function (n) {
-		var {content,scoreFunction} = this;
+		var { content, scoreFunction } = this;
 		// Look up the target element and its score.
-		var {length} = content;
+		var { length } = content;
 		var element = content[n];
 		var elemScore = scoreFunction(element);
 		// early declarations with type hints

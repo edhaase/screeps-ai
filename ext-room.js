@@ -195,7 +195,8 @@ Room.prototype.isBuildQueueEmpty = function () {
 Room.prototype.addToBuildQueue = function ({ x, y }, structureType, expire = DEFAULT_BUILD_JOB_EXPIRE, priority = DEFAULT_BUILD_JOB_PRIORITY) {
 	if (!this.memory.bq)
 		this.memory.bq = [];
-	if (Game.map.getTerrainAt(x, y, this.name) === 'wall' && structureType !== STRUCTURE_EXTRACTOR && structureType !== STRUCTURE_ROAD)
+	const terrain = Game.map.getRoomTerrain(this.name);
+	if ((terrain.get(x, y) & TERRAIN_MASK_WALL) && structureType !== STRUCTURE_EXTRACTOR && structureType !== STRUCTURE_ROAD)
 		throw new Error(`Invalid target position (${x},${y},${this.name} / ${structureType})`);
 	if (this.getPositionAt(x, y).hasStructure(structureType))
 		throw new Error(`Structure type ${structureType} already exists at ${x},${y},${this.name}`);
@@ -226,7 +227,7 @@ Room.prototype.updateBuild = function () {
 		return ERR_BUSY;
 	if (this.hostiles && this.hostiles.length)
 		return ERR_BUSY;
-	const [site] = this.find(FIND_MY_CONSTRUCTION_SITES, {filter: s => s.structureType !== STRUCTURE_CONTAINER});
+	const [site] = this.find(FIND_MY_CONSTRUCTION_SITES, { filter: s => s.structureType !== STRUCTURE_CONTAINER });
 	if (site) {
 		this.memory.cid = site.id;
 		return ERR_FULL;

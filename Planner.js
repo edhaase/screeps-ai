@@ -210,7 +210,8 @@ class FleePlanner {
 	 * Register an update to the state of the planner.
 	 */
 	set(pos, structureType, plan = true) {
-		if (this.cm.get(pos.x, pos.y) === 255 || Game.map.getTerrainAt(pos) === 'wall')
+		const terrain = Game.map.getRoomTerrain(pos.roomName);
+		if (this.cm.get(pos.x, pos.y) === 255 || (terrain.get(pos.x, pos.y) & TERRAIN_MASK_WALL))
 			return;
 		if (structureType === STRUCTURE_ROAD)
 			this.cm.set(pos.x, pos.y, 1);
@@ -398,14 +399,13 @@ class BuildPlanner {
 	 * Scores are largest at center of clearance.
 	 * example: Time.measure( () => Planner.distanceTransform('W5N2', (x,y,r) =>  Game.map.getTerrainAt(x, y,r) == 'wall' || new RoomPosition(x,y,r).hasObstacle() ))
 	 */
-	static distanceTransform(roomName, rejector = (x, y, roomName) => Game.map.getTerrainAt(x, y, roomName) === 'wall') {
+	static distanceTransform(roomName, rejector = (x, y, roomName) => (Game.map.getRoomTerrain(roomName).get(x, y) & TERRAIN_MASK_WALL)) {
 		var vis = new RoomVisual(roomName);
 		var topDownPass = new PathFinder.CostMatrix();
 		var x, y;
 
 		for (y = 0; y < 50; ++y) {
 			for (x = 0; x < 50; ++x) {
-				// if (Game.map.getTerrainAt(x, y, roomName) == 'wall') {
 				if (rejector(x, y, roomName)) {
 					topDownPass.set(x, y, 0);
 				}
@@ -523,11 +523,11 @@ class BuildPlanner {
 			fromPos = fromPos.pos;
 		if (opts.cmFn === undefined)
 			opts.cmFn = (rN) => FIXED_OBSTACLE_MATRIX.get(rN);
-		if(opts.tunnel) {
+		if (opts.tunnel) {
 			const cmFn = opts.cmFn;
-			opts.cmFn = function(rN) {
+			opts.cmFn = function (rN) {
 				let cm = cmFn(rN);
-				if(cm) {
+				if (cm) {
 					cm = cm.clone();
 					cm.setTerrainWalls(rN, BASE_TUNNEL_WEIGHT);
 				}
@@ -581,8 +581,7 @@ class BuildPlanner {
 	 * ex: Planner.floodFill(new RoomPosition(46,19,'E58S41'), {limit: 128, validator: (pos) => Game.map.getTerrainAt(pos) !== 'wall' && !pos.hasObstacle()})
 	 */
 	static floodFill(pos, {
-		// validator = ((pos) => Game.map.getTerrainAt(pos) !== 'wall'),
-		validator = (pos) => Game.map.getTerrainAt(pos) !== 'wall' && !pos.isOnRoomBorder() && !pos.hasObstacle(),
+		validator = (pos) => !pos.isOnRoomBorder() && !pos.hasObstacle(true),
 		stop = () => false,		// stop condition
 		limit = 150,
 		oddeven = false,
@@ -600,7 +599,6 @@ class BuildPlanner {
 			if (count++ > limit)
 				break;
 			// This isn't firing, so we're only here if this a good point.
-			// if(Game.map.getTerrainAt(point.x,point.y,point.roomName) == 'wall')
 			// visual.circle(point, {fill: 'yellow'});
 			//	continue;			
 			// console.log('point: ' + point);

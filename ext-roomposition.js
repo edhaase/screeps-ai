@@ -207,7 +207,7 @@ RoomPosition.prototype.hasConstructionSite = function (structureType, range = 0,
 RoomPosition.prototype.hasObstacle = function (includeTerrain = true) {
 	return _.any(this.lookFor(LOOK_STRUCTURES), require('Filter').isObstacle)
 		|| _.any(this.lookFor(LOOK_CONSTRUCTION_SITES), require('Filter').isObstacle)
-		|| (includeTerrain && Game.map.getTerrainAt(this) === 'wall');
+		|| (includeTerrain && (Game.map.getRoomTerrain(this.roomName).get(this.x, this.y) & TERRAIN_MASK_WALL));
 };
 
 RoomPosition.prototype.hasCreep = function () {
@@ -219,8 +219,7 @@ RoomPosition.prototype.hasCreep = function () {
  */
 RoomPosition.prototype.isOpen = function () {
 	return this.isValid()
-		&& !this.hasObstacle()
-		&& Game.map.getTerrainAt(this) !== 'wall'
+		&& !this.hasObstacle(true)
 		&& !this.isOnRoomBorder();
 };
 
