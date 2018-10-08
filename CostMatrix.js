@@ -204,6 +204,16 @@ class CostMatrix extends PathFinder.CostMatrix {
 		return this;
 	}
 
+	setTerrainWalls(roomName, score = 255) {
+		for (var x = 0; x < 50; x++) {
+			for (var y = 0; y < 50; y++) {
+				if (Game.map.getTerrainAt(x, y, roomName) !== 'wall')
+					continue;
+				this.set(x, y, score);
+			}
+		}
+	}
+
 	setCreeps(room, score = 0xFF, filter = _.Identity, c = FIND_CREEPS) {
 		room
 			.find(c, { filter })
@@ -398,7 +408,7 @@ global.LOGISTICS_MATRIX = new LazyMap(
 
 global.FIXED_OBSTACLE_MATRIX = new LazyMap(
 	(roomName) => {
-		try {			
+		try {
 			if (Game.rooms[roomName])
 				return new FixedObstacleMatrix(roomName);
 		} catch (e) {

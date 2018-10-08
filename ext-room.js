@@ -195,11 +195,11 @@ Room.prototype.isBuildQueueEmpty = function () {
 Room.prototype.addToBuildQueue = function ({ x, y }, structureType, expire = DEFAULT_BUILD_JOB_EXPIRE, priority = DEFAULT_BUILD_JOB_PRIORITY) {
 	if (!this.memory.bq)
 		this.memory.bq = [];
-	if (Game.map.getTerrainAt(x, y, this.name) === 'wall' && structureType !== STRUCTURE_EXTRACTOR)
-		throw new Error(`Invalid target position (${x},${y},${this.name})`);
+	if (Game.map.getTerrainAt(x, y, this.name) === 'wall' && structureType !== STRUCTURE_EXTRACTOR && structureType !== STRUCTURE_ROAD)
+		throw new Error(`Invalid target position (${x},${y},${this.name} / ${structureType})`);
 	if (this.getPositionAt(x, y).hasStructure(structureType))
 		throw new Error(`Structure type ${structureType} already exists at ${x},${y},${this.name}`);
-	if (structureType === STRUCTURE_ROAD && this.getPositionAt(x, y).hasObstacle())
+	if (structureType === STRUCTURE_ROAD && this.getPositionAt(x, y).hasObstacle(false))
 		return OK;
 	try {
 		// sorted index for priority?
@@ -250,7 +250,7 @@ Room.prototype.updateBuild = function () {
 		&& !pos.hasStructure(STRUCTURE_RAMPART)
 		&& pos.createConstructionSite(STRUCTURE_RAMPART) === OK) // This might fail at RCL 1, let's not lock up the room.
 		return OK;
-	if (structureType === STRUCTURE_ROAD && pos.hasObstacle()) {
+	if (structureType === STRUCTURE_ROAD && pos.hasObstacle(false)) {
 		Log.info(`Dropping ${structureType} from ${pos} due to obstacle`, 'Room');
 		this.memory.bq.shift();
 		return this.updateBuild();

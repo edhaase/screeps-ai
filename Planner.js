@@ -329,7 +329,7 @@ class BuildPlanner {
 			// this.buildSourceRoads(room, pos, room.controller.level >= 3);
 			this.buildSourceRoads(room, origin.pos, false);
 			this.buildControllerWall(origin, room.controller);
-			this.planRoad(origin.pos, { pos: room.controller.pos, range: CREEP_UPGRADE_RANGE }, { container: false, initial: 1 });
+			this.planRoad(origin.pos, { pos: room.controller.pos, range: CREEP_UPGRADE_RANGE }, { container: false, initial: 1, tunnel: true });
 		}
 		if (level >= MINIMUM_LEVEL_FOR_LINKS)
 			this.buildLinks(origin.pos, level);
@@ -343,7 +343,7 @@ class BuildPlanner {
 				room.addToBuildQueue(mineral.pos, STRUCTURE_EXTRACTOR);
 			}
 			if (room.terminal)
-				this.planRoad(room.terminal.pos, { pos: mineral.pos, range: 1 }, { rest: 1, initial: 1, container: true });
+				this.planRoad(room.terminal.pos, { pos: mineral.pos, range: 1 }, { rest: 1, initial: 1, container: true, tunnel: true });
 		}
 		return OK;
 	}
@@ -505,10 +505,10 @@ class BuildPlanner {
 		if (origin == null)
 			throw new Error("Origin position required");
 		const sources = room.find(FIND_SOURCES);
-		_.each(sources, source => this.planRoad(origin, { pos: source.pos, range: 1 }, { rest: 1, initial: 1, container }));
+		_.each(sources, source => this.planRoad(origin, { pos: source.pos, range: 1 }, { rest: 1, initial: 1, container, tunnel: true }));
 		if (room.controller && room.controller.level >= 6 && sources.length > 1) {
 			var [s1, s2] = sources;
-			this.planRoad(s1, { pos: s2.pos, range: 1 }, { rest: 1, initial: 1 });
+			this.planRoad(s1, { pos: s2.pos, range: 1 }, { rest: 1, initial: 1, tunnel: true });
 		}
 	}
 
@@ -517,11 +517,23 @@ class BuildPlanner {
 	 * @todo add existing road to plan
 	 */
 	static planRoad(fromPos, toPos, opts = {}) {
+		const BASE_TUNNEL_WEIGHT = 50;
 		// const {dry=false,cmFm,container=false,rest,initial} = opts;
 		if (fromPos.pos)
 			fromPos = fromPos.pos;
 		if (opts.cmFn === undefined)
 			opts.cmFn = (rN) => FIXED_OBSTACLE_MATRIX.get(rN);
+		if(opts.tunnel) {
+			const cmFn = opts.cmFn;
+			opts.cmFn = function(rN) {
+				let cm = cmFn(rN);
+				if(cm) {
+					cm = cm.clone();
+					cm.setTerrainWalls(rN, BASE_TUNNEL_WEIGHT);
+				}
+				return cm;
+			};
+		}
 		try {
 			var result = PathFinder.search(fromPos, toPos, {
 				plainCost: 2, // prefer existing roads
@@ -653,7 +665,7 @@ class BuildPlanner {
 	static findRoadMisplacements(room) {
 		return _(room.find(FIND_STRUCTURES))
 			.filter('structureType', STRUCTURE_ROAD)
-			.filter(s => s.pos.hasObstacle());
+			.filter(s => s.pos.hasObstacle(false));
 	}
 
 	/**

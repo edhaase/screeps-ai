@@ -192,11 +192,11 @@ RoomPosition.prototype.hasRoad = function () {
 	return this.hasStructure(STRUCTURE_ROAD);
 };
 
-RoomPosition.prototype.getConstructionSite = function (structureType=null, range = 0, validator = () => true) {
+RoomPosition.prototype.getConstructionSite = function (structureType = null, range = 0, validator = () => true) {
 	if (range === 0) {
 		return _.find(this.lookFor(LOOK_CONSTRUCTION_SITES), c => (structureType == null || c.structureType === structureType) && validator(c));
 	} else {
-		return this.room.findOne(FIND_MY_CONSTRUCTION_SITES, { filter: s => (structureType == null || s.structureType === structureType)  && s.pos.inRangeTo(this, range) && validator(s) });
+		return this.room.findOne(FIND_MY_CONSTRUCTION_SITES, { filter: s => (structureType == null || s.structureType === structureType) && s.pos.inRangeTo(this, range) && validator(s) });
 	}
 };
 
@@ -204,10 +204,10 @@ RoomPosition.prototype.hasConstructionSite = function (structureType, range = 0,
 	return this.getConstructionSite(structureType, range, validator) != null;
 };
 
-RoomPosition.prototype.hasObstacle = function () {
+RoomPosition.prototype.hasObstacle = function (includeTerrain = true) {
 	return _.any(this.lookFor(LOOK_STRUCTURES), require('Filter').isObstacle)
 		|| _.any(this.lookFor(LOOK_CONSTRUCTION_SITES), require('Filter').isObstacle)
-		|| Game.map.getTerrainAt(this) === 'wall';
+		|| (includeTerrain && Game.map.getTerrainAt(this) === 'wall');
 };
 
 RoomPosition.prototype.hasCreep = function () {
@@ -287,10 +287,10 @@ RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = _.identi
 		roomCallback: r => FIXED_OBSTACLE_MATRIX.get(r)
 	});
 	const result = PathFinder.search(this, mapping, opts);
-	if(!result.path.length) {
-	Log.error(ex(mapping));
-	Log.error(ex(opts));
-	Log.error(ex(result));
+	if (!result.path.length) {
+		Log.error(ex(mapping));
+		Log.error(ex(opts));
+		Log.error(ex(result));
 	}
 	// if(result.incomplete)
 	//	throw new Error('Path incomplete');
