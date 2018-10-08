@@ -162,7 +162,7 @@ StructureTerminal.prototype.moderateEnergy = function () {
 		return this.buyUpTo(RESOURCE_ENERGY, total); // Fix the always-half-way issue/
 	}
 
-	const overage = energy - TERMINAL_RESOURCE_LIMIT;	
+	const overage = energy - TERMINAL_RESOURCE_LIMIT;
 	if (overage < 1000)
 		return false;
 
@@ -303,6 +303,8 @@ StructureTerminal.prototype.buy = function (res, amount = Infinity, maxRange = I
 	const order = _.min(orders, o => o.price * this.calcTransactionCost(Math.min(amount, o.amount), o.roomName));
 	const afford = Math.min(amount, order.amount, this.getPayloadWeCanAfford(order.roomName), Math.floor(this.creditsAvailable / order.price));
 	const status = this.deal(order.id, afford, order);
+	if (afford <= 0)
+		return ERR_NOT_ENOUGH_RESOURCES;
 	if (status === OK)
 		this.say('\u26A0');
 	else
