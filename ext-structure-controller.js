@@ -369,26 +369,19 @@ StructureController.prototype.runCensus = function () {
 	}
 	if (dual !== true) {
 		sources.forEach(source => {
+			const forSource = _.filter(miners, { memory: { dest: source.pos } }); // No role check, we already know it's a miner for this room.
+			if (_.any(forSource, { ticksToLive: undefined }))
+				return; // If we're currently spawning a creep, skip the rest.
 			const [, cost,] = source.getClosestSpawn({}, 'cache');
-			const miner = _.findWhere(miners, { memory: { dest: source.pos, role: 'miner' } });
-			if (!miner || (miner.ticksToLive && this.room.energyCapacityAvailable < 600 && miner.ticksToLive < UNIT_BUILD_TIME(miner.body) + (assistCost || cost))) {
-				/* prio = 75;
-				if (storedEnergy > 10000)
-					prio = 50;
-				else if (storedEnergy <= 0)
-					prio = 100;
-				if (source.pos.roomName !== roomName)
-					prio = 1; */
-				prio = PRIORITY_HIGH;
-				// Log.warn(`Requesting miner to ${pos} from ${spawn.pos.roomName} priority ${prio}`);
-				if (this.room.energyCapacityAvailable < 600)
-					require('Unit').requestMiner(assistingSpawn || spawn, source.pos, prio);
-				else
-					require('Unit').requestMiner(spawn || assistingSpawn, source.pos, prio);
-			}
+			const miner = (forSource.length && _.max(forSource, 'ticksToLive'));
+			if (miner && miner.ticksToLive >= UNIT_BUILD_TIME(miner.body) + (assistCost || cost))
+				return;
+			if (this.room.energyCapacityAvailable < 600)
+				require('Unit').requestMiner(assistingSpawn || spawn, source.pos, PRIORITY_HIGH);
+			else
+				require('Unit').requestMiner(spawn || assistingSpawn, source.pos, PRIORITY_HIGH);
 		});
 	}
-	// }
 
 	const sites = this.room.find(FIND_MY_CONSTRUCTION_SITES);
 	if (sites && sites.length && builders.length < (numSources || 1)) { // && (this.room.energyAvailable > 200 || storedEnergy > 110000)) {
