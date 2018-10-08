@@ -55,8 +55,10 @@ Creep.prototype.run = function run() {
 	try {
 		if (this.invokeState() === false) {
 			// if (this.hitPct < CREEP_AUTOFLEE_HP)
-			if (Math.random() > this.hitPct)
+			if (Math.random() > this.hitPct) {
 				this.pushState('HealSelf');
+				return;
+			}
 			// Replaced with stack state.
 			if (memory.home !== undefined && (this.pos.roomName !== memory.home || this.pos.isOnRoomBorder()))
 				this.pushState("MoveToRoom", memory.home);

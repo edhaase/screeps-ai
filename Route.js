@@ -37,6 +37,8 @@ function getFindRouteOptions(avoid=[],prefer=[]) {
 			score = 1;
 		else if(Intel.isHostileRoom(roomName))
 			score = 7;
+		else if(Intel.hasOwner(roomName))
+			score = 2;
 		if (Game.rooms[roomName] && Game.rooms[roomName].isOnHighAlert())
 			score += 3.0;
 		

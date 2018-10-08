@@ -71,14 +71,32 @@ class Intel {
 		return false;
 	}
 
+	static hasOwner(roomName) {
+		const intel = this.getIntelForRoom(roomName);		
+		if(!intel || !intel.owner)
+			return false;
+		return true;
+	}
+
+	static isClaimable(roomName) {
+		if(!Game.map.isRoomAvailable(roomName) || Room.getType(roomName) !== 'Room')
+			return false;
+		const intel = this.getIntelForRoom(roomName);		
+		if(!intel)
+			return false;
+		if(intel.owner || intel.reservation)
+			return false;
+		return true;
+	}
+
 	/**
 	 * Lower was better
 	 * (!ownedRoom << 30) | (Math.min(dist, 63) << 24) | ((100 - task.priority) << 16) | Math.min(task.cost, 65535);
 	 * @todo still needs improvement
 	 */
 	static scoreRoomForExpansion(roomName) {
-		const {sources=[],owner} = this.getIntelForRoom(roomName);
-		if(owner && owner !== WHOAMI)
+		const {sources=[]} = this.getIntelForRoom(roomName);
+		if(!this.isClaimable(roomName))
 			return 0.0;
 		const terrainScore = Math.floor(100 * this.scoreTerrain(roomName));
 		const sourceScore = 1 + (sources.length / 2); // Higher is better

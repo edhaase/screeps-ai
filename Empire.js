@@ -102,17 +102,19 @@ class Empire {
 	}
 
 
-	static getAllCandidateRooms() {
+	static getAllCandidateRooms(range=3) {
 		return _(this.ownedRooms())
-			.map(m => this.getCandidateRooms(m.name, 5))
+			.map(m => this.getCandidateRooms(m.name, range))
 			.flatten()
-			.unique();			
+			.unique()
+			.filter(r => Intel.isClaimable(r))
+		;
 	}
 
 	// @todo Fuzz factor is still problematic.
-	static getAllCandidateRoomsByScore() {
+	static getAllCandidateRoomsByScore(range=3) {
 		return this
-			.getAllCandidateRooms()
+			.getAllCandidateRooms(range)
 			// .map(r => ({name: r, score: Intel.scoreRoomForExpansion(r) * (0.1+Math.random() * 0.1)}))
 			// .sortByOrder(r => r.score, ['desc'])
 			.sortByOrder(r => Intel.scoreRoomForExpansion(r) * (0.1+Math.random() * 0.1), ['desc'])

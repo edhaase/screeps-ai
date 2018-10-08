@@ -365,7 +365,7 @@ RoomObject.prototype.pushState = function (state, opts = {}, runNext = true) {
 	if (this[method] == null)
 		throw new Error(`No such state or action ${method} on ${this}`);
 	if (this.memory.stack.length >= MAX_STACK_DEPTH)
-		throw new Error('Automata stack limit exceeded');
+		throw new Error(`Automata stack limit exceeded, cannot push ${state}`);
 	Log.info(`Pushing state ${state} to ${this}`, 'RoomObject');
 	this.clearTarget();
 	this.memory.stack.unshift([state, opts]);
@@ -421,8 +421,8 @@ RoomObject.prototype.runEval = function (opts) {
 };
 
 RoomObject.prototype.runEvalOnce = function (opts) {
+	eval(opts.script);
 	this.popState();
-	eval(opts);
 };
 
 // Cycle through states
