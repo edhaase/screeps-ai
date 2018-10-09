@@ -529,7 +529,10 @@ class BuildPlanner {
 				let cm = cmFn(rN);
 				if (cm) {
 					cm = cm.clone();
-					cm.setTerrainWalls(rN, BASE_TUNNEL_WEIGHT);
+					if (opts.tunnel === true)
+						cm.setTerrainWalls(rN, BASE_TUNNEL_WEIGHT);
+					else if (opts.tunnel > 0)
+						cm.setTerrainWalls(rN, opts.tunnel);
 				}
 				return cm;
 			};
@@ -551,7 +554,7 @@ class BuildPlanner {
 				if (end && !end.hasStructure(STRUCTURE_CONTAINER))
 					Game.rooms[end.roomName].addToBuildQueue(end, STRUCTURE_CONTAINER);
 			}
-			path = path.slice(opts.rest, path.length - opts.initial);
+			path = path.slice(opts.rest, path.length - (opts.initial || 0));
 			if (!path || !path.length)
 				return Log.debug(`No road needed for ${fromPos} to ${toPos}`, 'Planner');
 			new RoomVisual(path[0].roomName).poly(path);
