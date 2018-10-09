@@ -214,6 +214,7 @@ class CostMatrix extends PathFinder.CostMatrix {
 				this.set(x, y, score);
 			}
 		}
+		return this;
 	}
 
 	setCreeps(room, score = 0xFF, filter = _.Identity, c = FIND_CREEPS) {
