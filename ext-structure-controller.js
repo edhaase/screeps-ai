@@ -299,10 +299,11 @@ StructureController.prototype.runCensus = function () {
 	Log.info(`${this.pos.roomName}: Income ${income}, Overstock: ${overstock}, Expense: ${expense}, Upkeep: ${_.round(upkeep, 3)}, Net: ${_.round(net, 3)}, Avail ${_.round(avail, 3)}, Banked: ${storedEnergy}`, 'Controller');
 
 
-	// Distribution
-	const allotedUpgrade = Math.floor(avail * 0.60);
-	const allotedRepair = Math.floor(avail * 0.20);
-	const allotedBuild = Math.floor(avail * 0.20);
+	// Distribution		
+	const upperRepairLimit = 0.995;
+	const allotedRepair = _.any(this.room.structures, s => s.hits / s.hitsMax < upperRepairLimit) ? Math.floor(avail * 0.20) : 0;
+	const allotedBuild = (this.room.memory.bq && this.room.memory.bq.length) ? Math.floor(avail * 0.80) : 0;
+	const allotedUpgrade = avail - allotedRepair - allotedBuild;
 	Log.info(`${this.pos.roomName}: Allotments: ${allotedUpgrade} upgrade, ${allotedRepair} repair, ${allotedBuild} build`, 'Controller');
 
 	/**
