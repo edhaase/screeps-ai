@@ -18,10 +18,7 @@ module.exports = {
 	priority: function () {
 		// (Optional)
 	},
-	body: function() {
-		// (Optional) Used if no body supplied
-		// Expects conditions..
-	},
+	minBody: [MOVE],
 	/* eslint-disable consistent-return */
 	run: function () {
 		var { room, dest, msg } = this.memory;
@@ -51,21 +48,18 @@ module.exports = {
 	priority: function () {
 		// (Optional)
 	},
-	body: function() {
-		// (Optional) Used if no body supplied
-		// Expects conditions..
-	},
-	init: function(creep) {
+	minBody: [MOVE],
+	init: function (creep) {
 		creep.pushStates([
 			['SetRole', 'recycle'],
-			['EvalOnce', `this.signController(this.room.controller, "${creep.memory.msg}")`],
-			['EvalOnce', 'this.pushState("EvadeMove",{pos:this.memory.dest})'],
+			['EvalOnce', `this.signController(this.room.controller, this.memory.msg)`],
+			['EvalOnce', 'this.pushState("EvadeMove",{pos:this.memory.dest},false)'],
 			['EvalOnce', 'this.memory.dest = this.room.controller.pos'],
 			['MoveToRoom', creep.memory.room]
 		]);
 	},
-	run: function(creep) {
+	run: function (creep) {
 		/* Maybe not neccesary if our stack machine is good enough? */
-		creep.say('Done!');
+		// this.say('Done!');
 	}
 };

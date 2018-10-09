@@ -421,8 +421,18 @@ RoomObject.prototype.runEval = function (opts) {
 };
 
 RoomObject.prototype.runEvalOnce = function (opts) {
-	eval(opts.script);
-	this.popState();
+	switch (typeof opts) {
+		case 'string':
+			this.popState(false);
+			eval(opts);
+			break;
+		case 'object':
+			this.popState(opts.next || false);
+			eval(opts.script);
+			break;
+		default:
+			console.log(`No idea what to with these opts (type ${typeof opts})`);
+	}
 };
 
 // Cycle through states

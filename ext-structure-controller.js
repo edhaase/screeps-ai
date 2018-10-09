@@ -279,6 +279,7 @@ StructureController.prototype.runCensus = function () {
 	const miners = census[`${roomName}_miner`] || [];
 	const dualminers = census[`${roomName}_dualminer`] || [];
 	const assistingSpawn = this.getAssistingSpawn();
+	const signers = census[`${roomName}_signer`] || [];
 
 	var resDecay = _.sum(this.room.resources, 'decay');
 
@@ -338,6 +339,12 @@ StructureController.prototype.runCensus = function () {
 	if (spawn && assistingSpawn)
 		Log.debug(`${this.pos.roomName} Controller using spawn ${spawn.name}/${spawn.pos} and ${assistingSpawn.name}/${assistingSpawn.pos} `, 'Controller');
 
+	if (!signers.length) {
+		if (this.memory.report == null && this.sign && this.sign.text)
+			spawn.submit({ memory: { role: 'signer', room: this.pos.roomName, msg: '' }, priority: PRIORITY_MIN });
+		else if (this.memory.report && (!this.sign || this.sign.text !== this.memory.report))
+			spawn.submit({ memory: { role: 'signer', room: this.pos.roomName, msg: this.memory.report }, priority: PRIORITY_MIN });
+	}
 
 	// var sourcesByRoom = _.groupBy(sources, 'pos.roomName');
 	var numSources = sources.length;
