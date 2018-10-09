@@ -392,6 +392,8 @@ Flag.prototype.runLogic = function () {
 				this.memory.dropoff = undefined; // reset dropoff
 			});
 		const container = (this.room) ? this.pos.getStructure(STRUCTURE_CONTAINER, 1) : null;
+		if (!container)
+			return Log.warn(`No pickup point for flag ${this.pos}`, 'Flag#Hauler');
 		const site = (container && container.pos) || this.pos;
 		// @todo pick room by route..
 		// @todo pick structure in room, including containers.
