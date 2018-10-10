@@ -472,7 +472,7 @@ global.progress = function () {
 		.filter('my')
 		.filter(c => c.level < 8)
 		// .each(c => console.log("Room: " + c.room.name + ", RCL: " + (c.level+1) + ", " + c.estimate()))
-		.each(c => console.log(`Room: ${c.room.name}, RCL: ${(c.level + 1)},  ${c.estimate()} ${Log.progress(c.room.controller.progress, c.room.controller.progressTotal)}`))
+		.each(c => console.log(`Room: ${c.room.name}, RCL: ${(c.level + 1)}, ${c.estimate()} ${Log.progress(c.room.controller.progress, c.room.controller.progressTotal)}, ${_.round(c.memory.rclAvgTick, 2)} e/t`))
 		.commit();
 };
 
