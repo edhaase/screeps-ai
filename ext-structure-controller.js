@@ -302,7 +302,7 @@ StructureController.prototype.runCensus = function () {
 	// Distribution		
 	const upperRepairLimit = 0.995;
 	const allotedRepair = _.any(this.room.structures, s => s.hits / s.hitsMax < upperRepairLimit) ? Math.floor(avail * 0.20) : 0;
-	const allotedBuild = (this.room.memory.bq && this.room.memory.bq.length) ? Math.floor(avail * 0.80) : 0;
+	const allotedBuild = (this.room.memory.bq && this.room.memory.bq.length) ? Math.floor(avail * 0.60) : 0;
 	const allotedUpgrade = avail - allotedRepair - allotedBuild;
 	Log.info(`${this.pos.roomName}: Allotments: ${allotedUpgrade} upgrade, ${allotedRepair} repair, ${allotedBuild} build`, 'Controller');
 
