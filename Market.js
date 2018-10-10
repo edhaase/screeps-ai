@@ -24,10 +24,10 @@ module.exports = {
 		const creditsWeThinkWeHave = Memory.empire.credits;
 		const creditsWeActuallyHave = Game.market.credits - creditsInUse;
 		const diff = Math.abs(creditsWeThinkWeHave - creditsWeActuallyHave);
-		if (diff > 100)
-			Log.notify(`Empire market adjustment ${diff} credits skew`); // Did we lose a building?
 		if (diff <= 0)
 			Log.notify(`Empire market adjustment reports that we are accurate!`);
+		else
+			Log.notify(`Empire market adjustment ${diff} credits skew`); // Did we lose a building?
 		Memory.empire.credits = creditsWeActuallyHave;
 	},
 
