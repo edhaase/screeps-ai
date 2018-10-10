@@ -34,7 +34,7 @@ module.exports = {
 			|| res.room.terminal !== undefined)
 			&& res.amount > 10
 			&& !res.pos.isOnRoomBorder()
-		;
+			;
 	},
 
 	loadedTower: s => s.structureType === STRUCTURE_TOWER && s.energy > TOWER_ENERGY_COST,
@@ -61,14 +61,16 @@ module.exports = {
 	 * Returns pct of energy missing
 	 */
 	canReceiveEnergy: function (thing) {
-		if (!thing.my)
+		if (thing.my === false)
 			return 0;
-		if(thing instanceof Creep && thing.carryTotal === 0) // Only target creeps if they're entirely empty (or we'll never break target)
+		if (thing instanceof Creep && thing.carryTotal === 0) // Only target creeps if they're entirely empty (or we'll never break target)
 			return 1.0;
 		else if (thing.energy != null)
 			return (1.0 - thing.energyPct);
+		else if (thing.stock != null)
+			return Math.max(0, 1.0 - thing.stock);
 		else if (thing.store != null)
-			return (1.0 - (thing.storedTotal / thing.storeCapacity));
+			return (1.0 - thing.storedPct);
 		else
 			return 0.0;
 	},

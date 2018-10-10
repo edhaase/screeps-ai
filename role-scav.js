@@ -62,6 +62,8 @@ const getPickupSite = createUniqueTargetSelector(
 	({ room }) => [...room.structures, ...room.resources],
 	({ room }) => room.find(FIND_MY_CREEPS, { filter: c => c.getRole() === 'scav' && c.memory.tid }).map(c => c.memory.tid),
 	(s, creep) => {
+		if (s.structureType === STRUCTURE_STORAGE && s.stock > 1.0)
+			return true; // We have more energy than we expect.
 		if (creep.room.energyPct > 0.5 && (s.structureType === STRUCTURE_LINK || s.structureType === STRUCTURE_STORAGE))
 			return false;
 		return Filter.canProvideEnergy(s) && !s.isControllerContainer;
@@ -70,7 +72,9 @@ const getPickupSite = createUniqueTargetSelector(
 );
 
 const getDropoffSite = createUniqueTargetSelector(
-	({ room }) => _.filter([...room.structuresMy, ...room.creeps], function (sel) {
+	({ room }) => _.filter([...room.structuresMy, room.controller.container, ...room.creeps], function (sel) {
+		if (sel == null)
+			return false;
 		if (Filter.canReceiveEnergy(sel) <= 0)
 			return false;
 		if (sel instanceof Creep) {
@@ -144,19 +148,18 @@ module.exports = {
 				goal = this.room.controller;
 			} else {
 				goal = getDropoffSite(this);
-				const MAX_OVERSTOCK = 3.0;
+				const MAX_OVERSTOCK = 1.5;
 				if (!goal) {
 					if (terminal && terminal.my
 						&& (terminal.store[RESOURCE_ENERGY] < TERMINAL_MINIMUM_ENERGY * 2) // || (storage && storage.stock >= 1))
 						&& terminal.storedTotal < terminal.storeCapacity)
 						goal = terminal;
-					else if (storage && storage.my
-						&& (storage.store[RESOURCE_ENERGY] / storage.storeCapacity < 0.9)
-						// && storage.stock < 1.0)
-						&& storage.stock < MAX_OVERSTOCK)
+					else if (storage && storage.my && storage.stock < 1.0)
 						goal = storage;
 					else if (controller.container && controller.container.storedPct < 1.0)
 						goal = controller.container;
+					else if (storage && storage.my && storage.storedPct < 0.9 && storage.stock < MAX_OVERSTOCK)
+						goal = storage;
 					else
 						goal = controller;
 					// Log.warn(`Failover target ${goal}`);
