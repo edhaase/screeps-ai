@@ -69,6 +69,7 @@ module.exports.loop = function () {
 	global.CostMatrix = loadModule('CostMatrix');
 	global.Cache = loadModule('Cache');
 	global.Empire = loadModule('Empire');
+	global.Event = loadModule('Event');
 	global.Scheduler = loadModule('Scheduler');
 	global.Time = loadModule('Time');
 	global.Player = loadModule('Player');

@@ -6,7 +6,7 @@
  */
 'use strict';
 
-/* global DEFINE_CACHED_GETTER, Player, Filter, CRITICAL_INFRASTRUCTURE, Log */
+/* global DEFINE_CACHED_GETTER, Event, Player, Filter, CRITICAL_INFRASTRUCTURE, Log */
 
 global.BIT_LOW_POWER = (1 << 1);
 global.BIT_DISABLE_CONSTRUCTION = (1 << 2);
@@ -36,6 +36,8 @@ DEFINE_CACHED_GETTER(Room.prototype, 'creeps', r => r.find(FIND_MY_CREEPS) || []
 DEFINE_CACHED_GETTER(Room.prototype, 'creepsByRole', r => _.groupBy(r.creeps, c => c.getRole()));
 DEFINE_CACHED_GETTER(Room.prototype, 'creepCountByRole', r => _.countBy(r.creeps, c => c.getRole()));
 DEFINE_CACHED_GETTER(Room.prototype, 'sources', r => r.find(FIND_SOURCES));
+
+DEFINE_CACHED_GETTER(Room.prototype, 'events', r => r.getEventLog());
 
 /** Room ownership shortcuts */
 DEFINE_CACHED_GETTER(Room.prototype, 'my', r => _.get(r, 'controller.my', false));
@@ -83,6 +85,10 @@ DEFINE_CACHED_GETTER(Room.prototype, 'hostiles', function (room) {
 Room.prototype.run = function updateRoom() {
 	if (!(Game.time & 3))
 		this.updateThreats();
+
+	/** Only check if we have something listening */
+	for (const e of this.events)
+		Event.fire(e);
 
 	if (!Memory.rooms[this.name])
 		return;
