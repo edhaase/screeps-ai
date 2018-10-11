@@ -100,6 +100,12 @@ StructureController.prototype.run = function () {
 		this.say(`${avgTick} (${estimate})`);
 	}
 
+	if (this.memory.relock && Game.time > this.memory.relock) {
+		Log.warn(`Locking the front door in ${this.pos.roomName}`, 'Controller');
+		_.invoke(this.room.structuresByType[STRUCTURE_RAMPART], 'setPublic', false);
+		this.memory.relock = undefined;
+	}
+
 	if (!(Game.time & 255))
 		Command.push(`require('Planner').buildRoom(Game.rooms['${this.room.name}'])`);
 
@@ -421,8 +427,13 @@ StructureController.prototype.runCensus = function () {
 				const supplier = _.sample(['requestDefender', 'requestRanger']);
 				require('Unit')[supplier](spawn, roomName, prio);
 			}
-			if (this.room.hostiles.length && _.all(this.room.hostiles, 'owner.username', INVADER_USERNAME))
+			if (this.room.hostiles.length && _.all(this.room.hostiles, 'owner.username', INVADER_USERNAME)) {
 				this.evacuate(`Game.rooms['${this.pos.roomName}'].hostiles.length <= 0`);
+				Log.warn(`Failure to handle invaders cleanly. Evacuating ${this.pos.roomName}.`, 'Controller');
+				_.invoke(this.room.structuresByType[STRUCTURE_RAMPART], 'setPublic', true);
+				const RELOCK_DELAY = 60; // Need time to get everybody out of the room.
+				this.memory.relock = Game.time + RELOCK_DELAY;
+			}
 		}
 	}
 
