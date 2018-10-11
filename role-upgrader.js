@@ -13,14 +13,15 @@
 const MIN_WAIT_TIME = 3;
 const MAX_WAIT_TIME = 5;
 const MAX_UPGRADE_PARTS_PER_ROOM = 50;
+const MIN_ENERGY_FOR_ACTION = 25;
 
 module.exports = {
 	boosts: ['GH', 'GH2O', 'XGH2O'],
-	have: function(census) {
+	have: function (census) {
 		return _.sum(census.creeps[`${census.roomName}_upgrader`], c => c.getBodyParts(WORK));
 	},
 	want: function (census) {
-		const {controller} = census;
+		const { controller } = census;
 		if (controller.upgradeBlocked && controller.upgradeBlocked > CREEP_SPAWN_TIME * 6)
 			return 0;
 		if (controller.level === MAX_ROOM_LEVEL) // Empire at expansion goal?
@@ -77,8 +78,11 @@ module.exports = {
 	/* eslint-disable consistent-return */
 	run: function () {
 		const { controller } = this.room;
-		if (this.carry[RESOURCE_ENERGY] === 0) {
-			this.say('\u26FD', true);
+		if (this.carry[RESOURCE_ENERGY] <= MIN_ENERGY_FOR_ACTION) {
+			if (this.carry[RESOURCE_ENERGY] <= 0)
+				this.say('\u26FD', true);
+			else
+				this.upgradeController(this.room.controller);
 			const provider = this.getTarget(
 				// +1 to range for providers, in case we opt to park them in less obtrusive spots.
 				() => _.map(controller.lookForNear(LOOK_STRUCTURES, true, CREEP_UPGRADE_RANGE + 1), LOOK_STRUCTURES),
