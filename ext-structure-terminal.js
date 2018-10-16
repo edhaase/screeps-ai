@@ -38,6 +38,7 @@ const MODERATE_ENERGY_FREQUENCY = 15;
 const MODERATE_ORDERS_FREQUENCY = 2000;
 
 const TERMINAL_AUTOSELL_THRESHOLD = 7000;			// At what point do we sell overflow?
+const TERMINAL_MINIMUM_AUTOSELL = 1000;				// Maximum amount we can sell in a single action.
 const TERMINAL_MAXIMUM_AUTOSELL = 5000;				// Maximum amount we can sell in a single action.
 const TERMINAL_MINIMUM_SELL_PRICE = 0.001;
 
@@ -190,7 +191,7 @@ StructureTerminal.prototype.runAutoSell = function (resource = RESOURCE_THIS_TIC
 	if (resource === RESOURCE_ENERGY)
 		return false;
 	const over = this.getOverageAmount(resource);
-	if (over < TERMINAL_MIN_SEND)
+	if (over < TERMINAL_MIN_SEND || over < TERMINAL_MINIMUM_AUTOSELL)
 		return false;
 	if (Math.random() > (over / TERMINAL_MAXIMUM_AUTOSELL))
 		return Log.info(`${this.pos.roomName} Skipping sell operation on ${over} ${resource}`, 'Terminal');
