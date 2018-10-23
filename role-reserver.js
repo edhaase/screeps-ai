@@ -20,7 +20,7 @@ module.exports = {
 	},
 	init: function () {
 		this.pushStates([
-			['MoveTo', {pos: this.memory.site, range: 1}]
+			['EvadeMove', {pos: this.memory.site, range: 1}]
 		]);
 	},
 	/* eslint-disable consistent-return */
