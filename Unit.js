@@ -104,7 +104,7 @@ module.exports = {
 		return _.sortBy(body, function (part) {
 			if (part !== TOUGH && first[part] === undefined) {
 				first[part] = false;
-				return 1000 - order.indexOf(part); // Arbritarly large number.
+				return 1000 - order.indexOf(part) * -1; // Arbritarly large number.
 			} else {
 				return order.indexOf(part);
 			}
