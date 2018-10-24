@@ -553,14 +553,23 @@ Creep.prototype.pushState = function (state, opts = {}, runNext = true) {
  * @todo - Blocked rooms
  */
 Creep.prototype.runFleeRoom = function ({ room, range = 5 }) {
+	// Since we can heal and move, try to heal
+	this.heal(this);
+	const hostiles = _.filter(this.room.hostiles, Filter.unauthorizedCombatHostile);
+	const targets = this.pos.findInRange(hostiles, CREEP_RANGED_ATTACK_RANGE);
+	if (targets && targets.length && this.hasActiveBodypart(RANGED_ATTACK)) {
+		if (targets.length > 1)
+			this.rangedMassAttack();
+		else
+			this.rangedAttack(targets[0]);
+	}
 	if (this.fatigue > 0)
 		return;
 	Log.debug(`${this.name} fleeing room ${room}`, 'Creep');
-	var pos = new RoomPosition(25, 25, room);
-	var hostiles = _.filter(this.room.hostiles, Filter.unauthorizedCombatHostile);
-	var goals = _.map(hostiles, c => ({ pos: c.pos, range: CREEP_RANGED_ATTACK_RANGE * 2 }));
+	const pos = new RoomPosition(25, 25, room);
+	const goals = _.map(hostiles, c => ({ pos: c.pos, range: CREEP_RANGED_ATTACK_RANGE * 2 }));
 	goals.unshift({ pos, range: 25 + range });
-	var { path, incomplete } = PathFinder.search(this.pos, goals, {
+	const { path, incomplete } = PathFinder.search(this.pos, goals, {
 		flee: true,
 		plainCost: this.plainSpeed,
 		swampCost: this.swampSpeed,
@@ -571,14 +580,6 @@ Creep.prototype.runFleeRoom = function ({ room, range = 5 }) {
 		this.popState(false);
 	} else {
 		this.move(this.pos.getDirectionTo(path[0]));
-		this.heal(this);
-		const threats = this.pos.findInRange(this.room.hostiles, CREEP_RANGED_ATTACK_RANGE);
-		if (threats && threats.length && this.hasActiveBodypart(RANGED_ATTACK)) {
-			if (threats.length > 1)
-				this.rangedMassAttack();
-			else
-				this.rangedAttack(threats[0]);
-		}
 	}
 };
 
