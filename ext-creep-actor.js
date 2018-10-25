@@ -270,10 +270,13 @@ Creep.prototype.withdraw = function (target, resource, amount) {
 };
 
 Creep.prototype.withdrawAny = function (target, limit) {
-	if (target.store)
-		return this.withdraw(target, _.findKey(target.store), limit);
-	else
-		return this.withdraw(target, RESOURCE_ENERGY, limit);
+	if (target.store) {
+		const resource = _.findKey(target.store);
+		return this.withdraw(target, resource, Math.min(target.store[resource], limit));
+	} else if (target.energy != null) {
+		return this.withdraw(target, RESOURCE_ENERGY, Math.min(target.energy, limit));
+	} else
+		throw new Error(`${this.name} unable to withdrawAny from ${target}`);
 };
 
 Creep.prototype.dropAny = function () {
@@ -341,7 +344,7 @@ Creep.prototype.flee = function (min = MINIMUM_SAFE_FLEE_DISTANCE, all = false, 
 	} */
 	if (opts.roomCallback == null)
 		opts.roomCallback = (r) => {
-			if(Intel.isHostileRoom(r))
+			if (Intel.isHostileRoom(r))
 				return false;
 			return LOGISTICS_MATRIX.get(r);
 			// return Game.rooms[r] ? Game.rooms[r].FLEE_MATRIX : ARENA_MATRIX;
@@ -899,30 +902,30 @@ Creep.prototype.runEnsureStructure = function (opts) {
 Creep.prototype.runTransfer = function (opts) {
 	const { src, dst = opts.dest, res = RESOURCE_ENERGY, amt = Infinity, srcpos, dstpos } = opts;
 
-	if(amt <= 0)
+	if (amt <= 0)
 		this.popState();
 
-	if(this.carryTotal === 0) {
+	if (this.carryTotal === 0) {
 		// Pickup
-		const source = Game.getObjectById(src);		
-		if(source == null)
+		const source = Game.getObjectById(src);
+		if (source == null)
 			return this.popState();
 		const wamt = (amt !== Infinity) ? Math.min(amt, this.carryCapacity) : undefined;
 		const status = this.withdraw(source, res, wamt);
-		if(status === ERR_NOT_IN_RANGE)
-			return this.pushState("EvadeMove", {pos: source.pos, range:1});
-		else if(status === ERR_NOT_ENOUGH_RESOURCES)
+		if (status === ERR_NOT_IN_RANGE)
+			return this.pushState("EvadeMove", { pos: source.pos, range: 1 });
+		else if (status === ERR_NOT_ENOUGH_RESOURCES)
 			return this.popState();
-		else if(status !== OK) {
+		else if (status !== OK) {
 			Log.warn(`${this.name}/${this.pos}: Failure to withdraw on ${source} status ${status}`, 'Creep');
 			this.popState();
 		}
 	} else {
 		const dest = Game.getObjectById(dst);
 		const status = this.transfer(dest, res, this.carry[res]);
-		if(status === ERR_NOT_IN_RANGE)
-			return this.pushState("EvadeMove", {pos: dest.pos, range:1});
-		else if(status !== OK) {
+		if (status === ERR_NOT_IN_RANGE)
+			return this.pushState("EvadeMove", { pos: dest.pos, range: 1 });
+		else if (status !== OK) {
 			Log.warn(`${this.name}/${this.pos}: Failure to transfer on ${dest} status ${status}`, 'Creep');
 			this.popState();
 		} else
