@@ -471,9 +471,9 @@ Creep.prototype.rangedAttack = function (target) {
  */
 const { build } = Creep.prototype;
 Creep.prototype.build = function (target) {
-	if (!target
-		|| !(target instanceof ConstructionSite)
-		|| !target.my && Player.status(target.owner.username) !== PLAYER_ALLY)
+	if (!target || !(target instanceof ConstructionSite))
+		return ERR_INVALID_TARGET;
+	if (!target.my && Player.status(target.owner.username) !== PLAYER_ALLY && target.structureType !== STRUCTURE_CONTAINER)
 		return ERR_INVALID_TARGET;
 	const status = build.call(this, target);
 	if (status === ERR_INVALID_TARGET && OBSTACLE_OBJECT_TYPES.includes(target.structureType)) {
@@ -852,7 +852,7 @@ Creep.prototype.runBuild = function (opts) {
 	if (status === ERR_NOT_IN_RANGE)
 		this.pushState("EvadeMove", { pos: roomPos, range: CREEP_BUILD_RANGE });
 	else if (status !== OK)
-		Log.warn(`build status: ${status} for ${this.name} at ${this.pos}`);
+		Log.warn(`build status: ${status} for ${this.name} at ${this.pos} target ${site}`);
 };
 
 /**
