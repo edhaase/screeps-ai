@@ -524,7 +524,7 @@ RoomObject.prototype.getClosest = function (selector, validator = _.identity, ra
 /**
  * Look call helpers
  */
-RoomObject.prototype.lookNear = function (asArray, range = 1) {
+RoomObject.prototype.lookNear = function (asArray = true, range = 1) {
 	var { x, y } = this.pos;
 	return this.room.lookAtArea(Math.max(0, y - range),
 		Math.max(0, x - range),
@@ -533,7 +533,7 @@ RoomObject.prototype.lookNear = function (asArray, range = 1) {
 		asArray);
 };
 
-RoomObject.prototype.lookForNear = function (lookFor, asArray, range = 1) {
+RoomObject.prototype.lookForNear = function (lookFor, asArray = true, range = 1) {
 	var { x, y } = this.pos;
 	return this.room.lookForAtArea(lookFor,
 		Math.max(0, y - range),
