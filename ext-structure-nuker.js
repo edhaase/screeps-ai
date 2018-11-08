@@ -37,7 +37,7 @@ StructureNuker.prototype.run = function () {
 	// Reload logic
 	if (this.ghodium < this.ghodiumCapacity
 		&& this.room.terminal !== undefined
-		&& this.room.terminal.store[RESOURCE_GHODIUM] >= (this.ghodiumCapacity - this.ghodium)
+		&& this.room.terminal.store[RESOURCE_GHODIUM] >= Math.min(TERMINAL_MAINTAIN_RESERVE, this.ghodiumCapacity - this.ghodium)
 		&& _.findWhere(Game.creeps, { memory: { role: 'filler', dest: this.id } }) == null) {
 		// Log.info('[Nuker] Requesting filler unit at ' + this.pos.roomName);
 		this.runReload();
@@ -106,7 +106,7 @@ StructureNuker.prototype.runReload = function () {
 		return ERR_FULL;
 	const [spawn] = this.getClosestSpawn();
 	const { terminal } = this.room;
-	const memory = { role: 'filler', src: terminal.id, dest: this.id, res: RESOURCE_GHODIUM, amt: this.ghodiumCapacity - this.ghodium };
+	const memory = { role: 'filler', src: terminal.id, dest: this.id, res: RESOURCE_GHODIUM, amt: Math.min(this.ghodiumCapacity - this.ghodium, terminal.store[RESOURCE_GHODIUM]) };
 	spawn.submit({ body: NUKER_FILLER_BODY, memory, priority: PRIORITY_MIN });
 	return OK;
 };
