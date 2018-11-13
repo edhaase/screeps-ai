@@ -66,7 +66,7 @@ const getPickupSite = createUniqueTargetSelector(
 			return true; // We have more energy than we expect.
 		if (creep.room.energyPct > 0.5 && (s.structureType === STRUCTURE_LINK || s.structureType === STRUCTURE_STORAGE))
 			return false;
-		return Filter.canProvideEnergy(s) && !s.isControllerContainer;
+		return Filter.canProvideEnergy(s) && (!s.isControllerContainer || s.room.controller.level >= MAX_ROOM_LEVEL);
 	},
 	(candidates, creep) => _.max(candidates, t => Math.min(getAmt(t), creep.carryCapacityAvailable) / creep.pos.getRangeTo(t.pos))
 );
