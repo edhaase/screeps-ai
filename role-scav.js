@@ -155,7 +155,7 @@ module.exports = {
 					else if (controller.container && controller.container.storedPct < 1.0 && controller.level < MAX_ROOM_LEVEL)
 						goal = controller.container;
 					else if (terminal && terminal.my
-						&& (terminal.store[RESOURCE_ENERGY] < TERMINAL_RESOURCE_LIMIT) // || (storage && storage.stock >= 1))
+						&& (terminal.store[RESOURCE_ENERGY] < TERMINAL_RESOURCE_LIMIT * MAX_OVERSTOCK) // || (storage && storage.stock >= 1))
 						&& terminal.storedTotal < terminal.storeCapacity)
 						goal = terminal;
 					else if (storage && storage.my && storage.storedPct < 0.9 && storage.stock < MAX_OVERSTOCK)
