@@ -70,7 +70,7 @@ StructureExtractor.prototype.run = function () {
 		this.defer(EXTRACTOR_DELAY);
 		return;
 	} else if (container.storedTotal / container.storeCapacity > EXTRACTOR_CONTAINER_FULL) {
-		Log.warn('Container full, waiting for pickup', 'Extractor');
+		Log.warn(`Container full in ${this.pos.roomName}, waiting for pickup`, 'Extractor');
 		this.defer(EXTRACTOR_DELAY);
 		return;
 	}
