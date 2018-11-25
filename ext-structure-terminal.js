@@ -43,7 +43,7 @@ const TERMINAL_MAXIMUM_AUTOSELL = 5000;				// Maximum amount we can sell in a si
 const TERMINAL_MINIMUM_SELL_PRICE = 0.001;
 
 const TERMINAL_MAXIMUM_BUY_PRICE = 20.00;			// Hard cap on price
-const TERMINAL_PURCHASE_MARGIN = 10;
+const TERMINAL_PURCHASE_MARGIN = 0;
 
 /* globally registered constants */
 /* eslint-disable no-magic-numbers */
