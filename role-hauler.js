@@ -226,6 +226,8 @@ module.exports = {
 		if (state === 'U') {
 			this.setState('G');
 			this.pushState("MoveTo", { pos: this.memory.site, range: 1 });
+			if (!this.memory.dropoff)
+				this.setRole('recycle');
 			const rp = _.create(RoomPosition.prototype, this.memory.dropoff);
 			const container = _.find(rp.lookFor(LOOK_STRUCTURES), s => s.store !== undefined);
 			if (container && (_.sum(container.store) < container.storeCapacity - 50) && this.transferAny(container) === OK)
