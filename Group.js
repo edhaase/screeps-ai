@@ -1,44 +1,59 @@
 /** Group.js - Unit Groups */
 'use strict';
 
-/**
- * Unit Group Logic
- */
-RoomObject.prototype.setGroup = function(groupId) {
-	// If no group, create group
-};
+/* global DEFINE_CACHED_GETTER, Log */
 
-RoomObject.prototype.getGroupMembers = function(groupId) {
-
-};
-
-
-/**
- * Unit groups - Assign groups and shared memory space
- */
-Object.defineProperty(RoomObject.prototype, 'group', {
-	set: function (value) {
-		this.memory.gid = value;
-	},
-	get: function () {
-		if (this === RoomObject.prototype)
-			return null;
-		return this.memory.gid;
-	},
-	configurable: true,
-	enumerable: false
+DEFINE_CACHED_GETTER(Creep.prototype, 'squad', ro => {
+	const { gid } = ro.memory;
+	if (!gid || !Memory.groups.members[gid] || !!Memory.groups.members[gid].length)
+		return []; // always a membef of it's own group
+	return Memory.groups.members[gid].filter(m => m !== this.name).map(m => Game.creeps[m]);
 });
+
+if (!Memory.groups) {
+	Log.warn(`Initializing group memory`, 'Memory');
+	Memory.groups = {
+		nextId: 0, members: {}, memory: {}
+	};
+}
+
+/**
+ * Wrap spawnCreep (again), we don't care which order this happens in.
+ * 
+ * Creates groups and adds units at spawn time.
+ */
+const { spawnCreep } = StructureSpawn.prototype;
+StructureSpawn.prototype.spawnCreep = function (body, name, opts = {}) {
+	// opts.energyStructures = this.getProviderCache();
+	const result = spawnCreep.call(this, body, name, opts);
+	if (result === OK && opts.group) {
+		if (!Memory.groups.members[opts.group]) {
+			Log.debug(`Creating group entry for ${opts.group}`, 'Group');
+			Memory.groups.memory[opts.group] = {};
+			Memory.groups.members[opts.group] = [];
+		}
+		Memory.groups.members[opts.group].push(name);
+	}
+	return result;
+};
 
 Object.defineProperty(RoomObject.prototype, 'gmem', {
 	get: function () {
-		var id = this.group;
+		const id = this.memory.gid;
 		if (this === RoomObject.prototype || id == null)
 			return null;
-		if (!Memory.groups)
-			Memory.groups = {};
-		if (!Memory.groups[id])
-			Memory.groups[id] = {};
-		return Memory.groups[id];
+		if (!Memory.groups.memory[id])
+			Memory.groups.memory[id] = {};
+		return Memory.groups.memory[id];
+	},
+	set: function (v) {
+		Memory.groups.memory[this.memory.gid] = v;
 	},
 	configurable: true
 });
+
+module.exports = {
+	getNextGroupId: function () {
+		return Memory.groups.nextId++;
+	}
+};

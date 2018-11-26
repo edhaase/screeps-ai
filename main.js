@@ -70,6 +70,7 @@ module.exports.loop = function () {
 	global.Cache = loadModule('Cache');
 	global.Empire = loadModule('Empire');
 	global.Event = loadModule('Event');
+	global.Group = loadModule('Group');
 	global.Scheduler = loadModule('Scheduler');
 	global.Time = loadModule('Time');
 	global.Player = loadModule('Player');
@@ -179,7 +180,7 @@ module.exports.loop = function () {
 
 	// Optional profiler
 	/* eslint-disable no-constant-condition */
-	if (true) {
+	if (false) {
 		const profiler = loadModule('screeps-profiler');
 		profiler.enable();
 		profiler.registerObject(PathFinder.CostMatrix, 'pCostMatrix');

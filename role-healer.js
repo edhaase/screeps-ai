@@ -10,11 +10,11 @@ const DEFAULT_HEALER_FOLLOW_RANGE = 2;
 const MAXIMUM_CREEP_IDLE = 80;
 
 module.exports = {
-	boosts: ['LO','LHO2','XLHO2','GO','GHO2','XGHO2'],
+	boosts: ['LO', 'LHO2', 'XLHO2', 'GO', 'GHO2', 'XGHO2'],
 	priority: function () {
 		// (Optional)
 	},
-	body: function() {
+	body: function () {
 		// (Optional) Used if no body supplied
 		// Expects conditions..
 	},
@@ -38,7 +38,7 @@ module.exports = {
 		// let target = _.min(targets, 'hitPct');
 		// var healPower = this.getActiveBodyparts(HEAL) * HEAL_POWER;
 		const target = this.getTarget(
-			({ room }) => room.find(FIND_CREEPS),
+			({ room }) => room.find(FIND_CREEPS, { filter: c => !this.memory.gid || this.squad.includes(c) }),
 			(c) => c.hits < c.hitsMax && !Filter.unauthorizedHostile(c),
 			(candidates, { pos }) => pos.findClosestByPath(candidates)
 		);
@@ -50,6 +50,8 @@ module.exports = {
 			this.moveTo(target, { range: 1 });
 		} else if (follow && !this.pos.inRangeTo(follow, DEFAULT_HEALER_FOLLOW_RANGE)) {
 			this.moveTo(follow, { range: DEFAULT_HEALER_FOLLOW_RANGE, ignoreCreeps: false }); // unless stuck
+		} else if (this.squad && this.squad.length) {
+			this.moveTo(this.pos.findClosestByRange(this.squad), { range: DEFAULT_HEALER_FOLLOW_RANGE });
 		} else if (this.memory.stuck > MAXIMUM_CREEP_IDLE) { // and no target
 			this.setRole('recycle');
 		}

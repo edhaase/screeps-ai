@@ -94,7 +94,7 @@ StructureSpawn.prototype.processJobs = function () {
 	}
 
 	var assignedName = job.name || `${job.memory.role}${this.getNextId()}`;
-	var result = this.spawnCreep(job.body, assignedName, { memory: job.memory, cost: job.cost, directions: job.directions });
+	var result = this.spawnCreep(job.body, assignedName, { memory: job.memory, cost: job.cost, directions: job.directions, group: job.memory.gid });
 	if (result !== OK) {
 		Log.error(`${this.pos.roomName}/${this.name} failed to create creep, status: ${result}`, 'Spawn');
 		if (result === ERR_RCL_NOT_ENOUGH)

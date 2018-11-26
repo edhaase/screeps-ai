@@ -415,21 +415,23 @@ global.GC = function () {
 	if ((Game.time & 15))
 		return;
 
-	var groups = {};
+	// var groups = {};
 	var name;
 	for (name in Memory.creeps) {
 		if (Game.creeps[name])
 			continue;
-			const age = Game.time - Memory.creeps[name].born;
-			const maxAge = _.get(Memory, 'stats.maxAge', CREEP_LIFE_TIME);
-			if (age > CREEP_LIFE_TIME)
-				Log.debug(`Garbage collecting ${name} (age: ${age})`, 'GC');
-			if (age > maxAge)
-				Log.info(`New max age! ${name} with ${age} ticks!`);
-			_.set(Memory, 'stats.maxAge', Math.max(maxAge, age));
+		const age = Game.time - Memory.creeps[name].born;
+		const maxAge = _.get(Memory, 'stats.maxAge', CREEP_LIFE_TIME);
+		if (age > CREEP_LIFE_TIME)
+			Log.debug(`Garbage collecting ${name} (age: ${age})`, 'GC');
+		if (age > maxAge)
+			Log.info(`New max age! ${name} with ${age} ticks!`);
+		_.set(Memory, 'stats.maxAge', Math.max(maxAge, age));
+		if (Memory.creeps[name].gid)
+			_.remove(Memory.groups[members], id => id === name);
 		const memory = Memory.creeps[name];
 		const roleName = memory.role;
-			Memory.creeps[name] = undefined;
+		Memory.creeps[name] = undefined;
 		const role = require(`role-${roleName}`);
 		if (!role.onCleanup)
 			continue;
@@ -438,27 +440,31 @@ global.GC = function () {
 		} catch (e) {
 			Log.error(e, 'Creep');
 		}
-		}
+	}
+
+	for (name in Memory.groups.members) {
+		if (Memory.group.members[name].length > 0)
+			continue;
+		Log.debug(`Garbage collecting group ${name}`, 'GC');
+		Memory.group.members[name] = undefined;
+		Memory.group.memory[name] = undefined;
 	}
 
 	for (name in Memory.flags) {
-		if (Memory.flags[name].gid)
-			groups[Memory.flags[name].gid] = 1;
 		if (!Game.flags[name] || _.isEmpty(Memory.flags[name])) {
 			Memory.flags[name] = undefined;
 		}
 	}
 
 	for (name in Memory.spawns) {
-		if (Memory.spawns[name].gid)
-			groups[Memory.spawns[name].gid] = 1;
 		if (!Game.spawns[name]) {
 			Memory.spawns[name] = undefined;
 		}
 	}
 
+
+
 	Memory.rooms = _.omit(Memory.rooms, _.isEmpty);
-	Memory.groups = _.omit(Memory.groups, (v, k) => !groups[k]);
 };
 
 global.GCStructureMemory = function () {
