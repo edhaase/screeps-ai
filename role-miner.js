@@ -74,7 +74,8 @@ module.exports = {
 		}
 
 		/* eslint-disable indent */
-		switch (this.harvest(source)) {
+		const status = this.harvest(source);
+		switch (status) {
 			case OK:
 				if (!this.memory.travelTime) {
 					// We've just arrived.
@@ -113,6 +114,8 @@ module.exports = {
 					this.setRole('recycle');
 				}
 				break;
+			default:
+				this.say(status);
 		}
 	}
 
