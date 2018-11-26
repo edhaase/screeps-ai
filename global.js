@@ -418,9 +418,8 @@ global.GC = function () {
 	var groups = {};
 	var name;
 	for (name in Memory.creeps) {
-		if (Memory.creeps[name].gid)
-			groups[Memory.creeps[name].gid] = 1;
-		if (!Game.creeps[name]) {
+		if (Game.creeps[name])
+			continue;
 			const age = Game.time - Memory.creeps[name].born;
 			const maxAge = _.get(Memory, 'stats.maxAge', CREEP_LIFE_TIME);
 			if (age > CREEP_LIFE_TIME)
@@ -428,7 +427,17 @@ global.GC = function () {
 			if (age > maxAge)
 				Log.info(`New max age! ${name} with ${age} ticks!`);
 			_.set(Memory, 'stats.maxAge', Math.max(maxAge, age));
+		const memory = Memory.creeps[name];
+		const roleName = memory.role;
 			Memory.creeps[name] = undefined;
+		const role = require(`role-${roleName}`);
+		if (!role.onCleanup)
+			continue;
+		try {
+			role.onCleanup(memory, name);
+		} catch (e) {
+			Log.error(e, 'Creep');
+		}
 		}
 	}
 
