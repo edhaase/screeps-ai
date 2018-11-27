@@ -171,21 +171,26 @@ module.exports = {
 		// let max = 2500;
 		// @todo Are we sure we're sizing this right?
 		const { controller } = spawn.room;
-		const avail = Math.max(250, spawn.room.energyCapacityAvailable - (SPAWN_ENERGY_CAPACITY * 0.20));
-		if (controller.level <= 2) {
-			body = [CARRY, MOVE, WORK, WORK];
-		} else if (spawn.pos.roomName !== home) {
-			body = Arr.repeat([WORK, CARRY, MOVE], avail);
+		const avail = Math.max(SPAWN_ENERGY_START, spawn.room.energyCapacityAvailable);
+		if (spawn.pos.roomName !== home) {
+			body = Arr.repeat([WORK, CARRY, MOVE, MOVE], avail);
 		} else {
-			var count = Math.min(workDiff, 1 + Math.floor((avail - 300) / BODYPART_COST[WORK])) || 1;
-			let ccarry = 1;
-			if (count > 5) {
-				ccarry += 2;
-				count -= 2;
-			}
-			if (ccarry + count + 3 > MAX_CREEP_SIZE)
-				count = MAX_CREEP_SIZE - (ccarry + 3);
-			body = Util.RLD([ccarry, CARRY, count, WORK, 3, MOVE]);
+			const [w, c, m] = [0.70 * avail, 0.10 * avail, 0.20 * avail];
+			const [lw, lc, lm] = [0.70 * MAX_CREEP_SIZE, 0.10 * MAX_CREEP_SIZE, 0.20 * MAX_CREEP_SIZE];
+	
+			// Optional, distribute remainder of energy to WORK part,
+			// At rcl 2 plus extensions that's 550 energy or 4 WORK, 1 CARRY, 2 MOVE
+			// Without remainder redistribute we'd have 3-1-2
+			Log.debug(`Upgrader energy available: ${avail} = ${w} + ${c} + ${m}`,  'Unit');
+			const pc = Math.clamp(1, Math.floor(c / BODYPART_COST[CARRY]), lc);
+			const pm = Math.clamp(1, Math.floor(m / BODYPART_COST[MOVE]), lm);
+			const rc = c - pc * BODYPART_COST[CARRY];
+			const rm = m - pm * BODYPART_COST[MOVE];
+			const rem = rc + rm;
+			const pw = Math.clamp(1, Math.floor( (w+rem) / BODYPART_COST[WORK]), Math.min(lw, workDiff));
+			Log.debug(`Upgrader energy remaining: ${rc} ${rm} = ${rem}`, 'Unit');
+			Log.debug(`Upgrader parts available: ${pw} ${pc} ${pm}`, 'Unit');
+			body = Util.RLD([pw, WORK, pc, CARRY, pm, MOVE]);
 		}
 		// Log.debug(`Workdiff: ${workDiff}, count: ${count}, body: ${body}`);
 		return spawn.submit({ body, memory: { role: 'upgrader', home }, priority });
