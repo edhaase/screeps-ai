@@ -488,7 +488,8 @@ StructureController.prototype.runCensus = function () {
 		// let workDesired = 10 * (numSources / 2);
 		let workDesired = allotedUpgrade;
 		if (this.level === MAX_ROOM_LEVEL) {
-			if (workAssigned < CONTROLLER_MAX_UPGRADE_PER_TICK && (this.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || storedEnergy > 700000))
+			const GCL_GOAL = 30;
+			if (workAssigned < CONTROLLER_MAX_UPGRADE_PER_TICK && (this.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || storedEnergy > 700000 || Game.gcl.level < GCL_GOAL))
 				require('Unit').requestUpgrader(spawn, roomName, 90, CONTROLLER_MAX_UPGRADE_PER_TICK);
 		} else {
 			if (this.room.storage)
