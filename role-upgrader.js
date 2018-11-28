@@ -93,7 +93,7 @@ module.exports = {
 				if (status === ERR_NO_PATH)
 					this.defer(_.random(MIN_WAIT_TIME, MAX_WAIT_TIME));
 			}
-			if (this.pull(provider, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE)
+			if (this.take(provider, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE)
 				this.moveTo(provider, {
 					range: 1, maxRooms: 1, ignoreRoads: this.pos.inRangeTo(controller, CREEP_UPGRADE_RANGE + 1)
 				});

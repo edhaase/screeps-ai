@@ -227,7 +227,7 @@ Creep.prototype.gatherEnergy = function () {
 	);
 	if (!goal)
 		return ERR_INVALID_TARGET;
-	const status = this.pull(goal, RESOURCE_ENERGY);
+	const status = this.take(goal, RESOURCE_ENERGY);
 	if (status === ERR_NOT_IN_RANGE)
 		this.moveTo(goal, { ignoreCreeps: (this.memory.stuck < 3), maxRooms: 1 });
 	return status;
@@ -241,7 +241,7 @@ Creep.prototype.getRepairTarget = function () {
 	);
 };
 
-Creep.prototype.pull = function (target, resource = RESOURCE_ENERGY) {
+Creep.prototype.take = function (target, resource = RESOURCE_ENERGY) {
 	var creep = this;
 	var result;
 	if (target instanceof Structure) {
@@ -254,7 +254,7 @@ Creep.prototype.pull = function (target, resource = RESOURCE_ENERGY) {
 		result = creep.harvest(target);
 	}
 	if (result === ERR_INVALID_TARGET) {
-		Log.warn(`${creep.name} pull failed. Target: ${target.id} Resource: ${resource}`, 'Creep');
+		Log.warn(`${creep.name} take failed. Target: ${target.id} Resource: ${resource}`, 'Creep');
 	}
 	return result;
 };
