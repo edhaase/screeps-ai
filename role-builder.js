@@ -59,7 +59,7 @@ module.exports = {
 			const site = this.getTarget(
 				({ room }) => room.find(FIND_MY_CONSTRUCTION_SITES),
 				(s) => s instanceof ConstructionSite,
-				(sites) => _.max(sites, s => (STRUCTURE_BUILD_PRIORITY[s.structureType] || DEFAULT_BUILD_JOB_PRIORITY) / this.pos.getRangeTo(s))
+				(sites) => _.max(sites, s => ((s.progressPct || STRUCTURE_BUILD_PRIORITY[s.structureType] || DEFAULT_BUILD_JOB_PRIORITY) ** 2) / this.pos.getRangeTo(s))
 			);
 			if (site) {
 				if ((status = this.build(site)) === ERR_NOT_IN_RANGE)
