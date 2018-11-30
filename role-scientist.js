@@ -45,6 +45,16 @@ module.exports = {
 		const spawns = this.room.find(FIND_MY_SPAWNS);
 		const active = _.sortBy(_.filter(spawns, s => s.spawning), 'remainingTime');
 
+		// Cleanup
+		const resource = this.pos.findClosestByRange(this.room.resources, { filter: r => r.resourceType !== RESOURCE_ENERGY });
+		if (resource) {
+			return this.pushState('Transfer', { src: resource.id, dst: terminal.id });
+		}
+		const tombstone = this.pos.findClosestByRange(this.room.tombstones, { filter: t => _.findKey(t.store, (a, k) => a > 0 && k !== RESOURCE_ENERGY) });
+		if (tombstone) {
+			return this.pushState('Transfer', { src: tombstone.id, dst: terminal.id, res: _.findKey(tombstone.store, (a, k) => a > 0 && k !== RESOURCE_ENERGY) });
+		}
+
 		if (this.carryTotal > 0) {
 			this.pushState('Transfer', { res: _.findKey(this.carry), dst: terminal.id });
 		}

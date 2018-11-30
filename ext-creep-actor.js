@@ -940,7 +940,7 @@ Creep.prototype.runTransfer = function (opts) {
 		if (source == null)
 			return this.popState();
 		const wamt = (amt !== Infinity) ? Math.min(amt, this.carryCapacity) : undefined;
-		const status = this.withdraw(source, res, wamt);
+		const status = (source instanceof Resource) ? this.pickup(source) : this.withdraw(source, res, wamt);
 		if (status === ERR_NOT_IN_RANGE)
 			return this.pushState("EvadeMove", { pos: source.pos, range: 1 });
 		else if (status === ERR_NOT_ENOUGH_RESOURCES)
