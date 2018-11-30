@@ -42,7 +42,7 @@ function getAmt(thing) {
 
 const getPickupSiteWithTerminal = createUniqueTargetSelector(
 	function ({ room }) {
-		var col = [...room.containers, ...room.resources];
+		var col = [...room.containers, ...room.resources, ...room.tombstones];
 		if (room.energyAvailable / room.energyCapacityAvailable < 0.5)
 			col = col.concat([...room.links, room.storage, room.terminal]);
 		if (room.terminal && room.storage && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_RESOURCE_LIMIT && room.storage.stock < 1)
@@ -59,7 +59,7 @@ const getPickupSiteWithTerminal = createUniqueTargetSelector(
 );
 
 const getPickupSite = createUniqueTargetSelector(
-	({ room }) => [...room.structures, ...room.resources],
+	({ room }) => [...room.structures, ...room.resources, ...room.tombstones],
 	({ room }) => room.find(FIND_MY_CREEPS, { filter: c => c.getRole() === 'scav' && c.memory.tid }).map(c => c.memory.tid),
 	(s, creep) => {
 		if (s.structureType === STRUCTURE_STORAGE && s.stock > 1.0)

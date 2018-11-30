@@ -6,7 +6,7 @@
  */
 'use strict';
 
-/* global DEFINE_CACHED_GETTER, Event, Player, Filter, CRITICAL_INFRASTRUCTURE, Log */
+/* global DEFINE_CACHED_GETTER, Event, Player, Filter, CRITICAL_INFRASTRUCTURE, Log, FIND_TOMBSTONES */
 
 global.BIT_LOW_POWER = (1 << 1);
 global.BIT_DISABLE_CONSTRUCTION = (1 << 2);
@@ -25,6 +25,7 @@ DEFINE_CACHED_GETTER(Room.prototype, 'structuresMy', r => r.find(FIND_MY_STRUCTU
 DEFINE_CACHED_GETTER(Room.prototype, 'structuresByType', r => _.groupBy(r.structures, 'structureType'));
 DEFINE_CACHED_GETTER(Room.prototype, 'structureCountByType', r => _.countBy(r.structures, 'structureType'));
 DEFINE_CACHED_GETTER(Room.prototype, 'mineral', r => r.find(FIND_MINERALS)[0]);
+DEFINE_CACHED_GETTER(Room.prototype, 'tombstones', r => r.find(FIND_TOMBSTONES));
 DEFINE_CACHED_GETTER(Room.prototype, 'containers', r => r.structuresByType[STRUCTURE_CONTAINER] || []);
 DEFINE_CACHED_GETTER(Room.prototype, 'hurtCreeps', r => r.find(FIND_CREEPS, { filter: c => c.hitPct < 1 && (c.my || Player.status(c.owner.username) === PLAYER_ALLY) }));
 DEFINE_CACHED_GETTER(Room.prototype, 'nuker', r => r.findOne(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_NUKER } }));

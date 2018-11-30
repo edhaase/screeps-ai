@@ -5,7 +5,7 @@
  */
 'use strict';
 
-/* global Player, PLAYER_HOSTILE */
+/* global Player, PLAYER_HOSTILE, Tombstone */
 
 module.exports = {
 
@@ -45,9 +45,11 @@ module.exports = {
 	canProvideEnergy: function (thing, min = TERMINAL_MINIMUM_ENERGY) {
 		if (thing instanceof Resource
 			&& thing.resourceType === RESOURCE_ENERGY
-			&& this.droppedResources(thing))
+			&& this.droppedResources(thing)) {
 			return true;
-		else if (thing instanceof Structure) {
+		} else if (thing instanceof Tombstone) {
+			return thing.store[RESOURCE_ENERGY] > 0;
+		} else if (thing instanceof Structure) {
 			if (thing.structureType === STRUCTURE_LINK && thing.energy > 0) return true;
 			if (thing.structureType === STRUCTURE_CONTAINER && thing.store[RESOURCE_ENERGY] > 10) return true;
 			if (thing.structureType === STRUCTURE_STORAGE && (thing.store[RESOURCE_ENERGY] > 0)) return true;

@@ -752,7 +752,7 @@ Creep.prototype.runAcquireEnergy = function (opts = {}) {
 	let target, status;
 	if (allowMove) {
 		target = this.getTarget(
-			({ room }) => [...room.structures, ...room.resources],
+			({ room }) => [...room.structures, ...room.resources, ...room.tombstones],
 			(c) => Filter.canProvideEnergy(c),
 			(c) => this.pos.findClosestByPath(c)
 		);
@@ -761,7 +761,8 @@ Creep.prototype.runAcquireEnergy = function (opts = {}) {
 			({ room }) => {
 				const resources = _.map(this.lookForNear(LOOK_RESOURCES), LOOK_RESOURCES);
 				const structures = _.map(this.lookForNear(LOOK_STRUCTURES), LOOK_STRUCTURES);
-				return [...resources, ...structures];
+				const tombstones = _.map(this.lookFor(LOOK_TOMBSTONES), LOOK_TOMBSTONES);
+				return [...resources, ...structures, ...tombstones];
 			},
 			(c) => Filter.canProvideEnergy(c),
 			(c) => this.pos.findClosestByPath(c)
