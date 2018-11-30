@@ -844,6 +844,8 @@ Creep.prototype.runBoostSelf = function ({ boost, parts }) {
 Creep.prototype.runUnboostSelf = function () {
 	if (!this.isBoosted())
 		return this.popState();
+	else if (this.ticksToLive <= 1)
+		Log.notify(`Failed to unboost ${this} at ${this.pos} in time!`);
 
 	const target = this.getTarget(
 		() => Game.structures,

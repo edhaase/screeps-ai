@@ -79,7 +79,7 @@ module.exports = {
 	/* eslint-disable consistent-return */
 	run: function () {
 		const { controller } = this.room;
-		if (this.ticksToLive < MIN_TTL_UNBOOST && this.isBoosted()) {
+		if (this.ticksToLive === MIN_TTL_UNBOOST && this.isBoosted()) {
 			return this.pushState("UnboostSelf");
 		}
 
