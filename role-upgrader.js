@@ -14,6 +14,7 @@ const MIN_WAIT_TIME = 3;
 const MAX_WAIT_TIME = 5;
 const MAX_UPGRADE_PARTS_PER_ROOM = 50;
 const MIN_ENERGY_FOR_ACTION = 25;
+const MIN_TTL_UNBOOST = 30;
 
 module.exports = {
 	boosts: ['GH', 'GH2O', 'XGH2O'],
@@ -78,6 +79,10 @@ module.exports = {
 	/* eslint-disable consistent-return */
 	run: function () {
 		const { controller } = this.room;
+		if (this.ticksToLive < MIN_TTL_UNBOOST && this.isBoosted()) {
+			return this.pushState("UnboostSelf");
+		}
+
 		if (this.carry[RESOURCE_ENERGY] <= MIN_ENERGY_FOR_ACTION) {
 			if (this.carry[RESOURCE_ENERGY] <= 0)
 				this.say('\u26FD', true);
