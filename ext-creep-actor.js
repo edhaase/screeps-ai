@@ -849,7 +849,7 @@ Creep.prototype.runUnboostSelf = function () {
 		() => Game.structures,
 		(s) => s.structureType === STRUCTURE_LAB && !s.cooldown,
 		(candidates) => {
-			const { goal, cost } = this.pos.findClosestByPathFinder(candidates, (x) => ({ pos: x.pos, range: 1 }));
+			const { goal, cost } = this.pos.findClosestByPathFinder(candidates, (x) => ({ pos: x.pos, range: 1 }), { maxCost: this.ticksToLive - 1 });
 			this.memory.eta = Game.time + cost;
 			return goal;
 		}
