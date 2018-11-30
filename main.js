@@ -110,6 +110,7 @@ module.exports.loop = function () {
 	loadModule('ext-structure-extractor');
 	loadModule('ext-structure-rampart');
 	loadModule('ext-structure-powerspawn');
+	loadModule('ext-tombstone');
 	loadModule('Group');
 
 	// Hot swap the loop when we're loaded
