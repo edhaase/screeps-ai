@@ -839,6 +839,34 @@ Creep.prototype.runBoostSelf = function ({ boost, parts }) {
 };
 
 /**
+ * Locate a lab and unboost ourselves
+ */
+Creep.prototype.runUnboostSelf = function () {
+	if (!this.isBoosted())
+		return this.popState();
+
+	const target = this.getTarget(
+		() => Game.structures,
+		(s) => s.structureType === STRUCTURE_LAB && !s.cooldown,
+		(candidates) => {
+			const { goal, cost } = this.pos.findClosestByPathFinder(candidates, (x) => ({ pos: x.pos, range: 1 }));
+			this.memory.eta = Game.time + cost;
+			return goal;
+		}
+	);
+
+	if (!target)
+		return this.popState();
+	const status = target.unboostCreep(this);
+	if (status === OK)
+		return;
+	if (status === ERR_NOT_IN_RANGE)
+		this.moveTo(target, { range: 1 });
+	else
+		Log.warn(`Unable to unboost creep ${this} with ${target}, status ${status}`, 'Creep');
+};
+
+/**
  * Build a site at a a position
  */
 Creep.prototype.runBuild = function (opts) {
