@@ -101,9 +101,10 @@ module.exports = {
 		if ((goal instanceof StructureContainer) && ((goal.hitsMax - goal.hits) > this.memory.repairPower))
 			return this.repair(goal);
 
+		const MINIMUM_TRANSFER_AMOUNT = 25;
 		const transferTarget = this.getTarget(
 			() => _.map(this.lookForNear(LOOK_STRUCTURES, true, 1), 'structure'),
-			({ energy, energyCapacity }) => energyCapacity - energy >= 25,
+			(t) => t.energyCapacity - t.energy >= MINIMUM_TRANSFER_AMOUNT && this.pos.isNearTo(t),
 			(candidates) => _.min(candidates, 'energy'),
 			'ttid'
 		);
