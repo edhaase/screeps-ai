@@ -10,6 +10,7 @@
 
 const LINK_AUTOBALANCE_THRESHOLD = 100; // Amount of energy over in-network average before transferring.
 const LINK_ON_ERROR_DEFER = 100;
+const LINK_PRECISION = 100;
 
 DEFINE_CACHED_GETTER(Room.prototype, 'links', function () {
 	if (this.cache.links == null || Game.time - this.cache.tick > 10) {
@@ -34,7 +35,7 @@ StructureLink.prototype.run = function () {
 		return;
 	}
 	var { avgInNetwork } = this.room;
-	var diff = Math.floor(this.energy - avgInNetwork);
+	const diff = LINK_PRECISION * Math.floor((this.energy - avgInNetwork) / LINK_PRECISION); // Round to nearest 100 to reduce ineffiency
 	if (diff < LINK_AUTOBALANCE_THRESHOLD)
 		return;
 	var target = this.pos.findClosestByRange(this.room.links, { filter: t => t && t.energy < avgInNetwork && !t.isReceiving });
