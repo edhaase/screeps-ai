@@ -533,7 +533,9 @@ global.terminals = function () {
 	});
 	rows = _.filter(rows, r => _.any(r, v => v > 0));
 	const totals = _.map(terminals, 'total');
+	const credits = _.map(terminals, t => _.round(t.credits, 2));
 	rows.unshift(['total'].concat(totals));
+	rows.unshift(['credits'].concat(credits));
 	output += '</table>';
 	console.log(Log.table(headers, rows));
 };
