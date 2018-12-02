@@ -533,7 +533,7 @@ global.terminals = function () {
 	});
 	rows = _.filter(rows, r => _.any(r, v => v > 0));
 	const totals = _.map(terminals, 'total');
-	const credits = _.map(terminals, t => _.round(t.credits, 2));
+	const credits = _.map(terminals, t => Math.floor(t.credits));
 	rows.unshift(['total'].concat(totals));
 	rows.unshift(['credits'].concat(credits));
 	output += '</table>';
