@@ -296,13 +296,13 @@ StructureController.prototype.runCensus = function () {
 	const reactor = (this.room.energyAvailable >= SPAWN_ENERGY_START) ? 0 : spawns.length;
 	const overstock = Math.floor((storage && storedEnergy * Math.max(0, storage.stock - 1) || 0) / CREEP_LIFE_TIME);
 	const income = base + remote + reactor + overstock;
-	Log.info(`${this.pos.roomName}: Base ${base} Remote ${remote} Reactor ${reactor} Over ${overstock}`, 'Controller');
+	Log.info(`${this.pos.roomName}: Base ${_.round(base,3)} Remote ${_.round(remote,3)} Reactor ${_.round(reactor,3)} Over ${_.round(overstock,3)}`, 'Controller');
 
 	const upkeep = _.sum(creeps, 'cpt') + _.sum(this.room.structures, 'upkeep');
 	const expense = 0;
 	const net = income - (expense + upkeep);
 	const avail = income - upkeep;
-	Log.info(`${this.pos.roomName}: Income ${income}, Overstock: ${overstock}, Expense: ${expense}, Upkeep: ${_.round(upkeep, 3)}, Net: ${_.round(net, 3)}, Avail ${_.round(avail, 3)}, Banked: ${storedEnergy}`, 'Controller');
+	Log.info(`${this.pos.roomName}: Income ${_.round(income,3)}, Overstock: ${_.round(overstock,3)}, Expense: ${_.round(expense,3)}, Upkeep: ${_.round(upkeep, 3)}, Net: ${_.round(net, 3)}, Avail ${_.round(avail, 3)}, Banked: ${storedEnergy}`, 'Controller');
 
 
 	// Distribution		
@@ -310,7 +310,7 @@ StructureController.prototype.runCensus = function () {
 	const allotedRepair = _.any(this.room.structures, s => s.hits / s.hitsMax < upperRepairLimit) ? Math.floor(avail * 0.20) : 0;
 	const allotedBuild = (this.room.memory.bq && this.room.memory.bq.length) ? Math.floor(avail * 0.60) : 0;
 	const allotedUpgrade = avail - allotedRepair - allotedBuild;
-	Log.info(`${this.pos.roomName}: Allotments: ${allotedUpgrade} upgrade, ${allotedRepair} repair, ${allotedBuild} build`, 'Controller');
+	Log.info(`${this.pos.roomName}: Allotments: ${_.round(allotedUpgrade,3)} upgrade, ${_.round(allotedRepair,3)} repair, ${_.round(allotedBuild,3)} build`, 'Controller');
 
 	/**
 	 * Emergency conditions - Should probably be detected elsewhere
