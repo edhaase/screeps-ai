@@ -29,7 +29,7 @@ DEFINE_CACHED_GETTER(Creep.prototype, 'canFight', (c) => c.canAttack || c.canRan
 
 /** Scores */
 DEFINE_CACHED_GETTER(Creep.prototype, 'harvestPower', (c) => c.calcEffective(HARVEST_POWER, WORK, 'harvest'));
-DEFINE_CACHED_GETTER(Creep.prototype, 'repairPower', (c) => c.calcEffective(DISMANTLE_POWER, WORK, 'repair'));
+DEFINE_CACHED_GETTER(Creep.prototype, 'repairPower', (c) => c.calcEffective(REPAIR_POWER, WORK, 'repair'));
 DEFINE_CACHED_GETTER(Creep.prototype, 'dismantlePower', (c) => c.calcEffective(DISMANTLE_POWER, WORK, 'dismantle'));
 DEFINE_CACHED_GETTER(Creep.prototype, 'buildPower', (c) => c.calcEffective(BUILD_POWER, WORK, 'build'));
 DEFINE_CACHED_GETTER(Creep.prototype, 'attackPower', (c) => c.calcEffective(ATTACK_POWER, ATTACK, 'attack'));
