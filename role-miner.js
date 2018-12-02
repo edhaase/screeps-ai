@@ -41,7 +41,7 @@ module.exports = {
 			// if(container.hitsMax - container.hits > (REPAIR_POWER * 6) && this.hasActiveBodypart(CARRY))
 			// if(container.hitsMax - container.hits > (REPAIR_POWER * 6) && this.carry[RESOURCE_ENERGY] > 0)
 			// Split resources between repair and container
-			if ((this.ticksToLive & 2) && container.hitsMax - container.hits > (REPAIR_POWER * 6) && this.carryTotal >= this.carryCapacity)
+			if ((this.ticksToLive & 2) && container.hitsMax - container.hits >= (REPAIR_POWER * 6) && this.carryTotal >= this.carryCapacity)
 				this.repair(container);
 			if (!this.pos.isEqualTo(container.pos))
 				this.moveTo(container, { range: 0 });
