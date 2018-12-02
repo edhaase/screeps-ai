@@ -9,6 +9,12 @@ module.exports = {
 		if (BUCKET_LIMITER)
 			return this.suicide();
 		this.memory.home = undefined;
+		if (this.memory.attemptedUnboost == null) {
+			this.memory.attemptedUnboost = true;
+			if (this.isBoosted())
+				return this.pushState("UnboostSelf");
+		}
+
 		if ((Game.time & 3) === 0
 			&& this.carryTotal <= 0
 			&& !this.isBoosted()
