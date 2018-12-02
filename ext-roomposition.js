@@ -282,20 +282,19 @@ RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = _.identi
 	_.defaults(opts, {
 		maxOps: 16000,
 		plainCost: 2,
-		swampCost: 5,
+		swampCost: 10,
 		roomCallback: r => FIXED_OBSTACLE_MATRIX.get(r)
 	});
 	const result = PathFinder.search(this, mapping, opts);
 	if (!result.path.length) {
+		Log.error('findClosestByPathFinder was unable to find a solution');
 		Log.error(ex(mapping));
 		Log.error(ex(opts));
 		Log.error(ex(result));
 	}
 	// if(result.incomplete)
 	//	throw new Error('Path incomplete');
-	let last = _.last(result.path);
-	if (last == null)
-		last = this;
+	const last = _.last(result.path) || this;
 	// return {goal: null};
 	const goal = _.min(goals, g => last.getRangeTo(g.pos));
 	return {
