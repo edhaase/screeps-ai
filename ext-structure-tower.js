@@ -20,6 +20,7 @@
 DEFINE_MEMORY_BACKED_PROPERTY(StructureTower.prototype, 'range');
 
 const TOWER_REPAIR_MAX_HITS = 20000;
+const TOWER_REPAIR_THRESHOLD = 0.75;
 
 const TOWER_MINIMUM_RESERVE = 0.75;
 // global.TOWER_DAMAGE_EFFECT = [600,600,600,600,600,600,570,540,510,480,450,420,390,360,330,300,270,240,210,180,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150];
@@ -150,7 +151,7 @@ StructureTower.prototype.delayNextRepair = function () {
 
 // @todo consider caching this for a couple ticks
 StructureTower.prototype.getRepairTarget = function () {
-	const targets = _.filter(this.room.structures, s => s.hits < s.hitsMax && s.hits < TOWER_REPAIR_MAX_HITS);
+	const targets = _.filter(this.room.structures, s => s.hits / s.hitsMax < TOWER_REPAIR_THRESHOLD && s.hits < TOWER_REPAIR_MAX_HITS);
 	return _.min(targets, 'hits');
 };
 
