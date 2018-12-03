@@ -105,16 +105,6 @@ class Empire {
 		// Or build colonizer to target lock a room. (Except which room spawns him?)
 	}
 
-
-	static getAllCandidateRooms(range = 3) {
-		return _(this.ownedRooms())
-			.map(m => this.getCandidateRooms(m.name, range))
-			.flatten()
-			.unique()
-			.filter(r => Intel.isClaimable(r))
-			;
-	}
-
 	// @todo Fuzz factor is still problematic.
 	static getAllCandidateRoomsByScore(range = 3) {
 		return this
@@ -125,6 +115,40 @@ class Empire {
 		// .sortByOrder(r => Intel.scoreRoomForExpansion(r), ['desc'])
 	}
 
+	static getAllCandidateRooms(range = 3) {
+		const start = _.map(this.ownedRooms(), 'name');
+		const seen = _.zipObject(start, Array(start.length).fill(0));
+		const q = start;
+		const candidates = [];
+		for (const roomName of q) {
+			const dist = seen[roomName] || 0;
+			// console.log(`${roomName} ${dist}`);
+			if (dist >= range)
+				continue;
+			const exits = _.values(Game.map.describeExits(roomName));
+			for (const exit of exits) {
+				if (!Game.map.isRoomAvailable(exit))
+					continue;
+				if (seen[exit] !== undefined && dist + 1 >= seen[exit])
+					continue;
+				seen[exit] = dist + 1;
+				const score = _.sortedIndex(q, exit, i => seen[i]);
+				q.splice(score, 0, exit);
+				// console.log(`exit score: ${score}`);
+			}
+			if (Room.getType(roomName) !== 'Room')
+				continue;
+			if (Game.rooms[roomName] && Game.rooms[roomName].my)
+				continue;
+			if (!Intel.isClaimable(roomName))
+				continue;
+
+			candidates.push(roomName);
+		}
+
+		return _(candidates);
+	}
+
 	/**
 	 * Find expansion candidates.
 	 *
@@ -133,24 +157,30 @@ class Empire {
 	 * W7N4,W8N4,W5N3,W5N2,W9N3,W9N2
 	 */
 	static getCandidateRooms(start, range = 2) {
-		/* global Route */
-		/* return _(Game.map.describeExits(start))
-			.reject(r => Room.getType(r) != 'Room' || (Game.rooms[r] && Game.rooms[r].my))
-			.value(); */
+		const seen = { [start]: 0 };
+		const q = [start];
+		const candidates = [];
+		for (const roomName of q) {
+			const dist = seen[roomName];
+			if (dist >= range)
+				continue;
+			const exits = _.values(Game.map.describeExits(roomName));
+			for (const exit of exits) {
+				if (!Game.map.isRoomAvailable(exit) || seen[exit] !== undefined)
+					continue;
+				seen[exit] = dist + 1;
+				q.push(exit);
+			}
+			if (Room.getType(roomName) !== 'Room')
+				continue;
+			if (Game.rooms[roomName] && Game.rooms[roomName].my)
+				continue;
+			if (!_.inRange(Route.findRoute(start, roomName).length, 2, 5))
+				continue;
+			candidates.push(roomName);
+		}
 
-		// Roughly get rooms at distance 2 away?
-		var set = new Set([start]);
-		set.forEach(function (roomName) {
-			var exits = _.values(Game.map.describeExits(roomName));
-			var rooms = _.filter(exits, r => Game.map.getRoomLinearDistance(start, r) <= range);
-			_.each(rooms, r => set.add(r));
-		});
-		return _.reject([...set], r => (Game.rooms[r] && Game.rooms[r].my)
-			|| Room.getType(r) !== "Room"
-			|| !Game.map.isRoomAvailable(r)
-			// || Game.map.getRoomLinearDistance(start, r) <= 1
-			|| !_.inRange(Route.findRoute(start, r).length, 2, 5));
-
+		return candidates;
 	}
 
 	/**
