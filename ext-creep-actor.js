@@ -761,7 +761,7 @@ Creep.prototype.runAcquireEnergy = function (opts = {}) {
 			({ room }) => {
 				const resources = _.map(this.lookForNear(LOOK_RESOURCES), LOOK_RESOURCES);
 				const structures = _.map(this.lookForNear(LOOK_STRUCTURES), LOOK_STRUCTURES);
-				const tombstones = _.map(this.lookFor(LOOK_TOMBSTONES), LOOK_TOMBSTONES);
+				const tombstones = _.map(this.lookForNear(LOOK_TOMBSTONES), LOOK_TOMBSTONES);
 				return [...resources, ...structures, ...tombstones];
 			},
 			(c) => Filter.canProvideEnergy(c),
