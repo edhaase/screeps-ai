@@ -138,7 +138,7 @@ class Empire {
 			}
 			if (Room.getType(roomName) !== 'Room')
 				continue;
-			if (Game.rooms[roomName] && Game.rooms[roomName].my)
+			if ((Game.rooms[roomName] && Game.rooms[roomName].my) || dist <= 1)
 				continue;
 			if (!Intel.isClaimable(roomName))
 				continue;
