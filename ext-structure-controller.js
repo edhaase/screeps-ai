@@ -486,11 +486,11 @@ StructureController.prototype.runCensus = function () {
 	if ((!this.upgradeBlocked || this.upgradeBlocked < CREEP_SPAWN_TIME * 6)) {
 		const workAssigned = _.sum(upgraders, c => c.getBodyParts(WORK));
 		// let workDesired = 10 * (numSources / 2);
-		let workDesired = allotedUpgrade;
+		let workDesired = Math.min(Math.floor(allotedUpgrade), CONTROLLER_MAX_UPGRADE_PER_TICK);
 		if (this.level === MAX_ROOM_LEVEL) {
 			const GCL_GOAL = 30;
-			if (workAssigned < CONTROLLER_MAX_UPGRADE_PER_TICK && (this.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || storedEnergy > 700000 || Game.gcl.level < GCL_GOAL))
-				require('Unit').requestUpgrader(spawn, roomName, 90, CONTROLLER_MAX_UPGRADE_PER_TICK);
+			if (workAssigned < workDesired && (this.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || storedEnergy > 700000 || Game.gcl.level < GCL_GOAL))
+				require('Unit').requestUpgrader(spawn, roomName, 90, workDesired);
 		} else {
 			if (this.room.storage)
 				workDesired = Math.floor(workDesired * this.room.storage.stock);
