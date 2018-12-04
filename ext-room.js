@@ -211,9 +211,12 @@ Room.prototype.addToBuildQueue = function ({ x, y }, structureType, expire = DEF
 		return OK;
 	try {
 		// sorted index for priority?
-		var task = { x, y, structureType, expire: Game.time + expire, priority };
+		const BUILD_SCORE_PRECISION_MOD = 1000;
+		const cost = Math.ceil(CONSTRUCTION_COST[structureType] / BUILD_SCORE_PRECISION_MOD);
+		const score = -((100 * priority) << 22) | Math.min(cost << 14, 256) | Math.min(y << 7, 64) | Math.min(x, 64);
+		const task = { x, y, structureType, expire: Game.time + expire, priority, score };
 		var q = this.memory.bq;
-		var indx = _.sortedLastIndex(q, task, ({ structureType, priority }) => -(((100 * priority) << 24) | CONSTRUCTION_COST[structureType]));
+		var indx = _.sortedLastIndex(q, task, 'score');
 		q.splice(indx, 0, task);
 	} catch (e) {
 		Log.error(`Error in addToBuildQueue ${this.name}`, "Room");
