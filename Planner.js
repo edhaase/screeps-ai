@@ -677,9 +677,10 @@ class BuildPlanner {
 	static exitPlanner(roomName, opts = {}) {
 		const {
 			origin = Game.rooms[roomName].getOrigin().pos,
-			visualize = true, visualizePath = true,
+			visualize = true, visualizePath = true, visualizeOrder = true,
 			param = FIND_EXIT,
 			commit = false,
+			sort = true,
 			ignorePlan = false } = opts;
 		const cm = new PathFinder.CostMatrix;
 		const room = Game.rooms[roomName];
@@ -695,6 +696,7 @@ class BuildPlanner {
 		}
 		/* eslint no-constant-condition: 0 */
 		const params = { roomCallback: () => cm, maxRooms: 1 };
+		let order = [];
 		while (true) {
 			const { path, incomplete } = PathFinder.search(origin, exits, params);
 			if (incomplete)
@@ -702,16 +704,26 @@ class BuildPlanner {
 			const pos = path[path.length - 3];
 			cm.set(pos.x, pos.y, 255);
 			const wallOrRampart = (pos.x + pos.y) % 3;
-			if (commit) {
-				var type = wallOrRampart ? STRUCTURE_WALL : STRUCTURE_RAMPART;
-				if (!pos.hasStructure(type))
-					room.addToBuildQueue(pos, type);
-			}
+			const type = wallOrRampart ? STRUCTURE_WALL : STRUCTURE_RAMPART;
+			if (!pos.hasStructure(type))
+				order.push({ pos, type });
 			if (visualize) {
 				if (visualizePath)
 					visual.poly(path);
+
 				visual.circle(pos, { fill: (wallOrRampart ? 'black' : 'green'), opacity: 0.75 });
 			}
+		}
+
+		if (sort)
+			order = _.sortBy(order, ({ pos }) => pos.y << 16 | pos.x);
+
+		i = 0;
+		for (const { pos, type } of order) {
+			if (visualizeOrder)
+				visual.text(i++, pos);
+			if (commit)
+				room.addToBuildQueue(pos, type);
 		}
 	}
 
