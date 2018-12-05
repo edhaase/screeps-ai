@@ -288,6 +288,7 @@ StructureController.prototype.runCensus = function () {
 	const signers = census[`${roomName}_signer`] || [];
 
 	var resDecay = _.sum(this.room.resources, 'decay');
+	const sites = this.room.find(FIND_MY_CONSTRUCTION_SITES);
 
 	// Income
 	const sources = this.room.find(FIND_SOURCES);
@@ -296,21 +297,22 @@ StructureController.prototype.runCensus = function () {
 	const reactor = (this.room.energyAvailable >= SPAWN_ENERGY_START) ? 0 : spawns.length;
 	const overstock = Math.floor((storage && storedEnergy * Math.max(0, storage.stock - 1) || 0) / CREEP_LIFE_TIME);
 	const income = base + remote + reactor + overstock;
-	Log.info(`${this.pos.roomName}: Base ${_.round(base,3)} Remote ${_.round(remote,3)} Reactor ${_.round(reactor,3)} Over ${_.round(overstock,3)}`, 'Controller');
+	Log.info(`${this.pos.roomName}: Base ${_.round(base, 3)} Remote ${_.round(remote, 3)} Reactor ${_.round(reactor, 3)} Over ${_.round(overstock, 3)}`, 'Controller');
 
-	const upkeep = _.sum(creeps, 'cpt') + _.sum(this.room.structures, 'upkeep');
+	// const upkeep = _.sum(creeps, 'cpt') + _.sum(this.room.structures, 'upkeep');
+	const upkeep = _.sum(this.room.structures, 'upkeep');
 	const expense = 0;
 	const net = income - (expense + upkeep);
 	const avail = income - upkeep;
-	Log.info(`${this.pos.roomName}: Income ${_.round(income,3)}, Overstock: ${_.round(overstock,3)}, Expense: ${_.round(expense,3)}, Upkeep: ${_.round(upkeep, 3)}, Net: ${_.round(net, 3)}, Avail ${_.round(avail, 3)}, Banked: ${storedEnergy}`, 'Controller');
+	Log.info(`${this.pos.roomName}: Income ${_.round(income, 3)}, Overstock: ${_.round(overstock, 3)}, Expense: ${_.round(expense, 3)}, Upkeep: ${_.round(upkeep, 3)}, Net: ${_.round(net, 3)}, Avail ${_.round(avail, 3)}, Banked: ${storedEnergy}`, 'Controller');
 
 
 	// Distribution		
 	const upperRepairLimit = 0.995;
 	const allotedRepair = _.any(this.room.structures, s => s.hits / s.hitsMax < upperRepairLimit) ? Math.floor(avail * 0.30) : 0;
-	const allotedBuild = (this.room.memory.bq && this.room.memory.bq.length) ? Math.floor(avail * 0.60) : 0;
+	const allotedBuild = (sites && sites.length) ? Math.floor(avail * 0.70) : 0;
 	const allotedUpgrade = avail - allotedRepair - allotedBuild;
-	Log.info(`${this.pos.roomName}: Allotments: ${_.round(allotedUpgrade,3)} upgrade, ${_.round(allotedRepair,3)} repair, ${_.round(allotedBuild,3)} build`, 'Controller');
+	Log.info(`${this.pos.roomName}: Allotments: ${_.round(allotedUpgrade, 3)} upgrade, ${_.round(allotedRepair, 3)} repair, ${_.round(allotedBuild, 3)} build`, 'Controller');
 
 	/**
 	 * Emergency conditions - Should probably be detected elsewhere
@@ -397,10 +399,13 @@ StructureController.prototype.runCensus = function () {
 		});
 	}
 
-	const sites = this.room.find(FIND_MY_CONSTRUCTION_SITES);
-	if (sites && sites.length && builders.length < (numSources || 1)) { // && (this.room.energyAvailable > 200 || storedEnergy > 110000)) {
-		const buildRemaining = _.sum(sites, s => s.progressTotal - s.progress);	// Total energy required to finish all builds
-		const score = Math.ceil(buildRemaining / CREEP_LIFE_TIME / BUILD_POWER);
+	const MAX_BUILD_DESIRED = 20 * BUILD_POWER; // 160 e/t if we have storage?
+	const buildAssigned = _.sum(builders, c => c.getBodyParts(WORK)) * BUILD_POWER;
+	const buildDesired = Math.max(allotedBuild, (storage && storage.stock * MAX_BUILD_DESIRED || 0));
+	if (sites && sites.length && buildAssigned < buildDesired) {
+		Log.debug(`Build: ${buildAssigned}/${buildDesired}`, 'Controller');
+		// const buildRemaining = _.sum(sites, s => s.progressTotal - s.progress);	// Total energy required to finish all builds
+		// const score = Math.ceil(buildRemaining / CREEP_LIFE_TIME / BUILD_POWER);
 		// console.log('build remaining in room: ' + score);
 		// score = Math.clamp(0, score, 3);
 		let useSpawn = spawn || assistingSpawn;
@@ -409,9 +414,9 @@ StructureController.prototype.runCensus = function () {
 			useSpawn = assistingSpawn;
 		if (!useSpawn)
 			Log.warn(`No spawn available to request builders for ${this.pos.roomName}`, 'Controller');
-		prio = Math.clamp(0, Math.ceil(100 * (builders.length / numSources)), 90);
-		var elimit = (storedEnergy > 10000) ? Infinity : (10 * numSources);
-		require('Unit').requestBuilder(useSpawn, { elimit, home: roomName, priority: prio });
+		prio = Math.clamp(0, Math.ceil(100 * (buildAssigned / buildDesired)), 90);
+		// var elimit = (storedEnergy > 10000) ? Infinity : (10 * numSources);
+		require('Unit').requestBuilder(useSpawn, { elimit: buildDesired, home: roomName, priority: prio });
 	}
 
 	// Defenders

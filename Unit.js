@@ -207,19 +207,30 @@ module.exports = {
 	 * Biggest we can!
 	 * WARNING: _5_ energy per tick per part, not 1.
 	 */
-	requestBuilder: function (spawn, { elimit = 20, home, body, num = 1, priority = PRIORITY_MED } = {}) {
-		// let avail = Math.clamp(300, spawn.room.energyCapacityAvailable, 2000);
+	requestBuilder: function (spawn, { elimit = 20, home, body, priority = PRIORITY_MED } = {}) {
+		Log.debug(`Builder for ${spawn.room.name}`, 'Unit');
 		const partLimit = Math.floor(elimit / BUILD_POWER);
-		const avail = Math.max(SPAWN_ENERGY_START, spawn.room.energyCapacityAvailable * 0.90);
-		const pattern = [MOVE, MOVE, MOVE, WORK, WORK, CARRY];
-		const cost = UNIT_COST(pattern);
-		const al = Math.min(Math.floor(cost * (partLimit / 2)), avail);
-		// console.log(`Pattern cost: ${cost}, avail: ${avail}, limit: ${al}`);
-		if (body == null)
-			body = Arr.repeat(pattern, al); // 400 energy gets me 2 work parts.
-		if (_.isEmpty(body)) {
-			body = [WORK, CARRY, MOVE, MOVE];
-		}
+		Log.debug(`Work part limit: ${partLimit}`, 'Unit');
+		const avail = Math.max(SPAWN_ENERGY_START, spawn.room.energyCapacityAvailable);
+		const [w, c, m] = [Math.floor(0.25 * avail), Math.floor(0.25 * avail), Math.floor(0.50 * avail)];
+		const [lw, lc, lm] = [0.20 * MAX_CREEP_SIZE, 0.30 * MAX_CREEP_SIZE, 0.50 * MAX_CREEP_SIZE];
+		const [aw, ac, am] = [Math.floor(w / BODYPART_COST[WORK]), Math.floor(c / BODYPART_COST[CARRY]), Math.floor(m / BODYPART_COST[MOVE])]
+		Log.debug(`Build energy available: ${avail} = ${w} + ${c} + ${m}`, 'Unit');
+		Log.debug(`Build part limits: ${lw} ${lc} ${lm}`, 'Unit');
+		Log.debug(`Build avail parts: ${aw} ${ac} ${am}`, 'Unit');
+		const pw = Math.max(1, Math.min(lw, aw, partLimit));
+		const pc = Math.max(1, Math.min(lc, ac));
+		const pm = Math.max(1, Math.min(lm, am, pc + pw));
+		const rw = w - pw * BODYPART_COST[WORK];
+		const rm = m - pm * BODYPART_COST[MOVE];
+		const rc = c - pc * BODYPART_COST[CARRY];
+		const rem = rw + rc + rm;
+		// const pc = Math.clamp(1, Math.floor((c + rem) / BODYPART_COST[CARRY]), Math.min(lc, pw + pm));
+		// const pw = Math.clamp(1, Math.floor( (w+rem) / BODYPART_COST[WORK]), Math.min(lw, partLimit));
+		Log.debug(`Build energy remaining: ${rw} ${rc} ${rm} = ${rem}`, 'Unit');
+		Log.debug(`Build parts available: ${pw} ${pc} ${pm}`, 'Unit');
+		Log.debug(``, 'Unit');
+		body = Util.RLD([pw, WORK, pc, CARRY, pm, MOVE]);
 		return spawn.submit({ body, memory: { role: 'builder', home }, priority });
 	},
 
