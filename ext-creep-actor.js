@@ -957,7 +957,7 @@ Creep.prototype.runTransfer = function (opts) {
 		if (status === ERR_NOT_IN_RANGE)
 			return this.pushState("EvadeMove", { pos: dest.pos, range: 1 });
 		else if (status !== OK) {
-			Log.warn(`${this.name}/${this.pos}: Failure to transfer on ${dest} status ${status}`, 'Creep');
+			Log.warn(`${this.name}/${this.pos}: Failure to transfer ${res} to ${dest} status ${status}`, 'Creep');
 			this.popState();
 		} else
 			opts.amt -= this.carry[res];
