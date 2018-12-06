@@ -45,7 +45,7 @@ module.exports = {
 		const spawns = this.room.find(FIND_MY_SPAWNS);
 		const active = _.sortBy(_.filter(spawns, s => s.spawning), 'remainingTime');
 
-		if (this.carryTotal >= 0 && terminal) {
+		if (this.carryTotal > 0 && terminal) {
 			const resource = _.findKey(this.carry);
 			return this.transferOrMove(terminal, resource);
 		}
