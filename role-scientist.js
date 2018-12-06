@@ -45,6 +45,11 @@ module.exports = {
 		const spawns = this.room.find(FIND_MY_SPAWNS);
 		const active = _.sortBy(_.filter(spawns, s => s.spawning), 'remainingTime');
 
+		if (this.carryTotal >= 0 && terminal) {
+			const resource = _.findKey(this.carry);
+			return this.transferOrMove(terminal, resource);
+		}
+
 		// Cleanup
 		const resource = this.pos.findClosestByRange(this.room.resources, { filter: r => r.resourceType !== RESOURCE_ENERGY });
 		if (resource) {
