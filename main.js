@@ -177,6 +177,7 @@ module.exports.loop = function () {
 
 		Memory.stats['bucket100'] = Math.cmAvg(Game.cpu.bucket - (Memory.stats['bucket'] || 10000), Memory.stats['bucket100'], 100);
 		Memory.stats['bucket'] = Game.cpu.bucket;
+		Memory.stats['cpu'] = Game.cpu.getUsed();
 	};
 
 	// Optional profiler
