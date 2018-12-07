@@ -167,17 +167,14 @@ module.exports.loop = function () {
 			Market.updateMarket(16); // Roughly .43  - .71 cpu??			
 		}
 
-
-		if (!Memory.stats)
-			Memory.stats = {};
-		updateCpuAvg('cpu10', 10);
-		updateCpuAvg('cpu100', 100);
-		updateCpuAvg('cpu1000', 1000);
-		updateCpuAvg('cpu10000', 10000);
-
-		Memory.stats['bucket100'] = Math.cmAvg(Game.cpu.bucket - (Memory.stats['bucket'] || 10000), Memory.stats['bucket100'], 100);
 		Memory.stats['bucket'] = Game.cpu.bucket;
-		Memory.stats['cpu'] = Game.cpu.getUsed();
+		Memory.stats['cpu'] = Game.cpu;
+		Memory.stats['cpu']['used'] = Game.cpu.getUsed();
+		Memory.stats['gcl'] = Game.gcl;
+
+		const ticksTilGCL = (Game.gcl.progressTotal - Game.gcl.progress) / Memory.gclAverageTick;
+		Memory.stats['gcl']['estTicksTillGCL'] = Math.ceil(ticksTilGCL);
+		Memory.stats['gcl']['estDateOfGCL'] = Time.estimate(ticksTilGCL);
 	};
 
 	// Optional profiler
