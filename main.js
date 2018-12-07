@@ -174,7 +174,7 @@ module.exports.loop = function () {
 
 		const ticksTilGCL = (Game.gcl.progressTotal - Game.gcl.progress) / Memory.gclAverageTick;
 		Memory.stats['gcl']['estTicksTillGCL'] = Math.ceil(ticksTilGCL);
-		Memory.stats['gcl']['estDateOfGCL'] = Time.estimate(ticksTilGCL);
+		Memory.stats['gcl']['estSecondsTillGCL'] = Time.estimateInSeconds(ticksTilGCL);
 	};
 
 	// Optional profiler
