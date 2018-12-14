@@ -23,7 +23,7 @@ module.exports = {
 		// Expects conditions..
 	},
 	init: function () {
-		if(this.hasBodypart(CARRY))
+		if (this.hasBodypart(CARRY))
 			this.pushState("EnsureStructure", { pos: this.memory.dest, structureType: STRUCTURE_CONTAINER, range: CREEP_HARVEST_RANGE, allowBuild: true, allowMove: false });
 		this.pushState("EvadeMove", { pos: this.memory.dest, range: CREEP_HARVEST_RANGE });
 	},
@@ -43,7 +43,7 @@ module.exports = {
 			// Split resources between repair and container
 			if ((this.ticksToLive & 2) && container.hitsMax - container.hits >= (REPAIR_POWER * 6) && this.carryTotal >= this.carryCapacity)
 				this.repair(container);
-			if (!this.pos.isEqualTo(container.pos))
+			if (!this.pos.isEqualTo(container.pos) && !container.pos.hasCreep())
 				this.moveTo(container, { range: 0 });
 		} else {
 			dest = _.create(RoomPosition.prototype, dest);
@@ -113,6 +113,9 @@ module.exports = {
 				} else {
 					this.setRole('recycle');
 				}
+				break;
+			case ERR_NOT_IN_RANGE:
+				this.moveTo(source, { range: 1 });
 				break;
 			default:
 				this.say(status);

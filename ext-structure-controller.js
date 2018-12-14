@@ -308,8 +308,8 @@ StructureController.prototype.runCensus = function () {
 
 
 	// Distribution		
-	const upperRepairLimit = 0.995;
-	const allotedRepair = _.any(this.room.structures, s => s.hits / s.hitsMax < upperRepairLimit) ? Math.floor(avail * 0.30) : 0;
+	const upperRepairLimit = 0.95;
+	const allotedRepair = _.any(this.room.structures, s => s.hits / s.hitsMax < upperRepairLimit) ? Math.floor(avail * 0.25) : 0;
 	const allotedBuild = (sites && sites.length) ? Math.floor(avail * 0.70) : 0;
 	const allotedUpgrade = avail - allotedRepair - allotedBuild;
 	Log.info(`${this.pos.roomName}: Allotments: ${_.round(allotedUpgrade, 3)} upgrade, ${_.round(allotedRepair, 3)} repair, ${_.round(allotedBuild, 3)} build`, 'Controller');
@@ -389,13 +389,17 @@ StructureController.prototype.runCensus = function () {
 			if (_.any(forSource, { ticksToLive: undefined }))
 				return; // If we're currently spawning a creep, skip the rest.
 			const [, cost,] = source.getClosestSpawn({}, 'cache');
-			const miner = (forSource.length && _.max(forSource, 'ticksToLive'));
-			if (miner && miner.ticksToLive >= UNIT_BUILD_TIME(miner.body) + (assistCost || cost))
+			const spots = source.getAvailablePositions().length;
+			const valid = _.filter(forSource, c => c.ticksToLive >= UNIT_BUILD_TIME(c.body) + (assistCost || cost));
+			const rem = spots - valid.length;
+			const sum = _.sum(valid, c => c.getBodyParts(WORK));
+			Log.debug(`${source} has ${sum} work parts, desired ${source.harvestParts}, spots ${spots}, rem: ${rem}`, 'Controller');
+			if (sum >= source.harvestParts || rem <= 0)
 				return;
 			if (this.room.energyCapacityAvailable < 600)
-				require('Unit').requestMiner(assistingSpawn || spawn, source.pos, PRIORITY_HIGH);
+				require('Unit').requestMiner(assistingSpawn || spawn, source.pos, (sum / source.harvestParts));
 			else
-				require('Unit').requestMiner(spawn || assistingSpawn, source.pos, PRIORITY_HIGH);
+				require('Unit').requestMiner(spawn || assistingSpawn, source.pos, (sum / source.harvestParts));
 		});
 	}
 
@@ -499,7 +503,7 @@ StructureController.prototype.runCensus = function () {
 		} else {
 			if (this.room.storage)
 				workDesired = Math.floor(workDesired * this.room.storage.stock);
-			if (workDesired > 1) {
+			if (workDesired >= 1) {
 				const workDiff = workDesired - workAssigned;
 				const pctWork = _.round(workAssigned / workDesired, 3);
 				Log.debug(`${this.pos.roomName} Upgraders: ${workAssigned} assigned, ${workDesired} desired, ${workDiff} diff (${pctWork})`, 'Controller');
@@ -519,7 +523,7 @@ StructureController.prototype.runCensus = function () {
 	// if(_.any(this.room.structures, s => s.hits < s.hitsMax)) {
 	// const desiredRepair = (this.level >= 4 && (storedEnergy > 200000 || terminalEnergy > 60000)) ? 1 : 0;
 	// const desiredRepai
-	if (!repair.length && allotedRepair > 0 && _.any(this.room.structures, s => s.hits / s.hitsMax < 0.90)) {
+	if (!repair.length && allotedRepair > 0) {
 		require('Unit').requestRepair(spawn, roomName, allotedRepair);
 	} else if (repair.length && allotedRepair <= 0) {
 		_.invoke(repair, 'setRole', 'recycle');
