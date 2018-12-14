@@ -299,12 +299,19 @@ StructureController.prototype.runCensus = function () {
 	const income = base + remote + reactor + overstock;
 	Log.info(`${this.pos.roomName}: Base ${_.round(base, 3)} Remote ${_.round(remote, 3)} Reactor ${_.round(reactor, 3)} Over ${_.round(overstock, 3)}`, 'Controller');
 
-	// const upkeep = _.sum(creeps, 'cpt') + _.sum(this.room.structures, 'upkeep');
-	const upkeep = _.sum(this.room.structures, 'upkeep');
+	const upkeepCreeps = _.sum(creeps, 'cpt');
+	const upkeepStructures = _.sum(this.room.structures, 'upkeep');
+	const upkeep = upkeepCreeps + upkeepStructures;
+	// const upkeep = upkeepStructures;
+	Log.info(`${this.pos.roomName}: Upkeep: ${_.round(upkeep, 3)}, Creep: ${_.round(upkeepCreeps, 3)}, Structure: ${_.round(upkeepStructures, 3)}`, 'Controller');
+
 	const expense = 0;
 	const net = income - (expense + upkeep);
 	const avail = income - upkeep;
-	Log.info(`${this.pos.roomName}: Income ${_.round(income, 3)}, Overstock: ${_.round(overstock, 3)}, Expense: ${_.round(expense, 3)}, Upkeep: ${_.round(upkeep, 3)}, Net: ${_.round(net, 3)}, Avail ${_.round(avail, 3)}, Banked: ${storedEnergy}`, 'Controller');
+	const minimumAvailable = 0.25;
+	const modifier = Math.max(minimumAvailable, (storage && storage.stock) || 1.0);
+	const adjusted = avail * modifier;
+	Log.info(`${this.pos.roomName}: Income: ${_.round(income, 3)}, Overstock: ${_.round(overstock, 3)}, Expense: ${_.round(expense, 3)}, Upkeep: ${_.round(upkeep, 3)}, Net: ${_.round(net, 3)}, Avail ${_.round(avail, 3)}, Banked: ${storedEnergy}, Adjusted ${adjusted}`, 'Controller');
 
 
 	// Distribution		
