@@ -311,7 +311,7 @@ StructureController.prototype.runCensus = function () {
 	const minimumAvailable = 0.25;
 	const modifier = Math.max(minimumAvailable, (storage && storage.stock) || 1.0);
 	const adjusted = avail * modifier;
-	Log.info(`${this.pos.roomName}: Income: ${_.round(income, 3)}, Overstock: ${_.round(overstock, 3)}, Expense: ${_.round(expense, 3)}, Upkeep: ${_.round(upkeep, 3)}, Net: ${_.round(net, 3)}, Avail ${_.round(avail, 3)}, Banked: ${storedEnergy}, Adjusted ${adjusted}`, 'Controller');
+	Log.info(`${this.pos.roomName}: Income: ${_.round(income, 3)}, Overstock: ${_.round(overstock, 3)}, Expense: ${_.round(expense, 3)}, Upkeep: ${_.round(upkeep, 3)}, Net: ${_.round(net, 3)}, Avail ${_.round(avail, 3)}, Banked: ${storedEnergy}, Adjusted ${_.round(adjusted,3)}`, 'Controller');
 
 
 	// Distribution		
