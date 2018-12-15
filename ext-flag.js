@@ -248,7 +248,7 @@ Flag.prototype.runLogic = function () {
 				}
 			}
 			const { minCost } = require('role-reserver');
-			const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1, filter: s => s.room.energyCapacityAvailable >= minCost });
+			const [spawn, cost = 0] = this.getClosestSpawn({ maxCost: CREEP_CLAIM_LIFE_TIME, plainCost: 1, filter: s => s.room.energyCapacityAvailable >= minCost });
 			if (!spawn)
 				return Log.debug(`No spawn available to spawn reserver for ${this} at ${this.pos}`, 'Flag#Reserve');
 			const size = Math.floor((CONTROLLER_RESERVE_MAX - clock) / (CONTROLLER_RESERVE * (CREEP_CLAIM_LIFE_TIME - cost)));
@@ -261,7 +261,7 @@ Flag.prototype.runLogic = function () {
 				const status = require('Unit').requestReserver(spawn, this.pos, prio, size);
 				Log.info(`${this.name} status result ${status}`, 'Flag#Reserve');
 			}
-			this.defer(DEFAULT_SPAWN_JOB_EXPIRE);
+			this.defer(MAX_CREEP_SPAWN_TIME);
 			return;
 		}
 
