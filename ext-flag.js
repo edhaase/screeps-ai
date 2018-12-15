@@ -249,13 +249,15 @@ Flag.prototype.runLogic = function () {
 			}
 			const { minCost } = require('role-reserver');
 			const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1, filter: s => s.room.energyCapacityAvailable >= minCost });
+			if (!spawn)
+				return Log.debug(`No spawn available to spawn reserver for ${this} at ${this.pos}`, 'Flag#Reserve');
 			const size = Math.floor((CONTROLLER_RESERVE_MAX - clock) / (CONTROLLER_RESERVE * (CREEP_CLAIM_LIFE_TIME - cost)));
 			const reserver = this.getAssignedUnit(c => c.getRole() === 'reserver' && this.pos.isEqualToPlain(c.memory.site) && (c.spawning || (c.ticksToLive > (2 * size * CREEP_SPAWN_TIME) + cost)));
 			if (reserver)
 				return this.defer(Math.min(reserver.ticksToLive || CREEP_CLAIM_LIFE_TIME, DEFAULT_SPAWN_JOB_EXPIRE));
 			Log.info(`${this.name} wants to build reserver of size ${size} for room ${this.pos.roomName} with spawn ${spawn}`, 'Flag#Reserve');
 			if (spawn && !spawn.hasJob({ memory: { role: 'reserver', site: this.pos } })) {
-				const prio = Math.clamp(1, Math.ceil(100 * (1 - (clock / MINIMUM_RESERVATION))), 100);
+				const prio = clock / MINIMUM_RESERVATION;
 				const status = require('Unit').requestReserver(spawn, this.pos, prio, size);
 				Log.info(`${this.name} status result ${status}`, 'Flag#Reserve');
 			}
@@ -392,9 +394,10 @@ Flag.prototype.runLogic = function () {
 				this.memory.dropoff = undefined; // reset dropoff
 			});
 		const container = (this.room) ? this.pos.getStructure(STRUCTURE_CONTAINER, 1) : null;
-		if (!container)
+		const miner = this.room && this.pos.getCreep(1, c => c.memory.role === 'miner');
+		if (!container && !miner)
 			return Log.warn(`No pickup point for flag ${this.pos}`, 'Flag#Hauler');
-		const site = (container && container.pos) || this.pos;
+		const site = (container && container.pos) || (miner && miner.pos) || this.pos;
 		// @todo pick room by route..
 		// @todo pick structure in room, including containers.
 		if (this.room && (!this.memory.dropoff || (this.memory.step == null || this.memory.step <= 0))) {
@@ -443,7 +446,7 @@ Flag.prototype.runLogic = function () {
 			const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1 });
 			Log.success(`Requesting new hauler to site: ${this.pos} from spawn ${spawn}`, 'Flag#Hauler');
 			if (spawn && !spawn.hasJob({ memory: { role: 'hauler', site, dropoff: this.memory.dropoff } })) {
-				const priority = Math.min(80, Math.ceil(100 * (assigned / reqCarry))); // Cap at 80%				
+				const priority = (miner) ? assigned / reqCarry : PRIORITY_MIN;
 				Unit.requestHauler(spawn, { role: 'hauler', site, dropoff: this.memory.dropoff, steps: this.memory.steps }, this.memory.hasRoad, remaining, priority, this.pos.roomName);
 			}
 		} else if (reqCarry - assigned < 0) {
@@ -470,7 +473,7 @@ Flag.prototype.runLogic = function () {
 			}
 		}
 		const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 3 });
-		var miner = this.getAssignedUnit(c => c.getRole() === 'miner' && this.pos.isEqualToPlain(c.memory.dest) && (c.spawning || c.ticksToLive > UNIT_BUILD_TIME(c.body) + cost));
+		const miner = this.getAssignedUnit(c => c.getRole() === 'miner' && this.pos.isEqualToPlain(c.memory.dest) && (c.spawning || c.ticksToLive > UNIT_BUILD_TIME(c.body) + cost));
 		if (!miner) {
 			if (!spawn) {
 				// Log.error(`No spawn for ${this.name}`, 'Flag');

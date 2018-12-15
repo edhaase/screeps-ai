@@ -7,7 +7,7 @@
 
 const INTEL_MAX_AGE = 20000;
 
-if(!Memory.intel) {
+if (!Memory.intel) {
 	Log.warn('Initializing intel memory', 'Memory');
 	Memory.intel = {};
 }
@@ -35,11 +35,36 @@ class Intel {
 		};
 		Memory.intel[room.name] = intel;
 		// Log.info(`New intel report for ${room.name}: ${ex(intel)}`,'Intel');
-		Log.info(`New intel report for ${room.name}`, 'Intel');
+		Log.debug(`New intel report for ${room.name}`, 'Intel');
+	}
+
+	static markCandidateForRemoteMining(room) {
+		if (room.my || !Memory.empire)
+			return false;
+		const { controller } = room;
+		if (!controller || controller.owner)
+			return false;
+		if (controller.reservation && Player.status(controller.reservation.username) >= PLAYER_NEUTRAL && controller.reservation.username !== WHOAMI)
+			return false;
+		if (Room.getType(room.name) === 'SourceKeeper')
+			return false;
+		const exits = _.omit(Game.map.describeExits(room.name), (v, k) => !Game.map.isRoomAvailable(v));
+		if (!_.any(exits, exit => Game.rooms[exit] && Game.rooms[exit].my))
+			return false;
+		Log.info(`Intel wants ${room.name} for remote mining as it's near our empire`, 'Intel');
+		if (!Memory.empire.remoteMine)
+			return false;
+		room.find(FIND_SOURCES).forEach(s => {
+			s.pos.createLogicFlag(null, FLAG_MINING, SITE_REMOTE);
+			s.pos.createLogicFlag(null, FLAG_MINING, SITE_PICKUP);
+		});
+		controller.pos.createLogicFlag(null, FLAG_MILITARY, STRATEGY_RESERVE);
+		controller.pos.createLogicFlag(null, FLAG_MILITARY, STRATEGY_RESPOND);
+		return true;
 	}
 
 	static setRoomOwner(roomName, owner) {
-		if(!Memory.intel[roomName])
+		if (!Memory.intel[roomName])
 			Memory.intel[roomName] = {};
 		Memory.intel[roomName].tick = Game.time;
 		Memory.intel[roomName].owner = owner;
@@ -49,8 +74,8 @@ class Intel {
 	 * Call periodically to clean out old intel
 	 */
 	static evict() {
-		for( var i in Memory.intel ) {
-			if(Game.time - Memory.intel[i].tick < INTEL_MAX_AGE)
+		for (var i in Memory.intel) {
+			if (Game.time - Memory.intel[i].tick < INTEL_MAX_AGE)
 				continue;
 			Log.info(`Purging old intel for room ${i}`, 'Intel');
 			delete Memory.intel[i];
@@ -59,32 +84,32 @@ class Intel {
 
 	static getIntelForRoom(roomName) {
 		return Memory.intel[roomName] || {};
-	}	
+	}
 
 	static isHostileRoom(roomName) {
 		/* global Player, PLAYER_HOSTILE */
-		if(Room.getType(roomName) === 'SourceKeeper')
+		if (Room.getType(roomName) === 'SourceKeeper')
 			return true;
 		const intel = this.getIntelForRoom(roomName);
-		if(intel && intel.owner && Player.status(intel.owner) === PLAYER_HOSTILE)
+		if (intel && intel.owner && Player.status(intel.owner) === PLAYER_HOSTILE)
 			return true;
 		return false;
 	}
 
 	static hasOwner(roomName) {
-		const intel = this.getIntelForRoom(roomName);		
-		if(!intel || !intel.owner)
+		const intel = this.getIntelForRoom(roomName);
+		if (!intel || !intel.owner)
 			return false;
 		return true;
 	}
 
 	static isClaimable(roomName) {
-		if(!Game.map.isRoomAvailable(roomName) || Room.getType(roomName) !== 'Room')
+		if (!Game.map.isRoomAvailable(roomName) || Room.getType(roomName) !== 'Room')
 			return false;
-		const intel = this.getIntelForRoom(roomName);		
-		if(!intel)
+		const intel = this.getIntelForRoom(roomName);
+		if (!intel)
 			return false;
-		if(intel.owner || intel.reservation)
+		if (intel.owner || intel.reservation)
 			return false;
 		return true;
 	}
@@ -95,8 +120,8 @@ class Intel {
 	 * @todo still needs improvement
 	 */
 	static scoreRoomForExpansion(roomName) {
-		const {sources=[]} = this.getIntelForRoom(roomName);
-		if(!this.isClaimable(roomName))
+		const { sources = [] } = this.getIntelForRoom(roomName);
+		if (!this.isClaimable(roomName))
 			return 0.0;
 		const terrainScore = Math.floor(100 * this.scoreTerrain(roomName));
 		const sourceScore = 1 + (sources.length / 2); // Higher is better
@@ -114,7 +139,7 @@ class Intel {
 		const terrain = Game.map.getRoomTerrain(roomName);
 		for (x = 2; x < 47; x++)
 			for (y = 2; y < 47; y++)
-				score += terrain.get(x,y) === 0; /* No obstacles */
+				score += terrain.get(x, y) === 0; /* No obstacles */
 		return score / 45 ** 2;
 	}
 

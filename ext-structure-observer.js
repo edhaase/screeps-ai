@@ -56,8 +56,10 @@ StructureObserver.prototype.run = function () {
 	const prevRoom = Game.rooms[prevTickRoomName];
 	this.lastRoom = undefined; // clear early, in case we set it later
 
-	if (prevRoom)
+	if (prevRoom) {
 		Intel.scanRoom(prevRoom);
+		Intel.markCandidateForRemoteMining(prevRoom);
+	}
 
 	// Run stored command
 	if (prevRoom && memory.cmd !== undefined) {

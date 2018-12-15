@@ -162,8 +162,11 @@ RoomPosition.prototype.isOnRoomBorder = function () {
 	return (this.x <= 0 || this.x >= 49 || this.y <= 0 || this.y >= 49);
 };
 
-RoomPosition.prototype.getCreep = function (validator = () => true) {
-	return _.find(this.lookFor(LOOK_CREEPS), validator);
+RoomPosition.prototype.getCreep = function (range = 0, validator = () => true) {
+	if (range === 0)
+		return _.find(this.lookFor(LOOK_CREEPS), validator);
+	else
+		return this.room.findOne(FIND_CREEPS, { filter: c => c.pos.inRangeTo(this, range) && validator(c) });
 };
 
 /**
@@ -173,7 +176,7 @@ RoomPosition.prototype.getStructure = function (structureType, range = 0, valida
 	if (range === 0)
 		return _.find(this.lookFor(LOOK_STRUCTURES), s => s.structureType === structureType && validator(s));
 	else
-		return this.room.findOne(FIND_STRUCTURES, { filter: s => s.structureType === structureType && s.pos.inRangeTo(this, range) });
+		return this.room.findOne(FIND_STRUCTURES, { filter: s => s.structureType === structureType && s.pos.inRangeTo(this, range) && validator(s) });
 };
 
 RoomPosition.prototype.getStructures = function () {

@@ -3,6 +3,8 @@
  */
 'use strict';
 
+const Intel = require('Intel');
+
 /* global Log */
 /* global FLAG_MINING, FLAG_MILITARY, SITE_REMOTE, SITE_PICKUP, STRATEGY_RESERVE, STRATEGY_RESPOND */
 
@@ -36,22 +38,8 @@ module.exports = {
 		this.memory.roomName = _.sample(exits);
 		Log.debug(`${this.name} picked room ${roomName}`, 'Creep');
 		this.say('Arrived!');
-		require('Intel').scanRoom(room);
-		// Remote mining flags..
-		if (!this.room.my && Memory.empire && Memory.empire.remoteMine && _.any(exits, exit => Game.rooms[exit] && Game.rooms[exit].my)) {
+		Intel.scanRoom(room);
+		if (Intel.markCandidateForRemoteMining(room))
 			this.say('Want!');
-			if (Room.getType(this.pos.roomName) !== 'SourceKeeper' && this.room.controller && !this.room.controller.owner) {
-				this.room.find(FIND_SOURCES).forEach(s => {
-					s.pos.createLogicFlag(null, FLAG_MINING, SITE_REMOTE);
-					s.pos.createLogicFlag(null, FLAG_MINING, SITE_PICKUP);
-				});
-				if (this.room.controller) {
-					this.room.controller.pos.createLogicFlag(null, FLAG_MILITARY, STRATEGY_RESERVE);
-					this.room.controller.pos.createLogicFlag(null, FLAG_MILITARY, STRATEGY_RESPOND);
-				}
-				Log.info(`Scout wants ${this.pos.roomName} as it's near our empire`, 'Creep');
-			}
-		}
-
 	}
 };
