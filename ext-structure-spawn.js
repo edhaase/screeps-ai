@@ -187,7 +187,7 @@ StructureSpawn.prototype.submit = function (job) {
 	if (!_.isArray(job.body) || job.body.length === 0)
 		throw new Error(`${this.pos.roomName} Enqueue failed, bad body: ${job.body}`);
 	if (job.body.length > MAX_CREEP_SIZE)
-		throw new Error(`Body part may not exceed ${MAX_CREEP_SIZE} parts`);
+		throw new Error(`Creep body may not exceed ${MAX_CREEP_SIZE} parts: ${job.body.length} requested, body [${Util.RLE(job.body)}]`);
 	if (job.expire == null)
 		job.expire = Game.time + DEFAULT_SPAWN_JOB_EXPIRE;
 	else if (job.expire === 0 || job.expire === Infinity)
