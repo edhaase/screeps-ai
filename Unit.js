@@ -427,9 +427,9 @@ module.exports = {
 			if (spawn.room.energyCapacityAvailable > 1260 && r < 0.10) {
 				body = Arr.repeat([HEAL, RANGED_ATTACK, ATTACK, MOVE, MOVE, MOVE], avail);
 			} else if (r < 0.80) {
-				body = body.concat(Arr.repeat([RANGED_ATTACK, MOVE], avail));
+				body = body.concat(Arr.repeat([RANGED_ATTACK, MOVE], avail, MAX_CREEP_SIZE - body.length)); // These don't work
 			} else {
-				body = body.concat(Arr.repeat([ATTACK, MOVE], avail));
+				body = body.concat(Arr.repeat([ATTACK, MOVE], avail, MAX_CREEP_SIZE - body.length));
 			}
 			// body = body.concat(Arr.repeat([RANGED_ATTACK, MOVE], avail));
 		}

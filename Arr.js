@@ -18,8 +18,8 @@ module.exports = {
 	/**
      * 
      */
-	repeat: function (arr, max) {
-		var n = Math.min(MAX_CREEP_SIZE / arr.length, max / UNIT_COST(arr));
+	repeat: function (arr, maxCost, maxSize = MAX_CREEP_SIZE) {
+		var n = Math.min(maxSize / arr.length, maxCost / UNIT_COST(arr));
 		n = Math.floor(n);
 		return this.cycle(arr, arr.length * n);
 	}
