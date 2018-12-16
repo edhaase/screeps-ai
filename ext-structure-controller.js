@@ -309,17 +309,20 @@ StructureController.prototype.runCensus = function () {
 	const net = income - (expense + upkeep);
 	const avail = income - upkeep;
 	const minimumAvailable = 0.25;
-	const modifier = Math.max(minimumAvailable, (storage && storage.stock) || 1.0);
+	const modifier = (!storage) ? 1.0 : Math.max(minimumAvailable, storage.stock);
 	const adjusted = avail * modifier;
-	Log.info(`${this.pos.roomName}: Income: ${_.round(income, 3)}, Overstock: ${_.round(overstock, 3)}, Expense: ${_.round(expense, 3)}, Upkeep: ${_.round(upkeep, 3)}, Net: ${_.round(net, 3)}, Avail ${_.round(avail, 3)}, Banked: ${storedEnergy}, Adjusted ${_.round(adjusted,3)}`, 'Controller');
+	Log.info(`${this.pos.roomName}: Income: ${_.round(income, 3)}, Overstock: ${_.round(overstock, 3)}, Expense: ${_.round(expense, 3)}, Upkeep: ${_.round(upkeep, 3)}, Net: ${_.round(net, 3)}, Avail ${_.round(avail, 3)}, Banked: ${storedEnergy}, Adjusted ${_.round(adjusted, 3)}`, 'Controller');
 
 
 	// Distribution		
 	const upperRepairLimit = 0.95;
-	const allotedRepair = _.any(this.room.structures, s => s.hits / s.hitsMax < upperRepairLimit) ? Math.floor(avail * 0.25) : 0;
-	const allotedBuild = (sites && sites.length) ? Math.floor(avail * 0.70) : 0;
-	const allotedUpgrade = avail - allotedRepair - allotedBuild;
-	Log.info(`${this.pos.roomName}: Allotments: ${_.round(allotedUpgrade, 3)} upgrade, ${_.round(allotedRepair, 3)} repair, ${_.round(allotedBuild, 3)} build`, 'Controller');
+	const allotedRepair = _.any(this.room.structures, s => s.hits / s.hitsMax < upperRepairLimit) ? Math.floor(adjusted * 0.25) : 0;
+	const allotedBuild = (sites && sites.length) ? Math.floor(adjusted * 0.70) : 0;
+	const maxAllotedUpgrade = (this.level === MAX_ROOM_LEVEL) ? CONTROLLER_MAX_UPGRADE_PER_TICK : Infinity;
+	const allotedUpgrade = Math.floor(Math.min(adjusted - allotedRepair - allotedBuild, maxAllotedUpgrade));
+
+	const remainder = adjusted - allotedRepair - allotedBuild - allotedUpgrade;
+	Log.info(`${this.pos.roomName}: Allotments: ${_.round(allotedUpgrade, 3)} upgrade, ${_.round(allotedRepair, 3)} repair, ${_.round(allotedBuild, 3)} build, ${_.round(remainder, 3)} leftover`, 'Controller');
 
 	/**
 	 * Emergency conditions - Should probably be detected elsewhere
@@ -499,26 +502,20 @@ StructureController.prototype.runCensus = function () {
 	// @todo CREEP_SPAWN_TIME * 6 needs a better scale calc
 	// @todo if rcl 8 and empire doesn't want to expand, scale back
 	const MAX_UPGRADER_COUNT = 6;
-	if ((!this.upgradeBlocked || this.upgradeBlocked < CREEP_SPAWN_TIME * 6)) {
+	if (!this.upgradeBlocked || this.upgradeBlocked < CREEP_SPAWN_TIME * 6) {
 		const workAssigned = _.sum(upgraders, c => c.getBodyParts(WORK));
+		const workDiff = allotedUpgrade - workAssigned;
+		const pctWork = _.round(workAssigned / allotedUpgrade, 3);
 		// let workDesired = 10 * (numSources / 2);
-		let workDesired = Math.min(Math.floor(allotedUpgrade), CONTROLLER_MAX_UPGRADE_PER_TICK);
+		// let workDesired = Math.min(Math.floor(allotedUpgrade), CONTROLLER_MAX_UPGRADE_PER_TICK);
 		if (this.level === MAX_ROOM_LEVEL) {
 			const GCL_GOAL = 30;
-			if (workAssigned < workDesired && (this.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || storedEnergy > 700000 || Game.gcl.level < GCL_GOAL))
-				require('Unit').requestUpgrader(spawn, roomName, 90, workDesired);
+			if (pctWork < 0.75 && (this.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || storedEnergy > 700000 || Game.gcl.level < GCL_GOAL))
+				require('Unit').requestUpgrader(spawn, roomName, pctWork, allotedUpgrade);
 		} else {
-			if (this.room.storage)
-				workDesired = Math.floor(workDesired * this.room.storage.stock);
-			if (workDesired >= 1) {
-				const workDiff = workDesired - workAssigned;
-				const pctWork = _.round(workAssigned / workDesired, 3);
-				Log.debug(`${this.pos.roomName} Upgraders: ${workAssigned} assigned, ${workDesired} desired, ${workDiff} diff (${pctWork})`, 'Controller');
-				if (pctWork < 0.80 && upgraders.length < MAX_UPGRADER_COUNT)
-					require('Unit').requestUpgrader(spawn, roomName, 25, (workDesired));
-			} else {
-				Log.debug(`${this.pos.roomName} Upgraders: No upgraders desired, ${workAssigned} assigned.`, 'Controller');
-			}
+			Log.debug(`${this.pos.roomName} Upgraders: ${workAssigned} assigned, ${allotedUpgrade} desired, ${workDiff} diff (${pctWork})`, 'Controller');
+			if (pctWork < 0.75 && upgraders.length < MAX_UPGRADER_COUNT)
+				require('Unit').requestUpgrader(spawn, roomName, pctWork, (allotedUpgrade));
 		}
 	} else if (this.upgradeBlocked) {
 		Log.warn(`${this.pos.roomName} upgrade blocked for ${this.upgradeBlocked} ticks`, 'Controller');
