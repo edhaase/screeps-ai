@@ -542,7 +542,7 @@ class BuildPlanner {
 				plainCost: 2, // prefer existing roads
 				swampCost: 2,
 				maxOps: 16000,
-				maxRooms: (fromPos.roomName === (toPos.roomName || toPos.pos.roomName)) ? 1 : 16,
+				maxRooms: (fromPos.roomName === (toPos.roomName || toPos.pos.roomName)) ? 1 : PATHFINDER_MAX_ROOMS,
 				roomCallback: opts.cmFn
 			});
 			var { path = [], incomplete, cost, ops } = result;

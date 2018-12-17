@@ -134,7 +134,7 @@ Creep.prototype.harvestOrMove = function (target) {
 	const status = this.harvest(target);
 	if (status === ERR_NOT_IN_RANGE)
 		this.moveTo(target, {
-			maxRooms: (this.pos.roomName === target.pos.roomName) ? 1 : 16
+			maxRooms: (this.pos.roomName === target.pos.roomName) ? 1 : PATHFINDER_MAX_ROOMS
 		});
 	return status;
 };

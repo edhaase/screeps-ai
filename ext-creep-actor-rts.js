@@ -52,7 +52,7 @@ Creep.prototype.getPathTo = function (pos, range = 1, opts = {}) {
 			maxCost: this.ticksToLive,
 			roomCallback: r => route.includes(r) ? LOGISTICS_MATRIX.get(r) : false,
 			maxOps: 32000,
-			maxRooms: opts.maxRooms || 16,
+			maxRooms: opts.maxRooms || PATHFINDER_MAX_ROOMS,
 			heuristicWeight: 0.8 + (Math.random() * 1.2)
 			// roomCallback: (roomName) => ((opts.avoid || []).includes(roomName))?false:this.getCostMatrix(roomName)
 		});

@@ -102,6 +102,8 @@ global.FATIGUE_SWAMP = 5;
 
 global.NUKE_EFFECT_RANGE = 2;
 
+global.PATHFINDER_MAX_ROOMS = 64;
+
 global.BUCKET_MAX = 10000;
 global.BUCKET_LIMITER = true; // Default to enabled during resets.
 global.BUCKET_LIMITER_LOWER = 4000;
