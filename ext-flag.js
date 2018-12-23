@@ -11,6 +11,8 @@
 
 const { VisibilityError } = require('Error');
 
+const RESERVATION_STEAL_MARGIN = 200;	// Give a player time to reclaim their remote
+
 if (!Memory.flags)
 	Memory.flags = {};
 
@@ -188,8 +190,31 @@ Flag.prototype.hasPendingUnit = function (job) {
 	return spawn.hasJob(job);
 };
 
+Flag.prototype.runSelfCleanup = function () {
+	if (!this.room)
+		return false;
+	const { controller } = this.room;
+	if (controller && controller.my) {
+		Log.warn(`We own the controller in ${this.pos.roomName}, removing self!`, 'Flag');
+		this.remove();
+		return true;
+	} else if (controller && controller.owner) {
+		Log.warn(`Controller owned by ${JSON.stringify(controller.owner)} else, removing self`, 'Flag');
+		this.remove();
+		return true;
+	} else if (controller && controller.reservation && Player.status(controller.reservation.username) >= PLAYER_NEUTRAL && controller.reservation.username !== WHOAMI) {
+		Log.warn(`Controller reserved by friendly player ${controller.reservation.username}`, 'Flag');
+		this.defer(controller.reservation.ticksToEnd + RESERVATION_STEAL_MARGIN);
+		return true;
+	}
+	return false;
+};
+
 Flag.prototype.runLogic = function () {
 	const Unit = require('Unit');
+
+	if (this.runSelfCleanup())
+		return;
 
 	if (this.color === FLAG_MILITARY) {
 		if (this.secondaryColor === STRATEGY_DEFEND) {
@@ -232,22 +257,6 @@ Flag.prototype.runLogic = function () {
 			// @todo if clock is above minimum and below max, random chance of sending a reserver anyways.
 			if (clock > MINIMUM_RESERVATION)
 				return;
-			if (this.room) {
-				const { controller } = this.room;
-				if (controller && controller.my) {
-					Log.warn(`We own the controller in ${this.pos.roomName}, removing self!`, 'Flag#Reserve');
-					this.remove();
-					return;
-				} else if (controller && controller.owner) {
-					Log.warn(`Controller owned by ${JSON.stringify(controller.owner)} else, unable to reserve`, 'Flag#Reserve');
-					this.remove();
-					return;
-				} else if (controller && controller.reservation && Player.status(controller.reservation.username) >= PLAYER_NEUTRAL && controller.reservation.username !== WHOAMI) {
-					Log.warn(`Controller reserved by friendly player ${controller.reservation.username}`, 'Flag#Reserve');
-					this.defer(controller.reservation.ticksToEnd);
-					return;
-				}
-			}
 			const { minCost } = require('role-reserver');
 			const [spawn, cost = 0] = this.getClosestSpawn({ maxCost: CREEP_CLAIM_LIFE_TIME, plainCost: 1, filter: s => s.room.energyCapacityAvailable >= minCost });
 			if (!spawn)
