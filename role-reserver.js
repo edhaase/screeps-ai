@@ -19,6 +19,7 @@ module.exports = {
 		// Expects conditions..
 	},
 	init: function () {
+		this.notifyWhenAttacked(false);
 		this.pushStates([
 			['EvadeMove', { pos: this.memory.site, range: 1 }]
 		]);
