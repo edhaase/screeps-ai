@@ -19,7 +19,7 @@ module.exports = {
 	},
 	minBody: Util.RLD([9, WORK, 19, MOVE, 1, CARRY, 3, RANGED_ATTACK, 13, ATTACK, 4, HEAL, 1, MOVE]), // Cost: 4440
 	init: function () {
-		this.notifyWhenAttacked(false);
+		this.pushState('EvalOnce', { script: 'this.notifyWhenAttacked(false)' });
 	},
 	/* eslint-disable consistent-return */
 	run: function () {

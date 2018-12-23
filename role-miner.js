@@ -23,10 +23,10 @@ module.exports = {
 		// Expects conditions..
 	},
 	init: function () {
-		this.notifyWhenAttacked(false);
 		if (this.hasBodypart(CARRY))
 			this.pushState("EnsureStructure", { pos: this.memory.dest, structureType: STRUCTURE_CONTAINER, range: CREEP_HARVEST_RANGE, allowBuild: true, allowMove: false });
 		this.pushState("EvadeMove", { pos: this.memory.dest, range: CREEP_HARVEST_RANGE });
+		this.pushState('EvalOnce', { script: 'this.notifyWhenAttacked(false)' });
 	},
 	/* eslint-disable consistent-return */
 	run: function () {

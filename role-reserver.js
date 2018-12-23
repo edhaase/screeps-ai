@@ -19,10 +19,10 @@ module.exports = {
 		// Expects conditions..
 	},
 	init: function () {
-		this.notifyWhenAttacked(false);
 		this.pushStates([
 			['EvadeMove', { pos: this.memory.site, range: 1 }]
 		]);
+		this.pushState('EvalOnce', { script: 'this.notifyWhenAttacked(false)' });
 	},
 	/* eslint-disable consistent-return */
 	run: function () {

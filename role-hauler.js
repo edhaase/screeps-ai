@@ -217,7 +217,7 @@ module.exports = {
 
 	},
 	init: function () {
-		this.notifyWhenAttacked(false);
+		this.pushState('EvalOnce', { script: 'this.notifyWhenAttacked(false)' });
 	},
 	/* eslint-disable consistent-return */
 	run: function () {
