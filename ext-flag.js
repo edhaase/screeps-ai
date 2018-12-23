@@ -395,7 +395,7 @@ Flag.prototype.runLogic = function () {
 				this.memory.dropoff = undefined; // reset dropoff
 			});
 		const container = (this.room) ? this.pos.getStructure(STRUCTURE_CONTAINER, 1) : null;
-		const miner = this.room && this.pos.getCreep(1, c => c.memory.role === 'miner');
+		const miner = this.room && this.pos.getCreep(1, c => c.my && c.memory.role === 'miner');
 		if (!container && !miner)
 			return Log.warn(`No pickup point for flag ${this.pos}`, 'Flag#Hauler');
 		const site = (container && container.pos) || (miner && miner.pos) || this.pos;
