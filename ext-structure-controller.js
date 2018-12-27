@@ -511,11 +511,11 @@ StructureController.prototype.runCensus = function () {
 		// let workDesired = Math.min(Math.floor(allotedUpgrade), CONTROLLER_MAX_UPGRADE_PER_TICK);
 		if (this.level === MAX_ROOM_LEVEL) {
 			const GCL_GOAL = 30;
-			if (pctWork < 0.75 && (this.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || storedEnergy > 700000 || Game.gcl.level < GCL_GOAL))
+			if (pctWork < 0.25 && (this.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || storedEnergy > 700000 || Game.gcl.level < GCL_GOAL))
 				require('Unit').requestUpgrader(spawn, roomName, pctWork, allotedUpgrade);
 		} else {
 			Log.debug(`${this.pos.roomName} Upgraders: ${workAssigned} assigned, ${allotedUpgrade} desired, ${workDiff} diff (${pctWork})`, 'Controller');
-			if (pctWork < 0.75 && upgraders.length < MAX_UPGRADER_COUNT)
+			if (pctWork < 0.25 && upgraders.length < MAX_UPGRADER_COUNT)
 				require('Unit').requestUpgrader(spawn, roomName, pctWork, (allotedUpgrade));
 		}
 	} else if (this.upgradeBlocked) {
