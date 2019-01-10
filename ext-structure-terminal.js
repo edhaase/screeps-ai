@@ -210,7 +210,6 @@ StructureTerminal.prototype.runAutoSell = function (resource = RESOURCE_THIS_TIC
 		}
 		const amount = Math.clamp(0, 100 * Math.floor(1.10 * over / 100), this.store[resource]);
 		const status = this.createSellOrder(resource, price, amount);
-		Log.notify(`Creating sell order at ${roomName} for ${amount} ${resource} at ${price}, status: ${status}`);
 		if (status === OK)
 			return true;
 	}
@@ -525,7 +524,8 @@ StructureTerminal.prototype.createBuyOrder = function (resource, price, total) {
 	if (this.creditsAvailable < cost)
 		return ERR_NOT_ENOUGH_RESOURCES;
 	const status = this.createOrder(ORDER_BUY, resource, price, total);
-	Log.debug(`Terminal ${this.pos.roomName} creating buy order of ${total} ${resource} at ${price} for ${cost} total, status ${status}`, 'Terminal');
+	if (status !== OK)
+		Log.warn(`Terminal ${this.pos.roomName} creating buy order of ${total} ${resource} at ${price} for ${cost} total, status ${status}`, 'Terminal');
 	return status;
 };
 
@@ -539,7 +539,10 @@ StructureTerminal.prototype.createBuyOrder = function (resource, price, total) {
 StructureTerminal.prototype.createSellOrder = function (resource, price, total) {
 	if (this.creditsAvailable < this.calcOrderFee(price, total))
 		return ERR_NOT_ENOUGH_RESOURCES;
-	return this.createOrder(ORDER_SELL, resource, price, total);
+	const status = this.createOrder(ORDER_SELL, resource, price, total);
+	if (status !== OK)
+		Log.warn(`Terminal ${this.pos.roomName} creating sell order for ${total} ${resource} at ${price}, status: ${status}`, 'Terminal');
+	return status;
 };
 
 StructureTerminal.prototype.calcOrderFee = function (price, amt) {
