@@ -25,6 +25,7 @@ module.exports = {
 	init: function () {
 		// this.pushState('MoveTo', {pos: Game.flags[this.memory.site].pos, range: 3});
 		this.pushState('MoveToRoom', Game.flags[this.memory.site].pos.roomName);
+		this.pushState('EvalOnce', { script: 'this.notifyWhenAttacked(false)' });
 	},
 	/* eslint-disable consistent-return */
 	run: function () {
