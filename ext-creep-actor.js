@@ -261,7 +261,7 @@ Creep.prototype.take = function (target, resource = RESOURCE_ENERGY) {
 
 const { withdraw } = Creep.prototype;
 Creep.prototype.withdraw = function (target, resource, amount) {
-	if (resource === RESOURCE_ENERGY && target instanceof StructureTerminal) {
+	if (resource === RESOURCE_ENERGY && target instanceof StructureTerminal && target.my) {
 		if (target.store[RESOURCE_ENERGY] <= TERMINAL_MINIMUM_ENERGY)
 			return ERR_NOT_ENOUGH_RESOURCES;
 	}
