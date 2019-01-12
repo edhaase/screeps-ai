@@ -222,7 +222,7 @@ module.exports = {
 	/* eslint-disable consistent-return */
 	run: function () {
 		// if(this.carryCapacityAvailable <= 0) {
-		const state = this.getState('G');
+		const state = this.getState('U');
 		if (state === 'U') {
 			this.setState('G');
 			this.pushState("MoveTo", { pos: this.memory.site, range: 1 });
