@@ -27,7 +27,7 @@ module.exports = {
 		let goal = Game.getObjectById(target);
 		const container = Game.getObjectById(cid);
 		const consite = Game.getObjectById(csid);
-		const rpos = _.create(RoomPosition.prototype, pos);
+		const rpos = new RoomPosition(pos.x, pos.y, pos.roomName);
 
 		// Kill threat first.
 		this.say('act!');

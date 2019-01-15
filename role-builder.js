@@ -88,7 +88,8 @@ module.exports = {
 				this.setRole('recycle');
 			}
 		} else if (state === STATE_FORTIFY) {
-			const pos = _.create(RoomPosition.prototype, this.getStateParams().pos);
+			const statePos = this.getStateParams().pos;
+			const pos = new RoomPosition(statePos.x, statePos.y, statePos.roomName);
 			const target = pos.getStructure(STRUCTURE_RAMPART) || pos.getStructure(STRUCTURE_WALL);
 			if (!target || target.hits > BUILDER_MAX_FORTIFY_HITS)
 				return this.setState(STATE_UNLOAD);

@@ -167,7 +167,9 @@ Room.prototype.getOrigin = function () {
 		this.memory.origin = require('Planner').distanceTransformWithController(this) || { pos: this.controller.pos, range: 4 };
 		Log.warn(`Found origin: ${this.memory.origin}`, 'Planner');
 	}
-	return { pos: _.create(RoomPosition.prototype, this.memory.origin), radius: 1 };
+	const { origin } = this.memory;
+	const pos = new RoomPosition(origin.x, origin.y, origin.roomName);
+	return { pos, radius: 1 };
 };
 
 /***********************************************************************

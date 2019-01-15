@@ -30,7 +30,7 @@ module.exports = {
 				this.moveToRoom(room);
 			return;
 		}
-		const pos = _.create(RoomPosition.prototype, dest);
+		const pos = new RoomPosition(dest.x, dest.y, dest.roomName);
 		if (!this.pos.isNearTo(pos))
 			return this.moveTo(pos, { range: 1 });
 		const status = this.signController(this.room.controller, msg);

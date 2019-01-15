@@ -78,7 +78,7 @@ StructureNuker.prototype.processTargets = function () {
 	if (Game.time < job.tick)
 		return;
 	try {
-		const pos = _.create(RoomPosition.prototype, job.pos);
+		const pos = new RoomPosition(job.pos.x, job.pos.y, job.pos.roomName);
 		Log.warn(`${this.pos.roomName}: Firing at ${pos}`, 'Nuker');
 		// launchNuke
 		const status = this.launchNuke(pos);

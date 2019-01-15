@@ -380,8 +380,8 @@ StructureController.prototype.runCensus = function () {
 		if (!dualminer) {
 			if (!this.cache.steps || this.cache.steps < 0) {
 				const [s1, s2] = sources;
-				var s1pos = _.create(RoomPosition.prototype, s1.pos);
-				var s2pos = _.create(RoomPosition.prototype, s2.pos);
+				const s1pos = new RoomPosition(s1.pos.x, s1.pos.y, s1.pos.roomName);
+				const s2pos = new RoomPosition(s2.pos.x, s2.pos.y, s2.pos.roomName);
 				this.cache.steps = s1pos.getStepsTo({ pos: s2pos, range: 1 }) * 2; // expecting two sources
 				Log.debug(`${this.pos.roomName} steps: ${this.cache.steps}`, 'Controller');
 			}

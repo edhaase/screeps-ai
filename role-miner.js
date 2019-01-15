@@ -47,7 +47,7 @@ module.exports = {
 			if (!this.pos.isEqualTo(container.pos) && !container.pos.hasCreep())
 				this.moveTo(container, { range: 0 });
 		} else {
-			dest = _.create(RoomPosition.prototype, dest);
+			dest = new RoomPosition(dest.x, dest.y, dest.roomName);
 			if (!this.pos.isNearTo(dest)) {
 				return this.moveTo(dest, {
 					reusePath: 25,

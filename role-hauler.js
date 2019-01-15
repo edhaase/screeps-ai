@@ -228,7 +228,7 @@ module.exports = {
 			this.pushState("MoveTo", { pos: this.memory.site, range: 1 });
 			if (!this.memory.dropoff)
 				this.setRole('recycle');
-			const rp = _.create(RoomPosition.prototype, this.memory.dropoff);
+			const rp = new RoomPosition(this.memory.dropoff.x, this.memory.dropoff.y, this.memory.dropoff.roomName);
 			const container = _.find(rp.lookFor(LOOK_STRUCTURES), s => s.store !== undefined);
 			if (container && (_.sum(container.store) < container.storeCapacity - 50) && this.transferAny(container) === OK)
 				return;
@@ -246,7 +246,8 @@ module.exports = {
 			}
 			_.each(this.carry, (amt, type) => amt > 0 && this.drop(type, amt));
 		} else if (state === 'G') {
-			const pickup = _.create(RoomPosition.prototype, this.memory.site);
+			const { site } = this.memory;
+			const pickup = new RoomPosition(site.x, site.y, site.roomName);
 			if (pickup.roomName === this.pos.roomName) {
 				const dropped = pickup.findInRange(FIND_DROPPED_RESOURCES, 2, { filter: r => r.amount > 100 });
 				const structures = _.map(this.lookForNear(LOOK_STRUCTURES, true, 2), LOOK_STRUCTURES);

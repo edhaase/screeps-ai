@@ -607,8 +607,8 @@ Creep.prototype.runMoveTo = function (opts) {
 		opts.ignoreRoads = this.plainSpeed === this.roadSpeed;
 	// opts.ignoreCreeps = (this.memory.stuck || 0) < 3;
 	opts.costCallback = (name, cm) => LOGISTICS_MATRIX.get(name);
-	var { pos } = opts;
-	var roomPos = _.create(RoomPosition.prototype, pos);
+	const { pos } = opts;
+	const roomPos = new RoomPosition(pos.x, pos.y, pos.roomName);
 	if (this.pos.inRangeTo(roomPos, opts.range) || opts.failed > MOVE_STATE_FAILED_ATTEMPTS)
 		return this.popState();
 	const status = this.moveTo(roomPos, opts);
@@ -871,8 +871,9 @@ Creep.prototype.runUnboostSelf = function () {
 /**
  * Build a site at a a position
  */
-Creep.prototype.runBuild = function (opts) {
-	const roomPos = _.create(RoomPosition.prototype, opts.pos);
+Creep.prototype.runBuild = function (opts = {}) {
+	const { pos } = opts;
+	const roomPos = new RoomPosition(pos.x, pos.y, pos.roomName);
 	const { allowHarvest = false, allowMove = true } = opts;
 	const site = roomPos.getConstructionSite();
 	if (!site)
@@ -891,10 +892,10 @@ Creep.prototype.runBuild = function (opts) {
  * @todo check for construction sites
  * @todo add build state
  */
-Creep.prototype.runEnsureStructure = function (opts) {
+Creep.prototype.runEnsureStructure = function (opts = {}) {
 	const { pos, structureType, range = 0 } = opts;
 	const { allowBuild = true, allowHarvest = true, allowMove = true } = opts;
-	const roomPos = _.create(RoomPosition.prototype, pos);
+	const roomPos = new RoomPosition(pos.x, pos.y, pos.roomName);
 	this.popState(false); // Check only needs to happen once.
 
 	if (roomPos.hasStructure(structureType, range)) {
