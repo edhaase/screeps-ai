@@ -601,6 +601,8 @@ Creep.prototype.runWait = function (opts) {
  */
 const MOVE_STATE_FAILED_ATTEMPTS = 5;
 Creep.prototype.runMoveTo = function (opts) {
+	if (this.fatigue)
+		return;
 	if (opts.range === undefined)
 		opts.range = 1;
 	if (opts.ignoreRoads === undefined)
@@ -615,6 +617,8 @@ Creep.prototype.runMoveTo = function (opts) {
 	if (status === ERR_NO_PATH) {
 		Log.warn(`${this.name}/${this.pos} aborting pathing attempt to ${roomPos} range ${opts.range}, unable to find path`, 'Creep');
 		opts.failed = opts.failed + 1 || 1;
+	} else if (status !== OK) {
+		Log.warn(`${this.name}/${this.pos} failed to move to ${roomPos} range ${opts.range}, status ${status}`, 'Creep');
 	}
 };
 

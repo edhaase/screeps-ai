@@ -123,7 +123,7 @@ Creep.prototype.walkTo = function (goal, opts) {
 Creep.prototype.walkByPath = function (path) {
 	if (this.fatigue > 0)
 		return ERR_TIRED;
-	var i = _.findKey(path, this.pos);
+	var i = _.findKey(path, p => p.isEqualTo(this.pos));
 	if (i >= 0 && ++i < path.length)
 		return this.move(this.pos.getDirectionTo(path[i]));
 	return ERR_NO_PATH;
