@@ -134,7 +134,7 @@ Creep.prototype.walkByPath = function (path) {
 	if (i < 0 || ++i >= path.length)
 		return ERR_NO_PATH;
 	this.cache.step = i;
-		return this.move(this.pos.getDirectionTo(path[i]));
+	return this.move(this.pos.getDirectionTo(path[i]));
 };
 
 /* Creep.prototype.moveByPath = function(path) {
