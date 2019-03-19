@@ -75,9 +75,12 @@ DEFINE_CACHED_GETTER(Room.prototype, 'canMine', function ({ controller }) {
  * 2017-01-07: Threat value not needed to tell if hostile.
  */
 DEFINE_CACHED_GETTER(Room.prototype, 'hostiles', function (room) {
-	if (_.get(room, 'controller.safeMode', 0) < SAFE_MODE_IGNORE_TIMER) // abritary tick count before re-engaging
-		return room.find(FIND_HOSTILE_CREEPS, { filter: c => Filter.unauthorizedHostile(c) && !c.pos.isOnRoomBorder() });
+	if (_.get(room, 'controller.safeMode', 0) >= SAFE_MODE_IGNORE_TIMER) // abritary tick count before re-engaging
 	return [];
+	const r = [];
+	r.push.apply(r, room.find(FIND_HOSTILE_CREEPS, { filter: c => Filter.unauthorizedHostile(c) && !c.pos.isOnRoomBorder() }));
+	r.push.apply(r, room.find(FIND_HOSTILE_POWER_CREEPS, { filter: c => Filter.unauthorizedHostile(c) && !c.pos.isOnRoomBorder() }));
+	return r;
 });
 
 /**
