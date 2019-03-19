@@ -226,7 +226,7 @@ StructureTerminal.prototype.runAutoBuy = function (resource = RESOURCE_THIS_TICK
 		return;
 	if (resource.length <= 1 && resource !== 'G')
 		return;
-	if (['ZK', 'UL', 'OH'].includes(resource))
+	if (['ZK', 'UL', 'OH', RESOURCE_OPS].includes(resource))
 		return;
 	if (resource === RESOURCE_POWER && this.room.controller.level < 8)
 		return;
