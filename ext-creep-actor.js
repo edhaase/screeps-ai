@@ -523,6 +523,15 @@ Creep.prototype.repair = function (target) {
 	return repair.call(this, target);
 };
 
+const { upgradeController } = Creep.prototype;
+Creep.prototype.upgradeController = function (controller) {
+	const status = upgradeController.apply(this, arguments);
+	if (status === OK) {
+		controller.assisted = this.id;
+	}
+	return status;
+};
+
 /**
  * Globally patch creep actions to log error codes.
  */

@@ -144,8 +144,9 @@ module.exports = {
 				this.memory.avoid = goal.id;
 			}
 		} else if (state === STATE_UNLOAD) {
-			if (this.room.controller.isEmergencyModeActive() && !this.room.controller.upgradeBlocked && this.carry[RESOURCE_ENERGY] > 0) {
+			if (controller.isEmergencyModeActive() && !controller.upgradeBlocked && this.carry[RESOURCE_ENERGY] > 0 && !controller.assisted) {
 				goal = this.room.controller;
+				controller.assisted = this.id;
 			} else {
 				goal = getDropoffSite(this);
 				const MAX_OVERSTOCK = 1.5;
