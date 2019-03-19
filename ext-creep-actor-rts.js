@@ -105,6 +105,7 @@ Creep.prototype.walkTo = function (goal, opts) {
 		walk.path.unshift(this.pos);
 		this.cache.walk = walk;
 		this.cache.dest = goal;
+		this.cache.step = 0;
 		this.memory.stuck = 0;
 	}
 	const result = this.walkByPath(walk.path);
@@ -112,6 +113,7 @@ Creep.prototype.walkTo = function (goal, opts) {
 		// console.log('No path');
 		delete this.cache.walk;
 		delete this.cache.dest;
+		delete this.cache.step;
 		this.say(UNICODE_ARROWS.ARROW_BARS);
 	}
 	return result;
@@ -123,10 +125,16 @@ Creep.prototype.walkTo = function (goal, opts) {
 Creep.prototype.walkByPath = function (path) {
 	if (this.fatigue > 0)
 		return ERR_TIRED;
-	var i = _.findKey(path, p => p.isEqualTo(this.pos));
-	if (i >= 0 && ++i < path.length)
+	// Maintain last position
+	var i = this.cache.step;
+	if (i == null || path[i] == null || !this.pos.isEqualTo(path[i])) {
+		Log.debug(`${this.name}/${this.pos} has to re-find position in path ${i} ${path[i]}`, 'Creep');
+		i = _.findKey(path, p => p.isEqualTo(this.pos));
+	}
+	if (i < 0 || ++i >= path.length)
+		return ERR_NO_PATH;
+	this.cache.step = i;
 		return this.move(this.pos.getDirectionTo(path[i]));
-	return ERR_NO_PATH;
 };
 
 /* Creep.prototype.moveByPath = function(path) {
