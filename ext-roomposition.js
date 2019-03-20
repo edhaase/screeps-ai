@@ -278,8 +278,19 @@ RoomPosition.prototype.getStepsTo = function (dest, opts = {}) {
  * @todo: replace with roomCallback
  * @todo: maxCost testing
  */
-RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = _.identity, opts = {}) {
-	const mapping = _.map(goals, itr);
+RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = ({ pos }) => ({ pos, range: 1 }), opts = {}) {
+	// Map goals to position/range values
+	const mapping = [];
+	for (const g of Object.values(goals)) {
+		const itm = itr(g);
+		// Return early if we can
+		if (this.getRangeTo(itm.pos) <= itm.range) {
+			Log.debug(`FCBPF returned early with goal ${g}/${itm.pos} for ${this} range  ${itm.range}`, 'RoomPosition');
+			return { goal: g, cost: 0, ops: 0, incomplete: false, path: [] };
+		}
+		mapping.push(itm);
+	}
+	// const mapping = _.map(goals, itr);
 	if (_.isEmpty(mapping))
 		return { goal: null };
 	_.defaults(opts, {
