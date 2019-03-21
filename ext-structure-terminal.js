@@ -552,3 +552,22 @@ StructureTerminal.prototype.calcOrderFee = function (price, amt) {
 StructureTerminal.prototype.getMaximumBuyOrder = function (price) {
 	return Math.floor(this.creditsAvailable / (price * (MARKET_FEE + 1)));
 };
+
+/**
+ * 
+ */
+StructureTerminal.prototype.import = function (res, amount, note = 'Resource request') {
+	if (!res || !amount || amount < TERMINAL_MIN_SEND)
+		throw new Error("Invalid operation");
+	var busy = false;
+	for (const t of this.network) {
+		if (t.store[res] < TERMINAL_MIN_SEND || t.store[res] <= amount)
+			continue;
+		const status = t.send(res, amount, this.pos.roomName, note);
+		if (status === OK)
+			return status;
+		if (status === ERR_BUSY)
+			busy = true;
+	}
+	return (busy) ? ERR_BUSY : ERR_NOT_FOUND;
+};

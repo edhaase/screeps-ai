@@ -111,6 +111,7 @@ module.exports.loop = function () {
 	loadModule('ext-structure-rampart');
 	loadModule('ext-structure-powerspawn');
 	loadModule('ext-powercreep');
+	loadModule('ext-powercreep-pwr');
 	loadModule('ext-tombstone');
 	loadModule('Group');
 

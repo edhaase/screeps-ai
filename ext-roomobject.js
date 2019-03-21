@@ -377,6 +377,21 @@ RoomObject.prototype.pushState = function (state, opts = {}, runNext = true) {
 };
 
 
+/**
+ * Prevent a state from being pushed more than once
+ */
+RoomObject.prototype.pushStateOnce = function (state, opts = {}, runNext = true) {
+	if (!this.memory.stack)
+		this.memory.stack = [];
+	const { stack } = this.memory;
+	for (var i = stack.length - 1; i >= 0; i--) {
+		if (stack[i][0] === state)
+			return false;
+	}
+	return this.pushState(state, opts, runNext);
+};
+
+
 RoomObject.prototype.pushStates = function (arr = [], runNext = true) {
 	if (!this.memory.stack)
 		this.memory.stack = [];

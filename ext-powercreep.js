@@ -60,6 +60,9 @@ PowerCreep.prototype.doIdle = function () {
 		return;
 	}
 
+	if (this.hasPower(PWR_OPERATE_TOWER) && this.room.hostiles && this.room.hostiles.length)
+		return this.pushStateOnce(`Pwr${PWR_OPERATE_TOWER}`);
+
 	// if (Math.random() > this.hitPct) // Heal
 };
 
@@ -93,44 +96,6 @@ PowerCreep.prototype.isPowerDisabled = function (room) {
 }
 
 /**
- * Stack state for creating ops - Used for stockpiling or problem solving
- */
-PowerCreep.prototype.runGenOps = function (opts) {
-	this.flee();
-	// Generate a specific amount of opts
-	// Possibly unload or overflow
-	// Only actually generates once every 50 ticks so we might want to do other stuff
-	if (!this.hasPower(PWR_GENERATE_OPS))
-		return this.popState();
-	const { level, cooldown } = this.powers[PWR_GENERATE_OPS];
-	const { effect } = POWER_INFO[PWR_GENERATE_OPS];
-
-	if (cooldown || (this.carry[RESOURCE_OPS] + (this.room.terminal && this.room.terminal.store[RESOURCE_OPS]) >= TERMINAL_RESOURCE_LIMIT)) {
-		// We have a wait period, so.. let's do something else.
-		if (this.carryCapacityAvailable < effect[level])
-			return this.pushState('Unload', { res: RESOURCE_OPS });
-		return this.doIdle();
-	}
-	const status = this.usePower(PWR_GENERATE_OPS);
-	if (status === OK) {
-		if (opts.amount == null)
-			return;
-		opts.amount -= effect[level]; // Why null?			
-		if (opts.amount <= 0)
-			this.popState(false);
-	} else if (status === ERR_INVALID_ARGS) { // PWR not enabled
-		// Controller must exist and hostile safe mode or not power enabled
-		const { controller } = this.room;
-		if (!this.isPowerDisabled(this.room.name) && (controller.my || (controller.safeMode || 0) < this.pos.getRangeTo(controller)))
-			return this.pushState('EnableRoom', this.room.controller.pos);
-		else
-			return this.pushState('FleeRoom', { room: this.room.name });
-		// @todo go to highway or nearest power enabled neutral room
-
-	}
-};
-
-/**
  * Get the ops we need to use our abilities
  */
 PowerCreep.prototype.runAcquireOps = function (opts) {
@@ -138,11 +103,23 @@ PowerCreep.prototype.runAcquireOps = function (opts) {
 	// Find store of ops or possibly push generate ops
 	// Optionally use terminal to request or purchase
 	// if (this.hasPower(PWR_GENERATE_OPS) - required to push gen ops
-	const need = opts.amount - this.carry[RESOURCE_OPS];
-	if (opts.allowGen) {
+	const need = Math.max(0, opts.amount - (this.carry[RESOURCE_OPS] || 0));
+	if (need <= 0)
+		return this.popState(true);
+	console.log(`need: ${need} ${opts.amount} ${this.carry[RESOURCE_OPS]}`);
+	if (opts.allowTerm) {
+		const terminal = this.room.terminal || this.pos.getClosest(Game.structures, { structureType: STRUCTURE_TERMINAL }).goal;
+		if (terminal && terminal.store[RESOURCE_OPS] > 0) {
+			const amount = Math.min(terminal.store[RESOURCE_OPS] || 0, need);
+			return this.pushState('Withdraw', { tid: terminal.id, res: RESOURCE_OPS, amount });
+		}
+		if (opts.allowRequest && terminal.import(RESOURCE_OPS, Math.max(TERMINAL_MIN_SEND, need)) === ERR_BUSY)
+			return; // Busy so we wait and try again later
+	}
+	if (opts.allowGen && this.hasPower(PWR_GENERATE_OPS)) {
 		return this.pushState('GenOps', { amount: need });
 	}
-	Log.error(`${this.name}/${this.pos}#AcquireOps (${this.carry[RESOURCE_OPS]} / ${opts.amount}) Unable to meet goal within parameters (needs ${need})`, 'PowerCreep');
+	Log.error(`${this.name}/${this.pos}#AcquireOps (${this.carry[RESOURCE_OPS] || 0} / ${opts.amount}) Unable to meet goal within parameters (needs ${need})`, 'PowerCreep');
 	this.popState(false);
 };
 
@@ -211,7 +188,7 @@ PowerCreep.prototype.runUnload = function (opts) {
 	if (terminal && this.pos.isNearTo(terminal)) {
 		const res = (opts && opts.res) || opts || _.findKey(this.carry);
 		if (!res || this.carry[res] == null || this.carry[res] === 0)
-			this.popState();
+			return this.popState();
 		this.transfer(terminal, res);
 	} else {
 		// Find the closest terminal and move to it
@@ -220,6 +197,21 @@ PowerCreep.prototype.runUnload = function (opts) {
 			return this.pushState('MoveTo', { pos: goal.pos, range: 1 });
 	}
 };
+
+/**
+ * Load a given resource
+ */
+PowerCreep.prototype.runWithdraw = function (opts) {
+	const target = Game.getObjectById(opts.tid);
+	const res = opts.res || RESOURCE_ENERGY;
+	const amount = opts.amount || Math.min(target.store[res], this.carryCapacityAvailable);
+	if (amount <= 0)
+		return this.popState(true);
+	if (!this.pos.isNearTo(target))
+		return this.pushState('MoveTo', { pos: target.pos, range: 1 });
+	this.withdraw(target, res, amount);
+	this.popState(false);
+}
 
 /**
  * 
@@ -238,8 +230,8 @@ PowerCreep.prototype.usePowerSmart = function (power, target) {
 	const { ops, range } = POWER_INFO[power];
 	if (status === ERR_NOT_ENOUGH_RESOURCES) {
 		Log.warn(`${this.name}/${this.pos}#usePowerSmart Missing resource, acquiring`, 'PowerCreep');
-		if (ops && this.hasPower(PWR_GENERATE_OPS))
-			return this.pushState('AcquireOps', { amount: ops });
+		if (ops)
+			return this.pushState('AcquireOps', { amount: ops, allowGen: this.hasPower(PWR_GENERATE_OPS), allowTerm: true, allowRequest: true });
 	} else if (status === ERR_NOT_IN_RANGE) {
 		return this.pushState('MoveTo', { pos: target.pos || target, range });
 	}
