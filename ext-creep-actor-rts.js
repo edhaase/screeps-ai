@@ -29,7 +29,7 @@ global.serializePath = function (arr) {
  *
  * @todo: Perhaps let the creep set it's own max ops (some may be more expensive?)
  */
-Creep.prototype.getPathTo = function (pos, range = 1, opts = {}) {
+RoomObject.prototype.getPathTo = function (pos, range = 1, opts = {}) {
 	/* global Route */
 	if (!(pos instanceof RoomPosition))
 		throw new TypeError('Expected RoomPosition');
@@ -68,7 +68,7 @@ Creep.prototype.getPathTo = function (pos, range = 1, opts = {}) {
 	return result;
 };
 
-Creep.prototype.routeCallback = function (roomName, fromRoom) {
+RoomObject.prototype.routeCallback = function (roomName, fromRoom) {
 	// this.log(`${this.name}: ${roomName} from ${fromRoom}`, Log.LEVEL_INFO);
 	// Log.info(`${this.name}: ${roomName} from ${fromRoom}`, 'Creep');
 	if (Game.rooms[roomName] && Game.rooms[roomName].my)
@@ -83,7 +83,7 @@ Creep.prototype.routeCallback = function (roomName, fromRoom) {
  *
  * Game.creeps['noop498'].walkTo({pos: new RoomPosition(16,24,'W7N4'), range: 1})
  */
-Creep.prototype.walkTo = function (goal, opts) {
+RoomObject.prototype.walkTo = function (goal, opts) {
 	var { dest, walk } = this.cache;
 	if (this.fatigue)
 		return ERR_TIRED;
@@ -106,7 +106,7 @@ Creep.prototype.walkTo = function (goal, opts) {
 		this.cache.walk = walk;
 		this.cache.dest = goal;
 		this.cache.step = 0;
-		this.memory.stuck = 0;
+		// this.memory.stuck = 0; // Don't reset or we can get a 4-way-stop jamup
 	}
 	const result = this.walkByPath(walk.path);
 	if (result === ERR_NO_PATH) {
@@ -122,7 +122,7 @@ Creep.prototype.walkTo = function (goal, opts) {
 /**
  * Because the built in _.findIndex usage is terrible.
  */
-Creep.prototype.walkByPath = function (path) {
+RoomObject.prototype.walkByPath = function (path) {
 	if (this.fatigue > 0)
 		return ERR_TIRED;
 	// Maintain last position

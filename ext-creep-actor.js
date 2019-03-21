@@ -149,7 +149,7 @@ Creep.prototype.transferOrMove = function (target, res, amt) {
 	return status;
 };
 
-Creep.prototype.updateStuck = function () {
+RoomObject.prototype.updateStuck = function () {
 	var { x, y } = this.pos;
 	var code = x | y << 6;
 	var { lpos, stuck = 0 } = this.memory;
@@ -334,14 +334,14 @@ Creep.prototype.flee = function (min = MINIMUM_SAFE_FLEE_DISTANCE, all = false, 
 	const goals = _.map(hostiles, c => ({ pos: c.pos, range: min + opts.planAhead }));
 	// Smarter flee via cost fixing.
 	// If we can move equally across both, prefer swamps
-	/* if (opts.swampCost == null || opts.plainCost == null) {
-		let plainCost = this.plainSpeed;
+	if (opts.swampCost == null || opts.plainCost == null) {
 		const swampCost = this.swampSpeed;
-		if (swampCost <= plainCost || _.all(hostiles, h => this.swampSpeed <= h.swampSpeed))
+		const plainCost = (swampCost <= 1) ? swampCost + 5 : this.plainSpeed;
+		if (swampCost <= 1) // Too many edge cases if we have non-zero swamp fatigue, so only for the fastest right now
 			plainCost = swampCost + 5;
 		opts.plainCost = plainCost;
 		opts.swampCost = swampCost;
-	} */
+	}
 	if (opts.roomCallback == null)
 		opts.roomCallback = (r) => {
 			if (Intel.isHostileRoom(r))
@@ -398,7 +398,7 @@ Creep.prototype.scatter = function () {
 	this.flee(MINIMUM_SAFE_FLEE_DISTANCE, true);
 };
 
-Creep.prototype.moveToRoom = function (roomName) {
+RoomObject.prototype.moveToRoom = function (roomName) {
 	return this.moveTo(new RoomPosition(25, 25, roomName), {
 		reusePath: 5,
 		range: 23,
@@ -564,9 +564,10 @@ Creep.prototype.pushState = function (state, opts = {}, runNext = true) {
  * @todo - Flee hostiles as well
  * @todo - Blocked rooms
  */
-Creep.prototype.runFleeRoom = function ({ room, range = 5 }) {
+RoomObject.prototype.runFleeRoom = function ({ room, range = 5 }) {
 	// Since we can heal and move, try to heal
-	this.heal(this);
+	if (this.heal)
+		this.heal(this);
 	const hostiles = _.filter(this.room.hostiles, Filter.unauthorizedCombatHostile);
 	const targets = this.pos.findInRange(hostiles, CREEP_RANGED_ATTACK_RANGE);
 	if (targets && targets.length && this.hasActiveBodypart(RANGED_ATTACK)) {
@@ -609,7 +610,7 @@ Creep.prototype.runWait = function (opts) {
  * @todo - Opts
  */
 const MOVE_STATE_FAILED_ATTEMPTS = 5;
-Creep.prototype.runMoveTo = function (opts) {
+RoomObject.prototype.runMoveTo = function (opts) {
 	if (this.fatigue)
 		return;
 	if (opts.range === undefined)
@@ -631,8 +632,8 @@ Creep.prototype.runMoveTo = function (opts) {
 	}
 };
 
-Creep.prototype.runMoveToRoom = function (opts) {
-	if (this.moveToRoom(opts) === ERR_NO_PATH)
+RoomObject.prototype.runMoveToRoom = function (opts) {
+	if (this.moveToRoom(opts.room || opts) === ERR_NO_PATH)
 		this.popState();
 	if (!opts.evade && !opts.attack)
 		return;

@@ -292,6 +292,7 @@ class LogisticsMatrix extends CostMatrix {
 		this.setDynamicObstacles(room);
 		this.setSKLairs(room);
 		this.setCreeps(room, TILE_UNWALKABLE, (c) => c.memory.stuck > 3, FIND_MY_CREEPS);
+		this.setCreeps(room, TILE_UNWALKABLE, (c) => c.memory.stuck > 3, FIND_MY_POWER_CREEPS);		
 		this.setExitTiles(room, 5);
 	}
 }

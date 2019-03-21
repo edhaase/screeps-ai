@@ -110,6 +110,7 @@ module.exports.loop = function () {
 	loadModule('ext-structure-extractor');
 	loadModule('ext-structure-rampart');
 	loadModule('ext-structure-powerspawn');
+	loadModule('ext-powercreep');
 	loadModule('ext-tombstone');
 	loadModule('Group');
 
@@ -144,6 +145,7 @@ module.exports.loop = function () {
 			const stats = Memory.stats.runner;
 			stats.dTR = Time.measure(() => Util.invoke(Game.rooms, 'run'));
 			stats.dTC = Time.measure(() => Util.invoke(Game.creeps, 'run'));
+			stats.dTP = Time.measure(() => Util.invoke(Game.powerCreeps, 'run'));
 			stats.dTS = Time.measure(() => Util.invoke(Game.structures, 'logic'));
 			if (Game.time % (DEFAULT_SPAWN_JOB_EXPIRE + 1) === 0)
 				stats.dTF = Time.measure(() => Util.invoke(Game.flags, 'run'));
