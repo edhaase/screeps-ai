@@ -283,7 +283,7 @@ StructureTerminal.prototype.sell = function (resource, amt = Infinity, limit = T
 
 	if (Game.rooms[order.roomName] && Game.rooms[order.roomName].my)
 		Log.notify(`Yeah, we are selling to ourselves.. ${amount} ${resource} from ${this.pos.roomName} to ${order.roomName}`);
-	const status = this.deal(order.id, amount, order);
+	const status = this.deal(order.id, Math.min(amount, order.amount), order);
 	if (status === OK)
 		this.say('\u2661');
 	else if (status === ERR_INVALID_ARGS)
