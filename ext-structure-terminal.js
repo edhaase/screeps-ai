@@ -178,7 +178,7 @@ StructureTerminal.prototype.moderateEnergy = function () {
 	const terms = _.filter(this.network, s => s.store[RESOURCE_ENERGY] + 1000 < TERMINAL_RESOURCE_LIMIT);
 	if (terms == null || !terms.length) {
 		Log.warn(`${this.pos.roomName} No overflow terminal for ${overage} energy`, "Terminal");
-		return this.sell(RESOURCE_ENERGY, Math.min(overage, TERMINAL_MAXIMUM_AUTOSELL), 0.01);
+		return this.sell(RESOURCE_ENERGY, Math.min(overage, TERMINAL_MAXIMUM_AUTOSELL), TERMINAL_MINIMUM_SELL_PRICE);
 	}
 
 	const best = _.max(terms, t => TERMINAL_RESOURCE_LIMIT - t.store[RESOURCE_ENERGY]);
