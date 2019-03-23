@@ -271,7 +271,7 @@ StructureTerminal.prototype.sell = function (resource, amt = Infinity, limit = T
 	var orders = this.getAllOrders({ type: ORDER_BUY, resourceType: resource });
 	orders = _.filter(orders, o => o.price >= limit && o.remainingAmount > 1 && o.amount > 1);
 	if (orders == null || !orders.length) {
-		Log.info(`${this.pos.roomName}: No orders to fill for ${resource}`, 'Terminal');
+		Log.info(`${this.pos.roomName}: No available orders to fill for ${resource} above limit ${limit}`, 'Terminal');
 		return ERR_NOT_FOUND;
 	}
 	const amount = Math.min(amt, this.store[resource]);
