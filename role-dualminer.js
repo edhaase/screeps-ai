@@ -29,21 +29,6 @@ module.exports = {
 	},
 	/* eslint-disable consistent-return */
 	run: function () {
-		let { site } = this.memory;
-
-		if (!site || typeof site !== 'string') {
-			this.memory.site = this.pos.roomName;
-			site = this.pos.roomName;
-		}
-
-		if (this.hitPct < 0.75)
-			return this.pushState('HealSelf');
-
-		// If we're not in the room, move to the room.
-		if (this.pos.roomName !== site)
-			return this.moveToRoom(site);
-
-		// Otherwise find ourselves a target.
 		let target = this.getTarget(
 			({ room }) => room.find(FIND_SOURCES),
 			(source) => source instanceof Source && source.energy > 0,
@@ -97,7 +82,7 @@ module.exports = {
 			return;
 
 		if (!this.memory.repairPower)
-			module.exports.init(this);
+			module.exports.init();
 		if ((goal instanceof StructureContainer) && ((goal.hitsMax - goal.hits) > this.memory.repairPower))
 			return this.repair(goal);
 
