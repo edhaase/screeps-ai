@@ -49,8 +49,8 @@ module.exports = {
 		// (Optional)
 	},
 	minBody: [MOVE],
-	init: function (creep) {
-		creep.pushStates([
+	init: function () {
+		this.pushStates([
 			['SetRole', 'recycle'],
 			['EvalOnce', `this.signController(this.room.controller, this.memory.msg)`],
 			['EvalOnce', 'this.pushState("EvadeMove",{pos:this.memory.dest},false)'],

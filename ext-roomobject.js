@@ -349,7 +349,7 @@ RoomObject.prototype.setState = function (state, opts = {}, runNext = true) {
 	this.clearTarget();
 	this.memory.stack[0] = [state, opts];
 	Log.debug(`Setting state ${state} to ${this}`, 'RoomObject');
-	if (runNext && this[method] !== null)
+	if (runNext && !this.spawning && this[method] !== null)
 		this.invokeState();
 	return state;
 };
@@ -391,7 +391,8 @@ RoomObject.prototype.pushStateOnce = function (state, opts = {}, runNext = true)
 	return this.pushState(state, opts, runNext);
 };
 
-
+// @todo check if states exist
+// @todo check if each array item is long enough
 RoomObject.prototype.pushStates = function (arr = [], runNext = true) {
 	if (!this.memory.stack)
 		this.memory.stack = [];

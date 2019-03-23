@@ -101,7 +101,7 @@ module.exports = {
 		// (Optional) Used if no body supplied
 		// Expects conditions..
 	},
-	init: function (creep) {
+	init: function () {
 
 	},
 	/* eslint-disable consistent-return */
