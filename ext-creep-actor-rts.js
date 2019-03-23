@@ -91,7 +91,7 @@ RoomObject.prototype.walkTo = function (goal, opts) {
 		goal.range = 1;
 	if (this.pos.inRangeTo(goal.pos, goal.range))
 		return ERR_NO_PATH;
-	if (!_.isMatch(goal, dest) || !walk || _.isEmpty(walk.path)
+	if (!dest || !walk || dest.range !== goal.range || !goal.pos.isEqualToPlain(dest.pos) || _.isEmpty(walk.path)
 		|| (this.memory.stuck && this.memory.stuck >= 3)) { // If the current goal doesn't match our goal.
 		// console.log('Cache miss');
 		walk = this.getPathTo(goal.pos, goal.range, opts);
