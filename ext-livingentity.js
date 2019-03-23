@@ -75,23 +75,23 @@ class LivingEntity extends RoomObject {
 	 * @todo - Opts
 	 */
 	runMoveTo(opts) {
+		if (this.heal)
+			this.heal(this);
 		if (this.fatigue)
 			return;
 		if (opts.range === undefined)
 			opts.range = 1;
 		if (opts.ignoreRoads === undefined)
 			opts.ignoreRoads = this.plainSpeed === this.roadSpeed;
-		if (this.heal)
-			this.heal(this);
 		// opts.ignoreCreeps = (this.memory.stuck || 0) < 3;
 		opts.costCallback = (name, cm) => LOGISTICS_MATRIX.get(name);
 		const { pos } = opts;
 		const roomPos = new RoomPosition(pos.x, pos.y, pos.roomName);
-		if (this.pos.inRangeTo(roomPos, opts.range) || opts.failed > MOVE_STATE_FAILED_ATTEMPTS)
+		if (this.pos.inRangeTo(roomPos, opts.range) || opts.failed >= MOVE_STATE_FAILED_ATTEMPTS)
 			return this.popState();
 		const status = this.moveTo(roomPos, opts);
 		if (status === ERR_NO_PATH) {
-			Log.warn(`${this.name}/${this.pos} aborting pathing attempt to ${roomPos} range ${opts.range}, unable to find path`, 'LivingEntity');
+			Log.warn(`${this.name}/${this.pos} aborting pathing attempt to ${roomPos} range ${opts.range}, unable to find path  (ttl: ${this.ticksToLive})`, 'LivingEntity');
 			opts.failed = (opts.failed + 1) || 1;
 		} else if (status !== OK) {
 			Log.warn(`${this.name}/${this.pos} failed to move to ${roomPos} range ${opts.range}, status ${status}`, 'LivingEntity');
