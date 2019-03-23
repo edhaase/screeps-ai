@@ -72,9 +72,12 @@ module.exports = {
 		}
 		return body; */
 	},
-	init: function () {
-		this.pushState("EnsureStructure", { pos: this.room.controller.pos, structureType: STRUCTURE_CONTAINER, range: CREEP_UPGRADE_RANGE, allowBuild: false });
-		this.pushState("EvadeMove", { pos: this.room.controller.pos, range: CREEP_UPGRADE_RANGE });
+	init: function (job) {
+		const room = Game.rooms[job.memory.home];
+		if (!room)
+			return Log.error(`${this.name}/${this.pos} Unable to init upgrader`, 'Creep');
+		this.pushState("EnsureStructure", { pos: room.controller.pos, structureType: STRUCTURE_CONTAINER, range: CREEP_UPGRADE_RANGE, allowBuild: false });
+		this.pushState("EvadeMove", { pos: room.controller.pos, range: CREEP_UPGRADE_RANGE });
 	},
 	/* eslint-disable consistent-return */
 	run: function () {

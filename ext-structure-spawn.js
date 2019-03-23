@@ -109,7 +109,7 @@ StructureSpawn.prototype.processJobs = function () {
 	if (job.notify === true)
 		Game.notify(`Tick ${Game.time}: ${this.pos.roomName}/${this.name}: New ${job.memory.role} unit: ${assignedName}, cost: ${job.cost}, ticks: ${job.ticks}, priority: ${job.priority}, idle: ${idle}`);
 	if (job.memory && job.memory.role)
-		this.initCreep(assignedName, job.memory.role);
+		this.initCreep(assignedName, job.memory.role, job);
 	const creep = Game.creeps[assignedName];
 	if (job.memory && job.memory.home && job.memory.home !== this.pos.roomName && Game.map.isRoomAvailable(job.memory.home)) {
 		if (job.boosts)
