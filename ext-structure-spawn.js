@@ -127,12 +127,12 @@ StructureSpawn.prototype.processJobs = function () {
 /**
  * Call the role init code if there is any
  */
-StructureSpawn.prototype.initCreep = function (name, roleName) {
+StructureSpawn.prototype.initCreep = function (name, roleName, job) {
 	try {
 		const role = require(`role-${roleName}`);
 		const creep = Game.creeps[name];
 		if (role && role.init)
-			role.init.call(creep, creep);
+			role.init.call(creep, job);
 	} catch (e) {
 		Log.error(`${this.pos.roomName}/${this.name} failed to initialize creep ${name}`, 'Spawn');
 		Log.error(e.stack);
