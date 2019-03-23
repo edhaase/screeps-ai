@@ -111,7 +111,7 @@ module.exports = {
 					range: CREEP_UPGRADE_RANGE, maxRooms: 1, ignoreRoads: this.pos.inRangeTo(controller, CREEP_UPGRADE_RANGE + 1)
 				});
 		} else if (controller && controller.upgradeBlocked > this.ticksToLive) {
-			Log.warn(`${this.pos.roomName}: Upgrade block exeeds creep ttl, recycling ${this.name}`, 'Creep');
+			Log.warn(`${this.pos.roomName}: Upgrade block exceeds creep ttl, recycling ${this.name}`, 'Creep');
 			this.setRole('recycle');
 		}
 	}
