@@ -376,7 +376,7 @@ StructureController.prototype.runCensus = function () {
 	if (numSources === 2 && this.level >= 6) {
 		var totalCapacity = _.sum(sources, 'energyCapacity');
 		// If we have miners currently skip..
-		const dualminer = _.findWhere(dualminers, { memory: { site: roomName, role: 'dualminer' } });
+		const dualminer = _.findWhere(dualminers, { memory: { home: roomName, role: 'dualminer' } });
 		if (!dualminer) {
 			if (!this.cache.steps || this.cache.steps < 0) {
 				const [s1, s2] = sources;

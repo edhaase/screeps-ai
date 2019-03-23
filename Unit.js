@@ -214,7 +214,7 @@ module.exports = {
 		const avail = Math.max(SPAWN_ENERGY_START, spawn.room.energyCapacityAvailable);
 		const [w, c, m] = [Math.floor(0.25 * avail), Math.floor(0.25 * avail), Math.floor(0.50 * avail)];
 		const [lw, lc, lm] = [0.20 * MAX_CREEP_SIZE, 0.30 * MAX_CREEP_SIZE, 0.50 * MAX_CREEP_SIZE];
-		const [aw, ac, am] = [Math.floor(w / BODYPART_COST[WORK]), Math.floor(c / BODYPART_COST[CARRY]), Math.floor(m / BODYPART_COST[MOVE])]
+		const [aw, ac, am] = [Math.floor(w / BODYPART_COST[WORK]), Math.floor(c / BODYPART_COST[CARRY]), Math.floor(m / BODYPART_COST[MOVE])];
 		Log.debug(`Build energy available: ${avail} = ${w} + ${c} + ${m}`, 'Unit');
 		Log.debug(`Build part limits: ${lw} ${lc} ${lm}`, 'Unit');
 		Log.debug(`Build avail parts: ${aw} ${ac} ${am}`, 'Unit');
@@ -248,7 +248,7 @@ module.exports = {
 			return false;
 		}
 		// var priority = (spawn.pos.roomName === home) ? PRIORITY_MED : 10;
-		return spawn.submit({ body, memory: { role: 'dualminer', site: home }, priority: PRIORITY_MED, home });
+		return spawn.submit({ body, memory: { role: 'dualminer', home }, priority: PRIORITY_MED });
 	},
 
 	/**
