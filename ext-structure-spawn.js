@@ -118,6 +118,9 @@ StructureSpawn.prototype.processJobs = function () {
 	}
 	if (job.boosts)
 		job.boosts.forEach(b => creep.pushState('BoostSelf', { boost: b }));
+	if (job.notifyWhenAttacked !== true)
+		creep.pushState('EvalOnce', { script: 'this.notifyWhenAttacked(false)' });
+
 	q.shift();
 	this.memory.lastidle = Game.time + job.ticks;
 	this.resetEnergyClock();
