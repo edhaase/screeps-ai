@@ -88,6 +88,7 @@ module.exports.loop = function () {
 	 */
 	loadModule('ext');
 	loadModule('ext-roomobject');
+	loadModule('ext-livingentity');
 	loadModule('ext-roomposition');
 	loadModule('ext-flag');
 	loadModule('ext-room');

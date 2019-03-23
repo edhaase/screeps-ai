@@ -11,13 +11,11 @@
 /**
  * Stack state for creating ops - Used for stockpiling or problem solving
  */
-PowerCreep.prototype.runGenOps = function (opts) {
+PowerCreep.prototype[`runPwr${PWR_GENERATE_OPS}`] = function (opts) {
 	this.flee();
 	// Generate a specific amount of opts
 	// Possibly unload or overflow
 	// Only actually generates once every 50 ticks so we might want to do other stuff
-	if (!this.hasPower(PWR_GENERATE_OPS))
-		return this.popState();
 	const { level, cooldown } = this.powers[PWR_GENERATE_OPS];
 	const { effect } = POWER_INFO[PWR_GENERATE_OPS];
 
@@ -46,13 +44,6 @@ PowerCreep.prototype.runGenOps = function (opts) {
 	}
 };
 
-/**
- * Power states
- */
-PowerCreep.prototype[`runPwr${PWR_GENERATE_OPS}`] = function (opts) {
-	return this.runGenOps(opts);
-};
-
 PowerCreep.prototype[`runPwr${PWR_OPERATE_SPAWN}`] = function (opts) {
 
 };
@@ -74,7 +65,7 @@ PowerCreep.prototype[`runPwr${PWR_OPERATE_TOWER}`] = function (opts) {
 	opts.alert = MAX_ALERT;
 
 	// We have hostiles. Boost the towers!
-	const { cooldown, level } = this.powers[PWR_OPERATE_TOWER];
+	const { cooldown } = this.powers[PWR_OPERATE_TOWER];
 	if (cooldown)
 		return; // Cooldown is short, no idle time
 	const { duration, range, ops } = POWER_INFO[PWR_OPERATE_TOWER];
@@ -93,10 +84,15 @@ PowerCreep.prototype[`runPwr${PWR_OPERATE_TOWER}`] = function (opts) {
 for (const pwr in POWER_INFO) {
 	const orig = PowerCreep.prototype[`runPwr${pwr}`];
 	PowerCreep.prototype[`runPwr${pwr}`] = function () {
+		if (!this.isSpawned()) {
+			Log.error(`${this.name} Unable to use power ${pwr}, not currently spawned`, 'PowerCreep');
+			return this.popState(false);
+		}
+
 		if (!this.hasPower(pwr)) {
 			Log.error(`${this.name}/${this.pos} Incorrectly attempting to use power ${pwr} but does not have it`, 'PowerCreep');
 			return this.popState(false);
 		}
 		return orig.apply(this, arguments);
-	}
+	};
 }

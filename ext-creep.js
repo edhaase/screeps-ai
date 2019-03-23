@@ -11,15 +11,10 @@
 
 
 DEFINE_CACHED_GETTER(Creep.prototype, 'ticksToLiveMax', (c) => c.hasBodypart(CLAIM) ? CREEP_CLAIM_LIFE_TIME : CREEP_LIFE_TIME);
-DEFINE_CACHED_GETTER(Creep.prototype, 'ttlPct', (c) => c.ticksToLive / c.ticksToLiveMax);
-DEFINE_CACHED_GETTER(Creep.prototype, 'carryTotal', (c) => _.sum(c.carry));
-DEFINE_CACHED_GETTER(Creep.prototype, 'carryCapacityAvailable', (c) => c.carryCapacity - c.carryTotal);
 DEFINE_CACHED_GETTER(Creep.prototype, 'cost', ({ body }) => UNIT_COST(body));
 
 const COST_PER_TICK_PRECISION = 3;
 DEFINE_CACHED_GETTER(Creep.prototype, 'cpt', (c) => _.round(c.cost / c.ticksToLiveMax, COST_PER_TICK_PRECISION));
-
-DEFINE_GETTER(Creep.prototype, 'hitPct', c => c.hits / c.hitsMax); // Not cached as this can change mid-tick
 
 DEFINE_CACHED_GETTER(Creep.prototype, 'canMove', (c) => c.fatigue === 0);
 DEFINE_CACHED_GETTER(Creep.prototype, 'canAttack', (c) => c.hasActiveBodypart(ATTACK));
@@ -46,14 +41,6 @@ DEFINE_CACHED_GETTER(Creep.prototype, 'rangedHealPower', (c) => c.calcEffective(
 Creep.prototype.isBoosted = function () {
 	return _.any(this.body, p => p.boost != null);
 };
-
-/**
- *
- */
-Creep.prototype.isFriendly = function () {
-	return (this.my === true) || Player.status(this.owner.username) >= PLAYER_TRUSTED;
-};
-
 
 /**
  * Like _.countBy for active bodyparts, best used with destructuring:
@@ -244,25 +231,6 @@ DEFINE_CACHED_GETTER(Creep.prototype, 'totalMove', (c) => c.getActiveBodyparts(M
 DEFINE_CACHED_GETTER(Creep.prototype, 'plainSpeed', (creep) => Math.ceil(FATIGUE_BASE * creep.weight / creep.totalMove));
 DEFINE_CACHED_GETTER(Creep.prototype, 'swampSpeed', (creep) => Math.ceil(FATIGUE_SWAMP * creep.weight / creep.totalMove));
 DEFINE_CACHED_GETTER(Creep.prototype, 'roadSpeed', (creep) => Math.ceil(FATIGUE_ROAD * creep.weight / creep.totalMove));
-
-Creep.prototype.findCarry = function () {
-	return _.findKey(this.carry, (amt) => amt > 0);
-};
-
-/**
- * @todo: _.findLastKey?
- */
-Creep.prototype.transferAny = function (target) {
-	var res = _.findKey(this.carry, amt => amt > 0);
-	if (!res)
-		return ERR_NOT_ENOUGH_RESOURCES;
-	else
-		return this.transfer(target, res);
-};
-
-Creep.prototype.isCarryingNonEnergyResource = function () {
-	return _.any(this.carry, (amt, key) => amt > 0 && key !== RESOURCE_ENERGY);
-};
 
 DEFINE_CACHED_GETTER(Creep.prototype, 'threat', function () {
 	if (this.my) // don't attack friendlies.

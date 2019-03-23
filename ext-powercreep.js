@@ -12,22 +12,20 @@
 
 /* eslint-disable consistent-return */
 
-DEFINE_CACHED_GETTER(PowerCreep.prototype, 'carryTotal', (c) => _.sum(c.carry));
-DEFINE_CACHED_GETTER(PowerCreep.prototype, 'carryCapacityAvailable', (c) => c.carryCapacity - c.carryTotal);
-DEFINE_CACHED_GETTER(PowerCreep.prototype, 'ttlPct', c => c.ticksToLive / POWER_CREEP_LIFE_TIME);
-DEFINE_GETTER(PowerCreep.prototype, 'hitPct', c => c.hits / c.hitsMax); // Not cached as this can change mid-tick
-
 const ON_ERROR_SLEEP_DELAY = 3;
 
 PowerCreep.prototype.plainSpeed = 1;
 PowerCreep.prototype.swampSpeed = 1; // Allows us to swamp travel automatically
 PowerCreep.prototype.roadSpeed = 1;
+PowerCreep.prototype.ticksToLiveMax = POWER_CREEP_LIFE_TIME;
 
 /**
  * You know the drill by now.
  */
 PowerCreep.prototype.run = function () {
 	try {
+		if (this.isDeferred())
+			return;
 		if (this.pos)
 			this.updateStuck();
 		if (this.invokeState() === true)
@@ -44,24 +42,28 @@ PowerCreep.prototype.run = function () {
 		Log.error(`Exception on PowerCreep ${this.name} at ${this.pos}: ${e}`, "PowerCreep");
 		Log.error(e.stack, "PowerCreep");
 		this.say("HELP");
-		// this.defer(ON_ERROR_SLEEP_DELAY); // Needs moved to RoomObject
+		this.defer(ON_ERROR_SLEEP_DELAY); // Needs moved to RoomObject
 	}
 };
 
 /**
  * Called when a power creep is idle, might still be in the middle of a state.
  */
+const PC_MIN_RENEW_PCT = 0.60;
+const PC_GEN_OPS_CHANCE = 0.05;
 PowerCreep.prototype.doIdle = function () {
 	this.flee();
 
 	// @todo Check if we need healing and aren't healing.
-	if (Math.random() > this.ticksToLive / (POWER_CREEP_LIFE_TIME * 0.60)) {
-		this.pushState('RenewSelf');
-		return;
+	if (Math.random() > this.ticksToLive / (POWER_CREEP_LIFE_TIME * PC_MIN_RENEW_PCT)) {
+		return this.pushState('RenewSelf');
 	}
 
 	if (this.hasPower(PWR_OPERATE_TOWER) && this.room.hostiles && this.room.hostiles.length)
 		return this.pushStateOnce(`Pwr${PWR_OPERATE_TOWER}`);
+
+	if (this.hasPower(PWR_GENERATE_OPS) && Math.random() < PC_GEN_OPS_CHANCE)
+		return this.pushStateOnce(`Pwr${PWR_GENERATE_OPS}`, { amount: 1 });
 
 	// if (Math.random() > this.hitPct) // Heal
 };
@@ -78,14 +80,19 @@ PowerCreep.prototype.spawnRandom = function () {
 	const powerSpawn = _.sample(powerSpawns);
 	if (!powerSpawn)
 		return ERR_NOT_FOUND;
-	return this.spawn(powerSpawn);
+	const status = this.spawn(powerSpawn);
+	if (status === ERR_BUSY || status === ERR_INVALID_TARGET)
+		Log.error(`${this.name}#spawn failed with status ${status}`, 'PowerCreep');
+	if (status === OK)
+		this.memory.born = Game.time;
+	return status;
 };
 
 /**
  * Bring yourself into world somewhere 
  */
 PowerCreep.prototype.runSpawnSelf = function (opts) {
-	if (this.spawnRandom() === OK)
+	if (!this.spawnCooldownTime && this.spawnRandom() === OK)
 		return this.popState(false);
 };
 
@@ -93,7 +100,7 @@ PowerCreep.prototype.isPowerDisabled = function (room) {
 	if (!Memory.empire.disablePower)
 		return true;
 	return Memory.empire.disablePower.includes(room);
-}
+};
 
 /**
  * Get the ops we need to use our abilities
@@ -153,7 +160,7 @@ PowerCreep.prototype.runRenewSelf = function (opts) {
  */
 PowerCreep.prototype.runEnableRoom = function (opts) {
 	if (this.isPowerDisabled(opts.roomName)) {
-		Log.error(`${this.name}/${this.pos} Power is explictly disabled for ${opts.roomName}`, 'PowerCreep')
+		Log.error(`${this.name}/${this.pos} Power is explictly disabled for ${opts.roomName}`, 'PowerCreep');
 		return this.popState(false);
 	}
 	const pos = new RoomPosition(opts.x, opts.y, opts.roomName);
@@ -177,41 +184,6 @@ PowerCreep.prototype.runLeaveRoom = function (opts) {
 	Log.error(`${this.name}/${this.pos} Unable to leave room, nowhere safe to go`, 'PowerCreep');
 	this.popState();
 };
-
-/**
- * Unload one or more resources to a terminal
- * pushState('Unload', null); // Unload all
- * pushState('Unload', {res: RESOURCE_OPS});
- */
-PowerCreep.prototype.runUnload = function (opts) {
-	const { terminal } = this.room;
-	if (terminal && this.pos.isNearTo(terminal)) {
-		const res = (opts && opts.res) || opts || _.findKey(this.carry);
-		if (!res || this.carry[res] == null || this.carry[res] === 0)
-			return this.popState();
-		this.transfer(terminal, res);
-	} else {
-		// Find the closest terminal and move to it
-		const { goal } = this.pos.getClosest(Game.structures, { structureType: STRUCTURE_TERMINAL });
-		if (goal)
-			return this.pushState('MoveTo', { pos: goal.pos, range: 1 });
-	}
-};
-
-/**
- * Load a given resource
- */
-PowerCreep.prototype.runWithdraw = function (opts) {
-	const target = Game.getObjectById(opts.tid);
-	const res = opts.res || RESOURCE_ENERGY;
-	const amount = opts.amount || Math.min(target.store[res], this.carryCapacityAvailable);
-	if (amount <= 0)
-		return this.popState(true);
-	if (!this.pos.isNearTo(target))
-		return this.pushState('MoveTo', { pos: target.pos, range: 1 });
-	this.withdraw(target, res, amount);
-	this.popState(false);
-}
 
 /**
  * 
@@ -272,7 +244,7 @@ PowerCreep.prototype.flee = function (min = MINIMUM_SAFE_FLEE_DISTANCE, opts = {
 	return this.move(this.pos.getDirectionTo(path[0]));
 };
 
-['rename', 'renew', 'spawn', 'suicide', 'transfer', 'usePower', 'upgrade', 'withdraw'].forEach(function (method) {
+['rename', 'renew', 'suicide', 'transfer', 'usePower', 'upgrade', 'withdraw'].forEach(function (method) {
 	const original = PowerCreep.prototype[method];
 	PowerCreep.prototype[method] = function () {
 		const status = original.apply(this, arguments);
