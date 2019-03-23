@@ -409,10 +409,6 @@ Room.getType = function (roomName) {
 	}
 };
 
-Room.prototype.getMyCreeps = function (filter = _.identity) {
-	return _(this.find(FIND_MY_CREEPS)).filter(filter);
-};
-
 /**
  *
  */
