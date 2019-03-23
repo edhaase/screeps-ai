@@ -36,7 +36,9 @@ const ENABLE_ORDER_MANAGEMENT = true;				// Allow terminals to create orders
 
 const MODERATE_ENERGY_FREQUENCY = 15;
 const MODERATE_ORDERS_FREQUENCY = 2000;
+const UPDATE_ENERGY_COST_FREQUENCY = 60;
 
+const TERMINAL_DEFAULT_ENERGY_PRICE = 0.05;
 const TERMINAL_AUTOSELL_THRESHOLD = 7000;			// At what point do we sell overflow?
 const TERMINAL_MINIMUM_AUTOSELL = 1000;				// Maximum amount we can sell in a single action.
 const TERMINAL_MAXIMUM_AUTOSELL = 5000;				// Maximum amount we can sell in a single action.
@@ -73,6 +75,12 @@ StructureTerminal.prototype.run = function () {
 	try {
 		if (!(Game.time % MODERATE_ENERGY_FREQUENCY))
 			this.moderateEnergy();
+
+		if (!(Game.time % UPDATE_ENERGY_COST_FREQUENCY)) {
+			const competition = this.getAllOrders({ type: ORDER_BUY, resourceType: RESOURCE_ENERGY });
+			const highest = _.isEmpty(competition) ? TERMINAL_DEFAULT_ENERGY_PRICE : (_.max(competition, 'price').price);
+			this.memory.energyPrice = highest + 0.01;
+		}
 
 		if (ENABLE_ORDER_MANAGEMENT && !(Game.time % MODERATE_ORDERS_FREQUENCY))
 			this.updateOrders();
@@ -147,7 +155,7 @@ StructureTerminal.prototype.moderateEnergy = function () {
 		const total = TERMINAL_MINIMUM_ENERGY * 1.25;
 		if (ENABLE_ORDER_MANAGEMENT && !order) {
 			const competition = this.getAllOrders({ type: ORDER_BUY, resourceType: RESOURCE_ENERGY });
-			const highest = _.isEmpty(competition) ? 1.0 : (_.max(competition, 'price').price);
+			const highest = _.isEmpty(competition) ? TERMINAL_DEFAULT_ENERGY_PRICE : (_.max(competition, 'price').price);
 			const price = highest + 0.01;
 			const amount = Math.min(total, this.getMaximumBuyOrder(price));
 			if (amount > total / 2) {	// Place order for at least half..
@@ -259,7 +267,7 @@ StructureTerminal.prototype.isActive = function () {
  * 
  * @todo: Avoid rooms in cache by opponent.
  */
-StructureTerminal.prototype.sell = function (resource, amt = Infinity, limit = TERMINAL_MINIMUM_SELL_PRICE) {
+StructureTerminal.prototype.sell = function (resource, amt = Infinity, limit = TERMINAL_MINIMUM_SELL_PRICE, energySaver = false) {
 	var orders = this.getAllOrders({ type: ORDER_BUY, resourceType: resource });
 	orders = _.filter(orders, o => o.price >= limit && o.remainingAmount > 1 && o.amount > 1);
 	if (orders == null || !orders.length) {
@@ -267,7 +275,12 @@ StructureTerminal.prototype.sell = function (resource, amt = Infinity, limit = T
 		return ERR_NOT_FOUND;
 	}
 	const amount = Math.min(amt, this.store[resource]);
-	const order = _.max(orders, o => o.price / this.calcTransactionCost(Math.min(amount, o.amount), o.roomName));
+	let order;
+	if (energySaver || resource === RESOURCE_ENERGY)
+		order = _.max(orders, o => o.price / this.calcTransactionCost(Math.min(amount, o.amount), o.roomName));	// Maximize energy savings
+	else
+		order = _.max(orders, o => this.scoreOrderForSell(o));		// Maximize profit
+
 	if (Game.rooms[order.roomName] && Game.rooms[order.roomName].my)
 		Log.notify(`Yeah, we are selling to ourselves.. ${amount} ${resource} from ${this.pos.roomName} to ${order.roomName}`);
 	const status = this.deal(order.id, amount, order);
@@ -280,6 +293,16 @@ StructureTerminal.prototype.sell = function (resource, amt = Infinity, limit = T
 	return status;
 };
 
+// Aim for higher energy price,just to be safe
+StructureTerminal.prototype.scoreOrderForSell = function (o, amount = 1000, energyPrice = this.memory.energyPrice || TERMINAL_DEFAULT_ENERGY_PRICE) {
+	o.amt = Math.min(o.amount, amount);
+	o.dist = Game.map.getRoomLinearDistance(this.pos.roomName, o.roomName, true);
+	o.energyUsage = Game.market.calcTransactionCost(o.amt, o.roomName, this.pos.roomName);
+	o.energyCost = energyPrice * o.energyUsage;
+	o.grossProfit = o.amt * o.price;
+	o.netProfit = o.grossProfit - o.energyCost;
+	return o.netProfit;
+};
 /**
  * Immediate purchase
  *
