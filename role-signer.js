@@ -55,7 +55,7 @@ module.exports = {
 			['EvalOnce', `this.signController(this.room.controller, this.memory.msg)`],
 			['EvalOnce', 'this.pushState("EvadeMove",{pos:this.memory.dest},false)'],
 			['EvalOnce', 'this.memory.dest = this.room.controller.pos'],
-			['MoveToRoom', creep.memory.room]
+			['MoveToRoom', this.memory.room]
 		]);
 	},
 	run: function (creep) {
