@@ -109,6 +109,7 @@ module.exports.loop = function () {
 	loadModule('ext-structure-nuker');
 	loadModule('ext-structure-extractor');
 	loadModule('ext-structure-rampart');
+	loadModule('ext-structure-powerbank');
 	loadModule('ext-structure-powerspawn');
 	loadModule('ext-powercreep');
 	loadModule('ext-powercreep-pwr');

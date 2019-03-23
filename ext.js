@@ -37,15 +37,3 @@ Math.mmAvg = (n, p = n, s = 100) => ((s - 1) * p + n) / s; // Modified moving av
 Math.clamp = function (low, value, high) {
 	return Math.max(low, Math.min(value, high));
 };
-
-StructurePowerBank.prototype.getAttackPartsGoal = function () {
-	return Math.ceil(this.hits / ATTACK_POWER / this.ticksToDecay);
-};
-
-StructurePowerBank.prototype.getRangedAttackPartsGoal = function () {
-	return Math.ceil(this.hits / RANGED_ATTACK_POWER / this.ticksToDecay);
-};
-
-StructurePowerBank.prototype.getCarryPartsGoal = function () {
-	return Math.ceil(this.power / CARRY_CAPACITY);
-};
