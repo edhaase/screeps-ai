@@ -60,6 +60,7 @@ StructureTerminal.prototype.NUMBER_FORMATTER = new Intl.NumberFormat();
 DEFINE_CACHED_GETTER(StructureTerminal.prototype, 'orders', ({ pos }) => _.filter(Game.market.orders, 'roomName', pos.roomName));
 DEFINE_CACHED_GETTER(StructureTerminal.prototype, 'creditsAvailable', (t) => Math.min(Game.market.credits, t.credits));
 DEFINE_CACHED_GETTER(StructureTerminal.prototype, 'network', ({ id }) => _.filter(Game.structures, s => s.structureType === STRUCTURE_TERMINAL && s.id !== id));
+DEFINE_CACHED_GETTER(StructureTerminal.prototype, 'creditsReservedForEnergy', (t) => TERMINAL_MINIMUM_ENERGY * (t.memory.energyPrice || TERMINAL_DEFAULT_ENERGY_PRICE) * (1.0 + MARKET_FEE));
 
 /**
  * Terminal run method.
@@ -232,6 +233,8 @@ StructureTerminal.prototype.runAutoSell = function (resource = RESOURCE_THIS_TIC
 StructureTerminal.prototype.runAutoBuy = function (resource = RESOURCE_THIS_TICK) {
 	if (this.creditsAvailable <= 0 || this.store[RESOURCE_ENERGY] < TERMINAL_MINIMUM_ENERGY)
 		return;
+	if (resource !== RESOURCE_ENERGY && this.creditsAvailable <= this.creditsReservedForEnergy)
+		return;
 	if (resource.length <= 1 && resource !== 'G')
 		return;
 	if (['ZK', 'UL', 'OH', RESOURCE_OPS].includes(resource))
@@ -324,10 +327,13 @@ StructureTerminal.prototype.buy = function (res, amount = Infinity, maxRange = I
 	if (orders == null || !orders.length)
 		return ERR_NOT_FOUND;
 	const order = _.min(orders, o => o.price * this.calcTransactionCost(Math.min(amount, o.amount), o.roomName));
-	const afford = Math.min(amount, order.amount, this.getPayloadWeCanAfford(order.roomName), Math.floor(this.creditsAvailable / order.price));
-	const status = this.deal(order.id, afford, order);
+	const creditsUsable = (res === RESOURCE_ENERGY) ? this.creditsAvailable : (this.creditsAvailable - this.creditsReservedForEnergy);
+	if (creditsUsable <= 0)
+		return ERR_NOT_ENOUGH_RESOURCES;
+	const afford = Math.min(amount, order.amount, this.getPayloadWeCanAfford(order.roomName), Math.floor(creditsUsable / order.price));
 	if (afford <= 0)
 		return ERR_NOT_ENOUGH_RESOURCES;
+	const status = this.deal(order.id, afford, order);
 	if (status === OK)
 		this.say('\u26A0');
 	else
@@ -372,11 +378,11 @@ StructureTerminal.prototype.getAllOrders = function (base, opts = {}) {
  *
  */
 StructureTerminal.prototype.deal = function (id, amount, order = {}) {
-	// track score, transaction cost averages
-	if (amount <= 0)
+	const amt = Math.floor(amount);
+	if (amt <= 0)
 		return ERR_INVALID_ARGS;
-	const status = Game.market.deal(id, amount, this.pos.roomName);
-	Log.debug(`${this.pos.roomName} dealing on ${amount} ${order.resourceType}, order ${id}, status ${status}`, 'Terminal');
+	const status = Game.market.deal(id, amt, this.pos.roomName);
+	Log.debug(`${this.pos.roomName} dealing on ${amt} ${order.resourceType}, order ${id}, status ${status}`, 'Terminal');
 	if (status === OK && order) {
 		// Don't change credits here, we're using transactions to track that.
 		const dist = Game.map.getRoomLinearDistance(order.roomName, this.pos.roomName, true);
@@ -384,7 +390,7 @@ StructureTerminal.prototype.deal = function (id, amount, order = {}) {
 		this.memory.avgCost = Math.cmAvg(cost, this.memory.avgCost || 0, 100);
 		this.memory.avgDist = Math.cmAvg(dist, this.memory.avgDist || 0, 100);
 		this.memory.avgFee = Math.cmAvg(this.getFee(order.roomName), this.memory.avgFee || 0, 100);
-		this.memory.avgAmt = Math.cmAvg(amount, this.memory.avgAmt || 0, 100);
+		this.memory.avgAmt = Math.cmAvg(amt, this.memory.avgAmt || 0, 100);
 		this.busy = true; // Multiple deals can be run per tick, so let's not prevent that.
 		this.store[RESOURCE_ENERGY] -= cost; // Adjust energy storage so further calls make smart decisions.
 	}
