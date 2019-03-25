@@ -336,9 +336,10 @@ StructureTerminal.prototype.buy = function (res, amount = Infinity, maxRange = I
 	if (afford <= 0)
 		return ERR_NOT_ENOUGH_RESOURCES;
 	const status = this.deal(order.id, afford, order);
-	if (status === OK)
+	if (status === OK) {
 		this.say('\u26A0');
-	else
+		order.amount -= afford;
+	} else
 		Log.warn(`${this.pos.roomName} buy failure on ${afford} ${order.resourceType} [${order.id}], status ${status}`, 'Terminal');
 	return status;
 };
