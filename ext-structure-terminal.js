@@ -277,22 +277,24 @@ StructureTerminal.prototype.sell = function (resource, amt = Infinity, limit = T
 		Log.info(`${this.pos.roomName}: No available orders to fill for ${resource} above limit ${limit}`, 'Terminal');
 		return ERR_NOT_FOUND;
 	}
-	const amount = Math.min(amt, this.store[resource]);
+	const maxAmount = Math.min(amt, this.store[resource]);
 	let order;
 	if (energySaver || resource === RESOURCE_ENERGY)
-		order = _.max(orders, o => o.price / this.calcTransactionCost(Math.min(amount, o.amount), o.roomName));	// Maximize energy savings
+		order = _.max(orders, o => o.price / this.calcTransactionCost(Math.min(maxAmount, o.amount), o.roomName));	// Maximize energy savings
 	else
 		order = _.max(orders, o => this.scoreOrderForSell(o));		// Maximize profit
 
 	if (Game.rooms[order.roomName] && Game.rooms[order.roomName].my)
-		Log.notify(`Yeah, we are selling to ourselves.. ${amount} ${resource} from ${this.pos.roomName} to ${order.roomName}`);
-	const status = this.deal(order.id, Math.min(amount, order.amount), order);
-	if (status === OK)
+		Log.notify(`Yeah, we are selling to ourselves.. ${maxAmount} ${resource} from ${this.pos.roomName} to ${order.roomName}`);
+	const dealAmount = Math.min(maxAmount, order.amount);
+	const status = this.deal(order.id, dealAmount, order);
+	if (status === OK) {
 		this.say('\u2661');
-	else if (status === ERR_INVALID_ARGS)
-		Log.error(`Terminal ${this.pos.roomName} deal invalid: ${order.id}, amt ${amount}`, 'Terminal');
+		order.amount -= dealAmount; // Adjust so next terminal can choose a different order
+	} else if (status === ERR_INVALID_ARGS)
+		Log.error(`${this.pos.roomName}#sell deal invalid: ${order.id}, amt ${dealAmount}`, 'Terminal');
 	else
-		Log.info(`Terminal ${this.pos.roomName} deal status: ${status}`, 'Terminal');
+		Log.info(`${this.pos.roomName}#sell status: ${status}, resource: ${resource}, order id: ${order.id}, amount: ${dealAmount}`, 'Terminal');
 	return status;
 };
 

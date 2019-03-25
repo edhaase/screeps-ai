@@ -27,7 +27,7 @@ module.exports = {
 		if (diff <= 0)
 			Log.notify(`Empire market adjustment reports that we are accurate!`);
 		else
-			Log.notify(`Empire market adjustment ${diff} credits skew`); // Did we lose a building?
+			Log.notify(`Empire market adjustment ${diff} credits skew (creditsWeThinkWeHave: ${creditsWeThinkWeHave}, creditsWeActuallyHave: ${creditsWeActuallyHave})`); // Did we lose a building?
 		Memory.empire.credits = creditsWeActuallyHave;
 	},
 
@@ -37,6 +37,7 @@ module.exports = {
 	updateOutgoingMarket: function (freq = 5) {
 		var outgoing = Game.market.outgoingTransactions;
 		var transaction, j, len, total, distance;
+		const tax = Memory.empire.marketTax || TERMINAL_TAX;
 		for (j = 0, len = outgoing.length; j < len; j++) {
 			transaction = outgoing[j];
 			if (Game.time - transaction.time > freq)
@@ -48,8 +49,8 @@ module.exports = {
 			distance = Game.map.getRoomLinearDistance(from, to, true);
 			if (order && order.price) {
 				total = amount * order.price;
-				Game.rooms[from].terminal.credits += (total * (1.0 - TERMINAL_TAX));
-				Memory.empire.credits += (total * TERMINAL_TAX);
+				Game.rooms[from].terminal.credits += (total * (1.0 - tax));
+				Memory.empire.credits += (total * tax);
 				Log.info(`Outbound transaction from ${from} to ${to} (dist: ${distance}): ${amount} ${resourceType} at ${order.price} for ${total} total`, 'Market');
 			} else {
 				Log.info(`Outbound transaction from ${from} to ${to} (dist: ${distance}): ${amount} ${resourceType}`, 'Market');

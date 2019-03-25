@@ -285,7 +285,7 @@ RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = ({ pos }
 		const itm = itr(g);
 		// Return early if we can
 		if (this.getRangeTo(itm.pos) <= itm.range) {
-			Log.debug(`FCBPF returned early with goal ${g}/${itm.pos} for ${this} range  ${itm.range}`, 'RoomPosition');
+			Log.debug(`FCBPF returned early with goal ${g}/${itm.pos} for ${this} range ${itm.range}`, 'RoomPosition');
 			return { goal: g, cost: 0, ops: 0, incomplete: false, path: [] };
 		}
 		mapping.push(itm);
