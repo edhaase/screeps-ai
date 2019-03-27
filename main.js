@@ -176,6 +176,7 @@ module.exports.loop = function () {
 		Memory.stats['cpu'] = Game.cpu;
 		Memory.stats['cpu']['used'] = Game.cpu.getUsed();
 		Memory.stats['gcl'] = Game.gcl;
+		Memory.stats['gpl'] = Game.gpl;
 
 		const ticksTilGCL = (Game.gcl.progressTotal - Game.gcl.progress) / Memory.gclAverageTick;
 		Memory.stats['gcl']['estTicksTillGCL'] = Math.ceil(ticksTilGCL);
