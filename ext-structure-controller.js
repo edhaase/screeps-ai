@@ -296,6 +296,7 @@ StructureController.prototype.runCensus = function () {
 	const dualminers = census[`${roomName}_dualminer`] || [];
 	const assistingSpawn = this.getAssistingSpawn();
 	const signers = census[`${roomName}_signer`] || [];
+	const scientists = census[`${roomName}_scientist`] || [];
 
 	var resDecay = _.sum(this.room.resources, 'decay');
 	const sites = this.room.find(FIND_MY_CONSTRUCTION_SITES);
@@ -542,6 +543,13 @@ StructureController.prototype.runCensus = function () {
 	} else if (repair.length && allotedRepair <= 0) {
 		_.invoke(repair, 'setRole', 'recycle');
 	}
+
+	if (this.room.terminal && !scientists.length)
+		spawn.submit({
+			body: [MOVE, MOVE, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, MOVE],
+			memory: { role: 'scientist', room: this.pos.roomName, msg: '' },
+			priority: PRIORITY_MED
+		});
 };
 
 StructureController.prototype.getAssistingSpawn = function () {
