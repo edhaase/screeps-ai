@@ -295,6 +295,76 @@ class LivingEntity extends RoomObject {
 		this.popState(false);
 	}
 
+	/**
+	 * General state for finding energy.
+	 *
+	 * If we're not allowed to move, only look for adjacent providers.
+	 */
+	runAcquireEnergy(opts = {}) {
+		const { allowMove = false, allowHarvest = true } = opts;
+		if (this.carryCapacityAvailable <= 0)
+			return this.popState();
+		if (this.hits < this.hitsMax)
+			this.pushState('HealSelf');	// We can let it continue this tick.
+		let target, status;
+		if (allowMove) {
+			target = this.getTarget(
+				({ room }) => [...room.structures, ...room.resources, ...room.tombstones],
+				(c) => Filter.canProvideEnergy(c),
+				(c) => this.pos.findClosestByPath(c)
+			);
+		} else {
+			target = this.getTarget(
+				({ room }) => {
+					const resources = _.map(this.lookForNear(LOOK_RESOURCES), LOOK_RESOURCES);
+					const structures = _.map(this.lookForNear(LOOK_STRUCTURES), LOOK_STRUCTURES);
+					const tombstones = _.map(this.lookForNear(LOOK_TOMBSTONES), LOOK_TOMBSTONES);
+					return [...resources, ...structures, ...tombstones];
+				},
+				(c) => Filter.canProvideEnergy(c),
+				(c) => this.pos.findClosestByPath(c)
+			);
+		}
+		if (!target && allowHarvest && this.hasBodypart && this.hasBodypart(WORK))
+			return this.setState('HarvestEnergy', { allowMove });
+		else if (target instanceof Resource)
+			status = this.pickup(target);
+		else
+			status = this.withdraw(target, RESOURCE_ENERGY);
+		if (status === ERR_NOT_IN_RANGE && allowMove)
+			this.moveTo(target, { range: 1, maxRooms: 1, ignoreRoads: this.memory.ignoreRoad || true });
+	}
+
+	// Allow terminal, allow multiroom
+	runAcquireResource(opts) {
+		// May use terminal for purchase
+		if (opts.amount == null)
+			opts.amount = Infinity;
+		if (this.carryCapacityAvailable <= 0 || opts.amount <= 0)
+			return this.popState();
+		const demand = opts.amount - (this.carry[opts.res] || 0);
+		if (demand <= 0)
+			return this.popState();
+		if (this.hits < this.hitsMax)
+			return this.pushState('HealSelf');	// We can let it continue this tick.
+		// if (opts.res === RESOURCE_ENERGY)
+		//	return this.setState('AcquireEnergy');
+		// If it's not energy it's probably in the terminal
+		const { terminal } = this.room;
+		if (!terminal) {
+			// Find a room with the closest terminal and move there
+			Log.warn(`${this.name}/${this.pos} unable to find terminal in current room for ${demand} ${opts.res}`, 'LivingEntity');
+		}
+
+		if (terminal.store[opts.res] >= demand)
+			return this.pushState('Withdraw', { res: opts.res, amount: demand, tid: terminal.id });
+		// We're short! Import before buying
+		if (terminal.import(opts.res, demand, 'AcquireResource resolution') === OK)
+			return true; // Next tick we'll know if we succeeded.
+		if (!terminal.cooldown)
+			terminal.buyUpTo(opts.res, demand + 1);
+		this.moveTo(terminal, { range: 1 });
+	}
 }
 
 DEFINE_CACHED_GETTER(LivingEntity.prototype, 'age', (c) => Game.time - c.memory.born);

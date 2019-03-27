@@ -44,6 +44,35 @@ PowerCreep.prototype[`runPwr${PWR_GENERATE_OPS}`] = function (opts) {
 	}
 };
 
+const MAX_OPERATE_EXT_FILL = 0.90;
+PowerCreep.prototype[`runPwr${PWR_OPERATE_EXTENSION}`] = function (opts) {
+	const { level, cooldown } = this.powers[PWR_OPERATE_EXTENSION];
+	const { room } = this;
+	const roomLevel = this.room.controller.level;
+	if ((room.energyAvailable / (room.energyCapacityAvailable - SPAWN_ENERGY_CAPACITY * CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][roomLevel])) > MAX_OPERATE_EXT_FILL)
+		return this.popState();
+	if (cooldown)
+		return this.doIdle();
+	const { effect } = POWER_INFO[PWR_OPERATE_EXTENSION]; // Percent we can fill
+	const capacity = EXTENSION_ENERGY_CAPACITY[roomLevel];					// Extension size
+	const numExt = CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][roomLevel];	// Number of extensions
+	const maxExtToFill = numExt * effect[level];							// Max we can actually fill
+	const maxEnergyFillable = maxExtToFill * capacity;						// Max energy we can refil with this power
+	const maxFillAvailable = Math.min(room.energyCapacityAvailable - room.energyAvailable, maxEnergyFillable);
+
+	Log.debug(`${this.name}/${this.pos}#PWR_OPERATE_EXTENSION Wants to fill up to ${maxFillAvailable} (capable of ${maxEnergyFillable})`, 'PowerCreep');
+
+	const { storage, terminal } = room;
+	if (!storage && !terminal) {
+		Log.warn(`${this.name}/${this.pos}#PWR_OPERATE_EXTENSION No container to use`, 'PowerCreep');
+		return this.popState();
+	}
+	const target = _.max([storage, terminal], t => t && (Math.min(t.store[RESOURCE_ENERGY], maxFillAvailable) / this.pos.getRangeTo(t)));
+	const status = this.usePowerSmart(PWR_OPERATE_EXTENSION, target); // Handles movement and ops acquisition
+	if (status === OK && opts.once)
+		this.popState(false);
+};
+
 PowerCreep.prototype[`runPwr${PWR_OPERATE_SPAWN}`] = function (opts) {
 
 };

@@ -517,46 +517,6 @@ Creep.prototype.runSetRole = function (opts) {
 };
 
 /**
- * General state for finding energy.
- *
- * If we're not allowed to move, only look for adjacent providers.
- */
-Creep.prototype.runAcquireEnergy = function (opts = {}) {
-	const { allowMove = false, allowHarvest = true } = opts;
-	if (this.carryCapacityAvailable <= 0)
-		return this.popState();
-	if (this.hits < this.hitsMax)
-		this.pushState('HealSelf');	// We can let it continue this tick.
-	let target, status;
-	if (allowMove) {
-		target = this.getTarget(
-			({ room }) => [...room.structures, ...room.resources, ...room.tombstones],
-			(c) => Filter.canProvideEnergy(c),
-			(c) => this.pos.findClosestByPath(c)
-		);
-	} else {
-		target = this.getTarget(
-			({ room }) => {
-				const resources = _.map(this.lookForNear(LOOK_RESOURCES), LOOK_RESOURCES);
-				const structures = _.map(this.lookForNear(LOOK_STRUCTURES), LOOK_STRUCTURES);
-				const tombstones = _.map(this.lookForNear(LOOK_TOMBSTONES), LOOK_TOMBSTONES);
-				return [...resources, ...structures, ...tombstones];
-			},
-			(c) => Filter.canProvideEnergy(c),
-			(c) => this.pos.findClosestByPath(c)
-		);
-	}
-	if (!target && allowHarvest && this.hasBodypart(WORK))
-		return this.setState('HarvestEnergy', { allowMove });
-	else if (target instanceof Resource)
-		status = this.pickup(target);
-	else
-		status = this.withdraw(target, RESOURCE_ENERGY);
-	if (status === ERR_NOT_IN_RANGE && allowMove)
-		this.moveTo(target, { range: 1, maxRooms: 1, ignoreRoads: this.memory.ignoreRoad || true });
-};
-
-/**
  * Harvest energy to fill ourself up
  */
 Creep.prototype.runHarvestEnergy = function ({ allowMove = true }) {
@@ -574,13 +534,6 @@ Creep.prototype.runHarvestEnergy = function ({ allowMove = true }) {
 	const status = this.harvest(source);
 	if (status === ERR_NOT_IN_RANGE && allowMove)
 		this.moveTo(source, { range: CREEP_HARVEST_RANGE, maxRooms: 1 });
-};
-
-/**
- * Find compound
- */
-Creep.prototype.runAcquireResource = function () {
-	// May use terminal for purchase
 };
 
 /**
