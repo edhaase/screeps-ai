@@ -185,6 +185,8 @@ StructureSpawn.prototype.isIdle = function () {
  * example: {body,memory,priority,room,expire}
  */
 StructureSpawn.prototype.submit = function (job) {
+	if (!job.memory)
+		throw new Error("Expected job memory");
 	if (job.body == null && job.memory && job.memory.role)
 		job.body = require(`role-${job.memory.role}`).minBody;
 	if (!_.isArray(job.body) || job.body.length === 0)
