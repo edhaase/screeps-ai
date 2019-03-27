@@ -181,6 +181,8 @@ module.exports.loop = function () {
 		Memory.stats['gcl']['estTicksTillGCL'] = Math.ceil(ticksTilGCL);
 		Memory.stats['gcl']['estSecondsTillGCL'] = Time.estimateInSeconds(ticksTilGCL);
 		Memory.stats['credits'] = Game.market.credits;
+		if (Game.cpu.getHeapStatistics)
+			Memory.stats['heap'] = Game.cpu.getHeapStatistics();
 	};
 
 	// Optional profiler
