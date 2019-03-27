@@ -168,6 +168,15 @@ StructureController.prototype.isEmergencyModeActive = function () {
 };
 
 /**
+ * 
+ */
+StructureController.prototype.canEnablePower = function (offset = 0) {
+	if (this.isPowerEnabled)
+		return false;
+	return this.my || (this.safeMode || 0) <= offset;
+};
+
+/**
  * Nuke detection - Exactly what it sounds like.
  *
  * @todo Group by time intervals so we don't waste safe modes.

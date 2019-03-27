@@ -98,7 +98,7 @@ PowerCreep.prototype.runSpawnSelf = function (opts) {
 
 PowerCreep.prototype.isPowerDisabled = function (room) {
 	if (!Memory.empire.disablePower)
-		return true;
+		return false;
 	return Memory.empire.disablePower.includes(room);
 };
 

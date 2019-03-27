@@ -35,7 +35,7 @@ PowerCreep.prototype[`runPwr${PWR_GENERATE_OPS}`] = function (opts) {
 	} else if (status === ERR_INVALID_ARGS) { // PWR not enabled
 		// Controller must exist and hostile safe mode or not power enabled
 		const { controller } = this.room;
-		if (!this.isPowerDisabled(this.room.name) && (controller.my || (controller.safeMode || 0) < this.pos.getRangeTo(controller)))
+		if (!this.isPowerDisabled(this.room.name) && controller.canEnablePower(this.pos.getRangeTo(controller)))
 			return this.pushState('EnableRoom', this.room.controller.pos);
 		else
 			return this.pushState('FleeRoom', { room: this.room.name });
