@@ -31,7 +31,8 @@ class Intel {
 			level: controller.level,
 			safeMode: controller.safeMode,
 			safeModeCooldown: controller.safeModeCooldown,
-			safeModeAvailable: controller.safeModeAvailable
+			safeModeAvailable: controller.safeModeAvailable,
+			powerEnabled: controller.isPowerEnabled || false
 		};
 		Memory.intel[room.name] = intel;
 		// Log.info(`New intel report for ${room.name}: ${ex(intel)}`,'Intel');
