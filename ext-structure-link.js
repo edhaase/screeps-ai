@@ -38,10 +38,10 @@ StructureLink.prototype.run = function () {
 	const diff = LINK_PRECISION * Math.floor((this.energy - avgInNetwork) / LINK_PRECISION); // Round to nearest 100 to reduce ineffiency
 	if (diff < LINK_AUTOBALANCE_THRESHOLD)
 		return;
-	var target = this.pos.findClosestByRange(this.room.links, { filter: t => t && t.energy < avgInNetwork && !t.isReceiving });
+	var target = this.pos.findClosestByRange(this.room.links, { filter: t => t && t.energy < avgInNetwork && !t.isReceiving && this.pos.getRangeTo(t) > 1 });
 	if (!target)
 		return;
-	var amt = Math.clamp(0, Math.ceil(diff), LINK_CAPACITY - target.energy);
+	var amt = Math.clamp(0, Math.ceil(diff), target.energyCapacity - target.energy);
 	if (amt <= 0)
 		return;
 	if (this.transferEnergy(target, amt) === OK) {
