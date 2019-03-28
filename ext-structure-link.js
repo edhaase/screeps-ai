@@ -41,13 +41,14 @@ StructureLink.prototype.run = function () {
 	var target = this.pos.findClosestByRange(this.room.links, { filter: t => t && t.energy < avgInNetwork && !t.isReceiving && this.pos.getRangeTo(t) > 1 });
 	if (!target)
 		return;
-	var amt = Math.clamp(0, Math.ceil(diff), target.energyCapacity - target.energy);
+	const need = LINK_PRECISION * Math.floor((avgInNetwork - target.energy) / LINK_PRECISION);
+	var amt = Math.clamp(0, Math.max(need, diff), target.energyCapacityAvailable);
 	if (amt <= 0)
 		return;
 	if (this.transferEnergy(target, amt) === OK) {
 		var dist = this.pos.getRangeTo(target.pos);
 		var ept = _.round(amt / dist, 3);
-		Log.debug(`${this.pos} Moving ${amt} energy ${dist} units for ${ept} ept`, 'Link');
+		Log.debug(`${this.pos} Moving ${amt} energy ${dist} units for ${ept} ept (diff ${diff})`, 'Link');
 	}
 };
 
