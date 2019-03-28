@@ -282,7 +282,7 @@ StructureTerminal.prototype.sell = function (resource, amt = Infinity, limit = T
 	if (energySaver || resource === RESOURCE_ENERGY)
 		order = _.max(orders, o => o.price / this.calcTransactionCost(Math.min(maxAmount, o.amount), o.roomName));	// Maximize energy savings
 	else
-		order = _.max(orders, o => this.scoreOrderForSell(o));		// Maximize profit
+		order = _.max(orders, o => this.scoreOrderForSell(o, maxAmount));		// Maximize profit
 
 	if (Game.rooms[order.roomName] && Game.rooms[order.roomName].my)
 		Log.notify(`Yeah, we are selling to ourselves.. ${maxAmount} ${resource} from ${this.pos.roomName} to ${order.roomName}`);
@@ -328,7 +328,8 @@ StructureTerminal.prototype.buy = function (res, amount = Infinity, maxRange = I
 		orders = _.filter(orders, o => this.calcTransactionCost(amount, o.roomName) < amount);
 	if (orders == null || !orders.length)
 		return ERR_NOT_FOUND;
-	const order = _.min(orders, o => o.price * this.calcTransactionCost(Math.min(amount, o.amount), o.roomName));
+	// const order = _.min(orders, o => o.price * this.calcTransactionCost(Math.min(amount, o.amount), o.roomName));
+	const order = _.min(orders, o => this.scoreOrderForBuy(o, amount));
 	const creditsUsable = (res === RESOURCE_ENERGY) ? this.creditsAvailable : (this.creditsAvailable - this.creditsReservedForEnergy);
 	if (creditsUsable <= 0)
 		return ERR_NOT_ENOUGH_RESOURCES;
@@ -342,6 +343,15 @@ StructureTerminal.prototype.buy = function (res, amount = Infinity, maxRange = I
 	} else
 		Log.warn(`${this.pos.roomName} buy failure on ${afford} ${order.resourceType} [${order.id}], status ${status}`, 'Terminal');
 	return status;
+};
+
+StructureTerminal.prototype.scoreOrderForBuy = function (o, amount = 1000, energyPrice = this.memory.energyPrice || TERMINAL_DEFAULT_ENERGY_PRICE) {
+	o.amt = Math.min(o.amount, amount);
+	o.dist = Game.map.getRoomLinearDistance(this.pos.roomName, o.roomName, true);
+	o.energyUsage = Game.market.calcTransactionCost(o.amt, o.roomName, this.pos.roomName);
+	o.energyCost = energyPrice * o.energyUsage;
+	o.grossExpense = (o.amt * o.price) + (o.energyCost);
+	return o.grossExpense;
 };
 
 StructureTerminal.prototype.buyUpTo = function (res, goal) {
