@@ -38,25 +38,31 @@ RoomObject.prototype.getPathTo = function (pos, range = 1, opts = {}) {
 	try {
 		// Cheap enough to run for same room.
 		// var route = Route.findRoute(this.pos.roomName, pos.roomName, { routeCallback: (a, b) => this.routeCallback(a, b) });
-		var route = Route.findRoute(this.pos.roomName, pos.roomName);
-		if (route === ERR_NO_PATH)
-			return ERR_NO_PATH;
-		else
-			route = _.map(route, 'room');
-		// Current room is always pathable.
-		route.unshift(this.pos.roomName);
+		if (!opts.roomCallback)
+			opts.roomCallback = (r) => LOGISTICS_MATRIX.get(r) || false;
+		var route = null;
+		if (opts.route) {
+			route = Route.findRoute(this.pos.roomName, pos.roomName);
+			if (route === ERR_NO_PATH)
+				return ERR_NO_PATH;
+			else
+				route = _.map(route, 'room');
+			// Current room is always pathable.
+			route.unshift(this.pos.roomName);
+			const orc = opts.roomCallback;
+			opts.roomCallback = route.includes(r) ? orc(r) : false;
+		}
 		// @todo: load cost matrix from memory
 		result = PathFinder.search(this.pos, ({ pos, range }), {
 			plainCost: this.plainSpeed,
 			swampCost: this.swampSpeed,
 			maxCost: this.ticksToLive,
-			roomCallback: r => route.includes(r) ? LOGISTICS_MATRIX.get(r) : false,
+			roomCallback: opts.roomCallback,
 			maxOps: 32000,
 			maxRooms: opts.maxRooms || PATHFINDER_MAX_ROOMS,
 			heuristicWeight: 0.8 + (Math.random() * 1.2)
-			// roomCallback: (roomName) => ((opts.avoid || []).includes(roomName))?false:this.getCostMatrix(roomName)
 		});
-		
+
 		//this.room.visual.poly(_.filter(result.path,'roomName',this.pos.roomName));
 		result.route = route;
 		var { ops, cost, incomplete } = result;
@@ -64,7 +70,7 @@ RoomObject.prototype.getPathTo = function (pos, range = 1, opts = {}) {
 	} catch (e) {
 		Log.error(`Unable to find path to ${pos}: ${e}`, 'Creep');
 		throw e;
-	}	
+	}
 	return result;
 };
 
@@ -96,7 +102,7 @@ RoomObject.prototype.walkTo = function (goal, opts) {
 		// console.log('Cache miss');
 		walk = this.getPathTo(goal.pos, goal.range, opts);
 		if (!walk || _.isEmpty(walk.path)) {
-			Log.warn(`No path found for ${this.name} at ${this.pos} for goal ${goal.pos}, range: ${goal.range}, route: ${walk.route}`);			
+			Log.warn(`No path found for ${this.name} at ${this.pos} for goal ${goal.pos}, range: ${goal.range}, route: ${walk.route}`);
 			this.say(UNICODE_ARROWS.ARROW_BARS);
 			return ERR_NO_PATH;
 		}

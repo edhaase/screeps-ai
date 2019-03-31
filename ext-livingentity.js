@@ -295,6 +295,19 @@ class LivingEntity extends RoomObject {
 		this.popState(false);
 	}
 
+	runWithdrawAll(opts) {
+		const target = Game.getObjectById(opts.target);
+		if (!target || this.carryCapacityAvailable <= 0)
+			return this.popState(true);
+		const res = target.mineralType || _.findKey(target.store) || RESOURCE_ENERGY;
+		const amt = Math.min(this.carryCapacityAvailable, target.mineralAmount || (target.store && target.store[res]));
+		if (amt <= 0)
+			return this.popState(true);
+		const status = this.withdraw(target, res, amt);
+		if (status === ERR_NOT_IN_RANGE)
+			return this.pushState('EvadeMove', { pos: target.pos, range: CREEP_WITHDRAW_RANGE });
+	}
+
 	/**
 	 * General state for finding energy.
 	 *

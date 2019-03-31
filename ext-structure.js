@@ -11,6 +11,7 @@ DEFINE_CACHED_GETTER(Structure.prototype, 'energyCapacityAvailable', s => s.ener
 DEFINE_CACHED_GETTER(Structure.prototype, 'hitPct', s => s.hits / s.hitsMax);
 DEFINE_CACHED_GETTER(Structure.prototype, 'storedTotal', s => _.sum(s.store));
 DEFINE_CACHED_GETTER(Structure.prototype, 'storedPct', ({ storedTotal, storeCapacity }) => storedTotal / storeCapacity);
+DEFINE_CACHED_GETTER(Structure.prototype, 'storedNonEnergyResources', s => s.mineralAmount || (s.store && s.storedTotal - s.store[RESOURCE_ENERGY]) || 0);
 
 DEFINE_CACHED_GETTER(StructureRoad.prototype, 'upkeep', r => ((Game.map.getRoomTerrain(r.pos.roomName).get(r.pos.x, r.pos.y) & TERRAIN_MASK_SWAMP)) ? ROAD_UPKEEP_SWAMP : ROAD_UPKEEP);
 DEFINE_CACHED_GETTER(StructureContainer.prototype, 'upkeep', c => c.room.my ? CONTAINER_UPKEEP : REMOTE_CONTAINER_UPKEEP);

@@ -188,7 +188,7 @@ RoomPosition.prototype.hasStructure = function (structureType, range = 0, valida
 };
 
 RoomPosition.prototype.hasRampart = function (fn) {
-	return this.hasStructure(STRUCTURE_RAMPART, fn);
+	return this.hasStructure(STRUCTURE_RAMPART, 0, fn);
 };
 
 RoomPosition.prototype.hasRoad = function () {
@@ -294,9 +294,10 @@ RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = ({ pos }
 	if (_.isEmpty(mapping))
 		return { goal: null };
 	_.defaults(opts, {
-		maxOps: 16000,
+		maxOps: 32000,
 		plainCost: 2,
 		swampCost: 10,
+		maxRooms: 64,
 		roomCallback: r => FIXED_OBSTACLE_MATRIX.get(r)
 	});
 	const result = PathFinder.search(this, mapping, opts);
@@ -306,7 +307,8 @@ RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = ({ pos }
 		Log.error(ex(opts));
 		Log.error(ex(result));
 	}
-	// if(result.incomplete)
+	if (result.incomplete && opts.maxCost)
+		return { goal: null, cost: result.cost, ops: result.ops, incomplete: true, path: [] };
 	//	throw new Error('Path incomplete');
 	const last = _.last(result.path) || this;
 	// return {goal: null};
@@ -316,7 +318,7 @@ RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = ({ pos }
 		cost: result.cost,
 		ops: result.ops,
 		incomplete: result.incomplete,
-		path: result.path
+		path: (opts.noPath) ? [] : result.path
 	};
 };
 

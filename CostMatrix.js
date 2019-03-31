@@ -223,6 +223,15 @@ class CostMatrix extends PathFinder.CostMatrix {
 			.forEach(s => this.set(s.pos.x, s.pos.y, score));
 	}
 
+	setPortals(room, score = 0xFF) {
+		if (room.controller)
+			return this;
+		room
+			.find(FIND_STRUCTURES, { filter: s => s.structureType === STRUCTURE_PORTAL })
+			.forEach(s => this.set(s.pos.x, s.pos.y, score));
+		return this;
+	}
+
 	iif(condition, action) {
 		this.apply((x, y) => {
 			if (condition(x, y))
@@ -266,6 +275,7 @@ class FixedObstacleMatrix extends CostMatrix {
 		this.setDynamicObstacles(room);
 		this.setSKLairs(room);
 		this.setExitTiles(room, 5);
+		this.setPortals(room);
 	}
 }
 
@@ -291,9 +301,12 @@ class LogisticsMatrix extends CostMatrix {
 		this.setFixedObstacles(room);
 		this.setDynamicObstacles(room);
 		this.setSKLairs(room);
+		this.setCreeps(room, TILE_UNWALKABLE, () => true, FIND_HOSTILE_CREEPS);
+		this.setCreeps(room, TILE_UNWALKABLE, () => true, FIND_HOSTILE_POWER_CREEPS);
 		this.setCreeps(room, TILE_UNWALKABLE, (c) => c.memory.stuck > 3, FIND_MY_CREEPS);
-		this.setCreeps(room, TILE_UNWALKABLE, (c) => c.memory.stuck > 3, FIND_MY_POWER_CREEPS);		
+		this.setCreeps(room, TILE_UNWALKABLE, (c) => c.memory.stuck > 3, FIND_MY_POWER_CREEPS);
 		this.setExitTiles(room, 5);
+		this.setPortals(room, 254);
 	}
 }
 

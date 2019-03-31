@@ -94,6 +94,7 @@ global.CREEP_UPGRADE_RANGE = 3;
 global.CREEP_REPAIR_RANGE = 3;
 global.CREEP_RANGED_HEAL_RANGE = 3;
 global.CREEP_HARVEST_RANGE = 1;
+global.CREEP_WITHDRAW_RANGE = 1;
 global.MINIMUM_SAFE_FLEE_DISTANCE = 4; // Because ranged actions as usually 3.
 
 global.FATIGUE_ROAD = 0.5;

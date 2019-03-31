@@ -695,3 +695,27 @@ Creep.prototype.runTransfer = function (opts) {
 			opts.amt -= this.carry[res];
 	}
 };
+
+/**
+ * Seek out a spawn and renew ourselves.
+ */
+const MAX_RENEW_WAIT = 25;
+Creep.prototype.runRenewSelf = function (opts) {
+	if (this.ttlPct > 0.90 || !this.canRenew())
+		return this.popState(true);
+	// If we're in a room with spawns, hug one
+	const spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS, { filter: s => !s.spawning || s.spawning.remainingTime < MAX_RENEW_WAIT });
+	if (spawn)
+		return this.moveTo(spawn.pos, { range: 1 });
+	// No spawn available? Find one and move to it
+	const spawns = _.filter(Game.spawns, s => !s.spawning || s.spawning.remainingTime < MAX_RENEW_WAIT);
+	const closestSpawn = this.pos.findClosestByPathFinder(spawns).goal;
+
+	// Pick one at random to distribute
+	const alt = _.sample(closestSpawn.room.find(FIND_MY_SPAWNS, { flter: s => !s.spawning || s.spawning.remainingTime < MAX_RENEW_WAIT }));
+	if (!alt) {
+		Log.error(`${this.name}/${this.pos} Unable to find spawn for renewel`, 'Creep');
+		return this.popState(false);
+	}
+	return this.pushState('EvadeMove', { pos: alt.pos, range: 1 });
+};
