@@ -299,7 +299,9 @@ class LivingEntity extends RoomObject {
 		const target = Game.getObjectById(opts.target);
 		if (!target || this.carryCapacityAvailable <= 0)
 			return this.popState(true);
-		const res = target.mineralType || _.findKey(target.store) || RESOURCE_ENERGY;
+		if (!opts.avoid)
+			opts.avoid = [];
+		const res = target.mineralType || _.findKey(target.store, (v, k) => v > 0 && !opts.avoid.includes(k)) || RESOURCE_ENERGY;
 		const amt = Math.min(this.carryCapacityAvailable, target.mineralAmount || (target.store && target.store[res]));
 		if (amt <= 0)
 			return this.popState(true);

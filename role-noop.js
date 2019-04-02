@@ -15,7 +15,7 @@ module.exports = {
 		// Expects conditions..
 	},
 	init: function() {
-		// Called on succesful create
+		// Called on successful create
 	},
 	run: function () {
 		// does nothing

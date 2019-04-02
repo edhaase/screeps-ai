@@ -36,14 +36,14 @@ function getFindRouteOptions(avoid = [], prefer = []) {
 		if (isHighway || isMyRoom || prefer.includes(roomName))
 			score = 1;
 		else if (Intel.isHostileRoom(roomName))
-			score = 7;
+			score = 3;
 		else if (Intel.hasOwner(roomName))
 			score = 2;
 		if (Game.rooms[roomName] && Game.rooms[roomName].isOnHighAlert())
 			score += 3.0;
 
-		const terrainScore = Route.terrain.get(roomName);
-		score += Math.floor(TERRAIN_SCORE_MULTIPLIER * (1 - terrainScore));
+		// const terrainScore = Route.terrain.get(roomName);
+		// score += Math.floor(TERRAIN_SCORE_MULTIPLIER * (1 - terrainScore));
 		Log.debug(`Scoring ${roomName} ${fromRoom} at ${score}`, 'Route');
 		return score;
 	};

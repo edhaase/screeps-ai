@@ -41,7 +41,7 @@ RoomObject.prototype.getPathTo = function (pos, range = 1, opts = {}) {
 		if (!opts.roomCallback)
 			opts.roomCallback = (r) => LOGISTICS_MATRIX.get(r) || false;
 		var route = null;
-		if (opts.route) {
+		if (opts.route !== false) {
 			route = Route.findRoute(this.pos.roomName, pos.roomName);
 			if (route === ERR_NO_PATH)
 				return ERR_NO_PATH;
@@ -50,7 +50,7 @@ RoomObject.prototype.getPathTo = function (pos, range = 1, opts = {}) {
 			// Current room is always pathable.
 			route.unshift(this.pos.roomName);
 			const orc = opts.roomCallback;
-			opts.roomCallback = route.includes(r) ? orc(r) : false;
+			opts.roomCallback = (r) => route.includes(r) ? orc(r) : false;
 		}
 		// @todo: load cost matrix from memory
 		result = PathFinder.search(this.pos, ({ pos, range }), {
