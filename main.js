@@ -77,7 +77,6 @@ module.exports.loop = function () {
 	global.Filter = loadModule('Filter');
 	global.Route = loadModule('Route');
 	global.Command = loadModule('Command');
-	global.Segment = require('Segment');
 	global.Market = loadModule('Market');
 	global.Intel = loadModule('Intel');
 	Object.assign(global, loadModule('astar_tedivm'));
@@ -141,7 +140,6 @@ module.exports.loop = function () {
 
 		try {
 			// processMessages();
-			Segment.update();
 			if (!Memory.stats)
 				Memory.stats = {};
 			Memory.stats.runner = {};
@@ -154,7 +152,6 @@ module.exports.loop = function () {
 				stats.dTF = Time.measure(() => Util.invoke(Game.flags, 'run'));
 			stats.dEM = Time.measure(() => Empire.tick());
 			stats.dCS = Time.measure(() => Command.tick());
-			stats.dMS = Time.measure(() => _.invoke(SEGMENTS, 'commit'));
 		} catch (e) {
 			Log.error(`Error in main loop: ${e}`);
 			Log.error(e.stack);

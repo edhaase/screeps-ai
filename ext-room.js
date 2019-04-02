@@ -291,64 +291,6 @@ Room.prototype.updateBuild = function () {
 	return OK;
 };
 
-/***********************************************************************
- * Screeps build plan functionality
- *
- * Stores an array of things we want in a room at given positions.
- * Unlike the build queue, this list is rarely rebuilt and does not
- * contain priorities _or_ expiration.
- *
- * If we find something missing from the world and we have
- * a high enough RCL to build it, we'll calculate a priority and push
- * it to the build queue for construction.
- *
- * Must always start from beginning of array, as structures in plan
- * are sorted by desired build order.
- ***********************************************************************/
-Room.prototype.checkAgainstBuildPlan = function () {
-	// Store roads in cost matrix / bit matrix?
-	var plan = this.getBuildPlan();
-	// var structures = this.structures;
-	var missing = _.reject(plan, ({ x, y, structureType }) => this.getPositionAt(x, y).hasStructure(structureType));
-	// var canBuild = CONTROLLER_STRUCTURES_LEVEL_FIRST[this.controller.level];
-	return missing;
-};
-
-Room.prototype.getBuildPlan = function () {
-	if (!SEGMENTS || !SEGMENTS[SEGMENT_BUILD])
-		throw new Error("Build plan segment not loaded");
-	var segment = SEGMENTS[SEGMENT_BUILD];
-	return segment.data[this.name] || [];
-};
-
-Room.prototype.addToBuildPlan = function (x, y, structureType) {
-	if (!SEGMENTS || !SEGMENTS[SEGMENT_BUILD])
-		throw new Error("Build plan segment not loaded");
-	var segment = SEGMENTS[SEGMENT_BUILD];
-	var roomName = this.name;
-	if (!segment.data[roomName])
-		segment.data[roomName] = [];
-	segment.data[roomName].push({ x, y, structureType });
-	segment.ts = Game.time; // Save changes
-	// console.log(ex(segment));
-	return OK;
-};
-
-Room.prototype.addCurrentStructuresToBuildPlan = function () {
-	this
-		.find(FIND_STRUCTURES, { filter: s => CONTROLLER_STRUCTURES[s.structureType] !== undefined })
-		.forEach(s => this.addToBuildPlan(s.pos.x, s.pos.y, s.structureType));
-};
-
-Room.prototype.drawBuildPlan = function () {
-	var plan = this.getBuildPlan();
-	var [a, b] = _.partition(plan, ({ structureType }) => structureType === STRUCTURE_ROAD);
-	_.each(a, ({ x, y, structureType }) => this.visual.structure(x, y, structureType, { opacity: 1.0 }));
-	this.visual.connectRoads();
-	_.each(b, ({ x, y, structureType }) => this.visual.structure(x, y, structureType, { opacity: 1.0 }));
-};
-
-
 Room.deserializePath = _.memoize(Room.deserializePath);
 /* Room.deserializePath = _.memoize(function(s) {
 	Log.warn(`Desearizling path`);

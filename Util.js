@@ -148,31 +148,6 @@ class Util {
 	}
 
 	/**
-	 * Do something with the memory stored in segment.
-	 *
-	 * @param number id - Memory segment number
-	 * @param function fn 
-	 */
-	static withMemorySegment(id, fn) {
-		if (id < 0 || id >= SEGMENT_MAX_COUNT)
-			throw new Error('Id not in range');
-		if (RawMemory.segments[id] === undefined)
-			throw new Error('Segment not loaded');
-		var obj;
-		if (RawMemory.segments[id] === "")
-			obj = {};
-		else
-			obj = JSON.parse(RawMemory.segments[id]);
-		fn(obj);
-		var tmp = JSON.stringify(obj);
-		var len = tmp.length;
-		if (len >= SEGMENT_MAX_SIZE)
-			throw new Error('Segment would exceed size limit!');
-		RawMemory.segments[id] = tmp;
-		return len;
-	}
-
-	/**
 	 * from Dissi!
 	 */
 	static getColorBasedOnPercentage(thePercentage) {
