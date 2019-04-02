@@ -80,6 +80,9 @@ PowerCreep.prototype.spawnRandom = function () {
 	const powerSpawn = _.sample(powerSpawns);
 	if (!powerSpawn)
 		return ERR_NOT_FOUND;
+	const [blocker] = powerSpawn.pos.lookFor(LOOK_POWER_CREEPS, true) || [];
+	if (blocker)
+		blocker.move(_.random(TOP, TOP_LEFT)); // All directionss. Don't ask.
 	const status = this.spawn(powerSpawn);
 	if (status === ERR_BUSY || status === ERR_INVALID_TARGET)
 		Log.error(`${this.name}#spawn failed with status ${status}`, 'PowerCreep');
