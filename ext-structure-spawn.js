@@ -12,7 +12,7 @@
  */
 'use strict';
 
-/* global BUCKET_LIMITER, Log, DEFAULT_SPAWN_JOB_EXPIRE, DEFAULT_SPAWN_JOB_PRIORITY */
+/* global Log, DEFAULT_SPAWN_JOB_EXPIRE, DEFAULT_SPAWN_JOB_PRIORITY */
 /* global RENEW_COST, RENEW_TICKS, UNIT_BUILD_TIME */
 
 /* eslint-disable no-magic-numbers */
@@ -331,7 +331,7 @@ StructureSpawn.prototype.isRenewActive = function () {
 		return false;
 	//if(this.room.controller.level < 3)
 	//	return (this.spawning == undefined && !BUCKET_LIMITER && this.getQueue().length <= 0);
-	return (this.spawning == null && !BUCKET_LIMITER);
+	return (this.spawning == null);
 };
 
 /**

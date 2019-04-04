@@ -26,7 +26,7 @@ DEFINE_CACHED_GETTER(Room.prototype, 'avgInNetwork', r => r.energyInNetwork / r.
 
 StructureLink.prototype.run = function () {
 	// var {cooldown,energy,pos,room,memory} = this;
-	if (this.cooldown > 0 || (this.energy < LINK_AUTOBALANCE_THRESHOLD) || CPU_LIMITER || BUCKET_LIMITER)
+	if (this.cooldown > 0 || (this.energy < LINK_AUTOBALANCE_THRESHOLD) || CPU_LIMITER)
 		return;
 	if (this.isDeferred() || (Game.time & 3))
 		return;

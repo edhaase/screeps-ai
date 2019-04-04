@@ -387,7 +387,7 @@ Flag.prototype.runLogic = function () {
 	 * 2016-10-26: carryCapacity gets weird when creeps get damaged
 	 */
 	const HAULER_MARGIN = 2;
-	if (this.color === FLAG_MINING && this.secondaryColor === SITE_PICKUP && !BUCKET_LIMITER) {
+	if (this.color === FLAG_MINING && this.secondaryColor === SITE_PICKUP) {
 		if (this.room && !this.room.canMine) {
 			Log.warn(`Cannot mine in ${this.pos.roomName}, deferring.`, 'Flag#Hauler');
 			return this.defer(5000);
@@ -396,7 +396,7 @@ Flag.prototype.runLogic = function () {
 			return this.remove();
 		else if (this.room && this.room.my)
 			return this.remove();
-		if (this.room && !BUCKET_LIMITER && this.memory.dropoff != null && this.room.isBuildQueueEmpty())
+		if (this.room && this.memory.dropoff != null && this.room.isBuildQueueEmpty())
 			this.throttle(300, 'clk', () => {
 				// const {roomName} = this.memory.dropoff;
 				// if(Game.rooms[roomName] && Game.rooms[roomName].my && Game.rooms[roomName].controller.level >= 4)
@@ -470,7 +470,7 @@ Flag.prototype.runLogic = function () {
 	 * Normal mining site operation
 	 */
 	// Move to module?
-	if (this.color === FLAG_MINING && !BUCKET_LIMITER && this.secondaryColor === SITE_REMOTE) {
+	if (this.color === FLAG_MINING && this.secondaryColor === SITE_REMOTE) {
 		if (this.room) {
 			if (this.room.owner) {	// If it's owned by us or another player we aren't using flag based mining.
 				return this.remove();

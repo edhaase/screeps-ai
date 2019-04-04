@@ -295,9 +295,7 @@ class BuildPlanner {
 	 *
 	 * @param Room room - current room object needed
 	 */
-	static buildRoom(room) {
-		if (BUCKET_LIMITER)
-			return ERR_TIRED;
+	static buildRoom(room) {	
 		var { level } = room.controller;
 		if (level < 1) // Sanity check
 			return ERR_RCL_NOT_ENOUGH; // We can't build anything at rcl 0

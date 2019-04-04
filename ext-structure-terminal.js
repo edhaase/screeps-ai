@@ -27,7 +27,7 @@
  */
 'use strict';
 
-/* global BUCKET_LIMITER, DEFINE_CACHED_GETTER, Log */
+/* global DEFINE_CACHED_GETTER, Log */
 /* global TERMINAL_MINIMUM_ENERGY, TERMINAL_RESOURCE_LIMIT, RESOURCE_THIS_TICK, MARKET_ORDER_LIMIT */
 
 const MINIMUM_LEVEL_FOR_TERMINAL = _.findKey(CONTROLLER_STRUCTURES[STRUCTURE_TERMINAL]);
@@ -71,7 +71,7 @@ DEFINE_CACHED_GETTER(StructureTerminal.prototype, 'creditsReservedForEnergy', (t
  * @todo stick store in memory so we can track change over ticks.
  */
 StructureTerminal.prototype.run = function () {
-	if (BUCKET_LIMITER || this.cooldown || this.isDeferred() || this.busy)
+	if (this.cooldown || this.isDeferred() || this.busy)
 		return;
 	try {
 		if (!(Game.time % MODERATE_ENERGY_FREQUENCY))

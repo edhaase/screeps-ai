@@ -6,8 +6,6 @@
 module.exports = {
 	/* eslint-disable consistent-return */
 	run: function () {
-		if (BUCKET_LIMITER)
-			return this.suicide();
 		this.memory.home = undefined;
 		if (this.memory.attemptedUnboost == null) {
 			this.memory.attemptedUnboost = true;

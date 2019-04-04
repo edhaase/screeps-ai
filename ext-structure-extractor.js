@@ -29,7 +29,7 @@ StructureExtractor.prototype.run = function () {
 		return;
 
 	// We don't need to run very often, and if we've downgraded, don't bother runnng.
-	if (Game.time % EXTRACTOR_COOLDOWN || !this.isActive() || BUCKET_LIMITER)
+	if (Game.time % EXTRACTOR_COOLDOWN || !this.isActive())
 		return;
 
 	// (Optional) if we don't have a terminal in the room, don't run.

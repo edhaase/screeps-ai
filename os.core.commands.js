@@ -17,7 +17,7 @@ global.proc = function (sortBy = 'pid', order = ['asc']) {
 	const head  = _.map(keys, k => `<th>${k}</th>`);
 	const rows = _.map(sorted, r => _.map(keys, k => `<td>${r[k]}</td>`).join());
 	const body = _.map(rows, r => `<tr>${r}</tr>`); */
-	const head = `<th>pid/name</th><th>ppid/name</th><th>#threads</th><th>totalCpu</th><th>minCPu</th><th>avgCpu</th><th>maxCpu</th><th>age</th>`;
+	const head = `<th>pid/name</th><th>ppid/name</th><th>#threads</th><th>totalCpu</th><th>minCpu</th><th>avgCpu</th><th>maxCpu</th><th>age</th>`;
 	const rows = _.map(sorted, r => `<td>${r.pid}/${r.name}</td><td>${r.parent && r.parent.pid}/${r.parent && r.parent.name}</td><td>${r.threads.size}</td><td>${_.round(r.totalCpu, 5)}</td><td>${_.round(r.minCpu, 5)}</td><td>${_.round(r.avgCpu, 5)}</td><td>${_.round(r.maxCpu, 5)}</td><td>${Game.time - r.born}</td>`);
 	const body = _.map(rows, r => `<tr>${r}</tr>`);
 	return `<table width='800px'><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table`;
