@@ -20,7 +20,7 @@ global.proc = function (sortBy = 'pid', order = ['asc']) {
 	const head = `<th>pid/name</th><th>ppid/name</th><th>#threads</th><th>totalCpu</th><th>minCpu</th><th>avgUsrCpu</th><th>avgSysCpu</th><th>maxCpu</th><th>age</th><th>title</th>`;
 	const rows = _.map(sorted, r => `<td>${r.pid}/${r.name}</td><td>${r.parent && r.parent.pid}/${r.parent && r.parent.name}</td><td>${r.threads.size}</td><td>${_.round(r.totalCpu, 5)}</td><td>${_.round(r.minCpu, 5)}</td><td>${_.round(r.avgUsrCpu, 5)}</td><td>${_.round(r.avgSysCpu, 5)}</td><td>${_.round(r.maxCpu, 5)}</td><td>${Game.time - r.born}</td><td>${r.title || '-'}</td>`);
 	const body = _.map(rows, r => `<tr>${r}</tr>`);
-	return `<table width='800px'><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table`;
+	return `<table width='1200px'><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table`;
 };
 
 global.threads = function (pid, sortBy = 'pid', order = ['asc']) {
@@ -37,7 +37,7 @@ global.threads = function (pid, sortBy = 'pid', order = ['asc']) {
 		return `<td>${t.pid}/${p.name}</td><td>${t.tid}</td><td>${t.priority}</td><td>${_.round(t.lastRunCpu, 5)}</td><td>${_.round(t.minCpu, 5)}</td><td>${_.round(t.avgUsrCpu, 5)}</td><td>${_.round(t.avgSysCpu, 5)}</td><td>${_.round(t.maxCpu, 5)}</td><td>${Game.time - t.born}</td><td>${t.desc || '-'}</td>`;
 	});
 	const body = _.map(rows, r => `<tr>${r}</tr>`);
-	return `<table width='800px'><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table`;
+	return `<table width='1200px'><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table`;
 };
 
 global.startProcess = function (name, opts) {
