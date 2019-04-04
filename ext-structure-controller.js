@@ -106,10 +106,6 @@ StructureController.prototype.run = function () {
 		_.invoke(this.room.structuresByType[STRUCTURE_RAMPART], 'setPublic', false);
 		this.memory.relock = undefined;
 	}
-
-	if (!(Game.time & 255))
-		Command.push(`require('Planner').buildRoom(Game.rooms['${this.room.name}'])`);
-
 	if ((Game.time % (DEFAULT_SPAWN_JOB_EXPIRE + 1)) === 0 && !this.checkBit(BIT_CTRL_DISABLE_CENSUS)) {
 		// if (this.clock(DEFAULT_SPAWN_JOB_EXPIRE) === 0 && !this.checkBit(BIT_CTRL_DISABLE_CENSUS)) { // Staggering jobs might be bad.
 		try {

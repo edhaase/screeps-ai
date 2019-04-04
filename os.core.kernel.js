@@ -6,6 +6,7 @@
 const Pager = require('os.core.pager');
 const Process = require('os.core.process');
 const LazyMap = require('os.ds.lazymap');
+const BaseArray = require('os.ds.array');
 
 const MAX_PRECISION = 7;
 const DEFAULT_PRECISION = 5;
@@ -24,7 +25,7 @@ class Kernel {
 	constructor() {
 		MAKE_CONSTANT(this, 'instantiated', Game.time);
 		MAKE_CONSTANT(this, 'process', new Map());
-		MAKE_CONSTANT(this, 'processByName', new LazyMap(() => []));
+		MAKE_CONSTANT(this, 'processByName', new LazyMap(() => new BaseArray()));
 		MAKE_CONSTANT(this, 'threads', new Map());
 		MAKE_CONSTANT(this, 'threadsByProcess', new WeakMap());
 		this.queue = [];

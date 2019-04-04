@@ -159,7 +159,6 @@ module.exports.loop = function () {
 
 		if (!(Game.time & 255)) {
 			// Log.success('Updating room builds', 'Planner');
-			// require('Planner').pushRoomUpdates();
 			_(Game.market.orders).filter(o => o.remainingAmount <= 1).each(o => Game.market.cancelOrder(o.id)).commit();
 			Time.updateTickLength(256);
 			Intel.evict();

@@ -1,7 +1,9 @@
 /**  */
 'use strict';
 
-class PriorityQueue extends Array {
+const BaseArray = require('os.ds.array');
+
+class PriorityQueue extends BaseArray {
 	constructor(itr = [], scoreFn = _.Identity, scorer = _.sortedIndex) {
 		super();
 		this.scoreFn = scoreFn;

@@ -3,7 +3,7 @@
 
 const Process = require('os.core.process');
 
-class Planner extends Process {
+class PlannerProc extends Process {
 	constructor(opts) {
 		super(opts);
 		this.priority = Process.PRIORITY_LOWEST;
@@ -12,7 +12,24 @@ class Planner extends Process {
 
 	*run() {
 		// Cleanup memory
+		if (this.roomName)
+			return yield* this.plan(Game.rooms[this.roomName]);
+		return yield* this.planAll();
+	}
+
+	*planAll() {
+		for (const room of Object.values(Game.rooms)) {
+			if (!room.my)
+				continue;
+			yield* this.plan(room);
+			yield true;
+		}
+	}
+
+	*plan(room) {
+		this.debug(`Planning ${room.name} on tick ${Game.time}`);
+		yield require('Planner').buildRoom(room);
 	}
 }
 
-module.exports = Planner;
+module.exports = PlannerProc;

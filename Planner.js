@@ -279,12 +279,6 @@ class FleePlanner {
 global.CFleePlanner = FleePlanner;
 
 class BuildPlanner {
-	static pushRoomUpdates() {
-		var rooms = _.filter(Game.rooms, 'my');
-		rooms = _.shuffle(rooms);
-		_.each(rooms, ({ name }) => Command.push(`require('Planner').buildRoom(Game.rooms['${name}'])`));
-	}
-
 	/**
 	 * Automates room construction
 	 *
@@ -561,8 +555,12 @@ class BuildPlanner {
 				return;
 			for (const indx in path) {
 				const p = path[indx];
+				try {
 				if (!p.hasStructure(STRUCTURE_ROAD))
 					Game.rooms[p.roomName].addToBuildQueue(p, STRUCTURE_ROAD);
+				} catch(e) {
+					console.log(`(${p})`);
+				}
 			}
 		} catch (e) {
 			console.log(e.stack);

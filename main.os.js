@@ -28,7 +28,6 @@ global.Intel = require('Intel');
 DEFER_REQUIRE('global');
 DEFER_REQUIRE('os.core.errors');
 DEFER_REQUIRE('os.core.commands');
-DEFER_REQUIRE('os.core.ext.arr');
 DEFER_REQUIRE('os.ext.spawn');
 DEFER_REQUIRE('ext-constructionsite');
 DEFER_REQUIRE('ext-roomobject');
