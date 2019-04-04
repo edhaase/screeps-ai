@@ -3,6 +3,7 @@
 
 const { ActorHasCeased } = require('os.core.errors');
 
+const Async = require('os.core.async');
 const ITO = require('os.core.ito');
 const Process = require('os.core.process');
 
@@ -14,56 +15,27 @@ class Legacy extends Process {
 	}
 
 	*run() {
-		// This thread exists to create other threads
-		this.startThread(this.runRooms, null, undefined, 'Legacy room runner');
-		this.startThread(this.runFlags, null, undefined, 'Legacy flag runner');
-		while (true) {
-			yield* this.coSpawnMissingThreads(Game.creeps, 'id', null);
-			yield* this.coSpawnMissingThreads(Game.structures, 'id', 'structures');
-			yield* this.coSpawnMissingThreads(Game.powerCreeps);
+		while (!(yield)) {
+			yield* this.coSpawnMissingThreads(Game[this.collection], this.identifier, this.collection, this.method || 'run');
 			yield;
 		}
 	}
 
-	*runFlags() {
-		while (!(yield)) {
-			if (Game.time % (DEFAULT_SPAWN_JOB_EXPIRE + 1) !== 0)
-				continue;
-			this.debug('Running flags');
-			_.invoke(Game.flags, 'run');
-		}
-	}
-
-	*runRooms() {
-		while (true)
-			yield _.invoke(Game.rooms, 'run');
-	}
-
-	spawnMissingThreads(collection, iden = 'id', col = null, method = 'run') {
-		const missed = _.filter(collection, c => !this.table.has(c[iden]) && c.run);
-		for (const itm of missed) {
-			/* const thread = this.invoker(itm.id, method);
-			thread.desc = itm.toString();
-			global.kernel.attachThread(thread); */
-			const thread = this.startThread(this.invoker, [itm[iden], method], undefined, itm.toString());
-			this.table.set(itm.id, thread);
-		}
+	onThreadExit(tid, thread) {
+		this.debug(`Thread ${tid} exited`);
+		this.table.delete(thread.key);
 	}
 
 	*coSpawnMissingThreads(collection, iden = 'id', col = null, method = 'run') {
-		const { each } = require('os.core.async');
 		const missed = _.filter(collection, c => !this.table.has(c[iden]) && c.run);
 		if (!missed || !missed.length)
 			return;
-		yield* each(missed, function* (itm) {
+		yield* Async.each(missed, function* (itm) {
 			while (Game.cpu.getUsed() > Game.cpu.limit)
 				yield;
-			// const ito = ITO.make(itm[iden], col);
 			const thread = this.startThread(this.invoker, [itm[iden], col, method], undefined, itm.toString());
-			/* const thread = this.invoker(itm.id, method);			
-			thread.desc = itm.toString();
-			global.kernel.attachThread(thread); */
-			this.table.set(itm.id, thread);
+			thread.key = itm[iden];
+			this.table.set(thread.key, thread);
 		}, this);
 	}
 
@@ -73,7 +45,7 @@ class Legacy extends Process {
 		this.debug(`New legacy invoker for ${ito}`);
 		try {
 			while (true) {
-				yield (ito[method] && ito[method]());
+				yield ito[method]();
 			}
 		} catch (e) {
 			if (!(e instanceof ActorHasCeased))
