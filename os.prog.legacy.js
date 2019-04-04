@@ -16,12 +16,21 @@ class Legacy extends Process {
 	*run() {
 		// This thread exists to create other threads
 		this.startThread(this.runRooms, null, undefined, 'Legacy room runner');
+		this.startThread(this.runFlags, null, undefined, 'Legacy flag runner');
 		while (true) {
 			yield* this.coSpawnMissingThreads(Game.creeps, 'id', null);
 			yield* this.coSpawnMissingThreads(Game.structures, 'id', 'structures');
-			yield* this.coSpawnMissingThreads(Game.flags, 'name', 'flags');
 			yield* this.coSpawnMissingThreads(Game.powerCreeps);
 			yield;
+		}
+	}
+
+	*runFlags() {
+		while (!(yield)) {
+			if (Game.time % (DEFAULT_SPAWN_JOB_EXPIRE + 1) !== 0)
+				continue;
+			this.debug('Running flags');
+			_.invoke(Game.flags, 'run');
 		}
 	}
 
