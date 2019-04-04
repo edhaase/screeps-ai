@@ -39,7 +39,7 @@ class Intershard extends Process {
 	}
 
 	*writer() {
-		this.contents = InterShardMemory.getLocal();
+		this.contents = InterShardMemory.getLocal() || '{}';
 		while (!(yield)) {
 			InterShardMemory.setLocal(this.contents);
 		}
