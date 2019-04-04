@@ -172,6 +172,11 @@ class Kernel {
 		this.ctid = thread.tid;
 		this.cpid = thread.pid;
 		const process = this.process.get(thread.pid);
+		if (process.ppid && !this.process.has(process.ppid)) {
+			Log.warn(`${thread.pid}/${thread.tid} Orphan process ${process.name} killed on tick ${Game.time} (age ${Game.time - process.born} ticks)`);
+			this.killProcess(process.pid);
+			return;
+		}
 		try {
 			if (!process) {
 				Log.debug(`${thread.pid}/${thread.tid} Orphaned thread killed on tick ${Game.time} (age ${Game.time - thread.born} ticks)`, 'Kernel');
