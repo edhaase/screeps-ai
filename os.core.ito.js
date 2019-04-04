@@ -9,6 +9,10 @@ class ITOHandler {
 		this.coll = collectionName;
 	}
 
+	getPrototypeOf() {
+		return Object.getPrototypeOf(this.getCurrentGameObject());
+	}
+
 	getOwnPropertyDescriptor(t, prop) {
 		return Object.getOwnPropertyDescriptor(this.getCurrentGameObject(), prop);
 	}

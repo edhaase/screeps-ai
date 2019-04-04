@@ -7,6 +7,8 @@ const Async = require('os.core.async');
 const ITO = require('os.core.ito');
 const Process = require('os.core.process');
 
+const MARGIN = 5;
+
 class Legacy extends Process {
 
 	constructor(opts) {
@@ -31,7 +33,7 @@ class Legacy extends Process {
 		if (!missed || !missed.length)
 			return;
 		yield* Async.each(missed, function* (itm) {
-			while (Game.cpu.getUsed() > Game.cpu.limit)
+			while (Game.cpu.getUsed() > Game.cpu.tickLimit - MARGIN)
 				yield;
 			const thread = this.startThread(this.invoker, [itm[iden], col, method], undefined, itm.toString());
 			thread.key = itm[iden];
