@@ -21,7 +21,7 @@ class PlannerProc extends Process {
 		for (const room of Object.values(Game.rooms)) {
 			if (!room.my)
 				continue;
-			yield* this.plan(room);
+			this.startThread(this.plan, [room], undefined, `Room planner ${room.name}`);
 			yield true;
 		}
 	}
