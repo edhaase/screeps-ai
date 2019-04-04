@@ -1,7 +1,4 @@
-/**
- * Lzw.js
- * Courtesy of @proximo
- */
+/** Lzw.js - Courtesy of @proximo */
 'use strict';
 
 class Lzw {
@@ -10,11 +7,11 @@ class Lzw {
 	 * @returns string
 	 */
 	static encode(s) {
-		var i,dict = {};
+		var i, dict = {};
 		var data = (s + "").split("");
 		var out = [];
 		var currChar;
-		var phrase = data[0];
+		var [phrase] = data;
 		var code = 256;
 		for (i = 1; i < data.length; i++) {
 			currChar = data[i];
@@ -41,7 +38,7 @@ class Lzw {
 	static decode(s) {
 		var dict = {};
 		var data = (s + "").split("");
-		var currChar = data[0];
+		var [currChar] = data;
 		var oldPhrase = currChar;
 		var out = [currChar];
 		var code = 256;
