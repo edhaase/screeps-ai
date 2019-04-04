@@ -27,7 +27,7 @@
 
 /* eslint-disable consistent-return */
 
-const { VisibilityError } = require('Error');
+const { VisibilityError } = require('os.core.errors');
 const DEFAULT_ORIGIN_RADIUS = 1;
 
 // @todo Find way to preserve road plan from expiring.
@@ -229,7 +229,7 @@ class FleePlanner {
 	cloneGoals(planStructureType) {
 		return _.map(this.goals, ({ pos, structureType, range }) => ({
 			pos, structureType,
-			// range: Math.clamp(this.minRange || 1, Math.max(range,STRUCTURE_MIN_RANGE[planStructureType] || 1), this.maxRange || 15)
+			// range: CLAMP(this.minRange || 1, Math.max(range,STRUCTURE_MIN_RANGE[planStructureType] || 1), this.maxRange || 15)
 			range: Math.max(this.minRange || 1, range || 1, STRUCTURE_MIN_RANGE[planStructureType] || 1)
 		}));
 	}

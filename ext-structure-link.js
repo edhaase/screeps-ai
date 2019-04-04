@@ -42,7 +42,7 @@ StructureLink.prototype.run = function () {
 	if (!target)
 		return;
 	const need = LINK_PRECISION * Math.floor((avgInNetwork - target.energy) / LINK_PRECISION);
-	var amt = Math.clamp(0, Math.max(need, diff), target.energyCapacityAvailable);
+	var amt = CLAMP(0, Math.max(need, diff), target.energyCapacityAvailable);
 	if (amt <= 0)
 		return;
 	if (this.transferEnergy(target, amt) === OK) {

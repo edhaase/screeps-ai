@@ -432,14 +432,14 @@ StructureController.prototype.runCensus = function () {
 		// const buildRemaining = _.sum(sites, s => s.progressTotal - s.progress);	// Total energy required to finish all builds
 		// const score = Math.ceil(buildRemaining / CREEP_LIFE_TIME / BUILD_POWER);
 		// console.log('build remaining in room: ' + score);
-		// score = Math.clamp(0, score, 3);
+		// score = CLAMP(0, score, 3);
 		let useSpawn = spawn || assistingSpawn;
 		// Past a certain point it doesn't make sense to use. Otherwise mix things up.
 		if (this.level < 6 && assistingSpawn && Math.random() < 0.5)
 			useSpawn = assistingSpawn;
 		if (!useSpawn)
 			Log.warn(`No spawn available to request builders for ${this.pos.roomName}`, 'Controller');
-		prio = Math.clamp(0, Math.ceil(100 * (buildAssigned / buildDesired)), 90);
+		prio = CLAMP(0, Math.ceil(100 * (buildAssigned / buildDesired)), 90);
 		// var elimit = (storedEnergy > 10000) ? Infinity : (10 * numSources);
 		require('Unit').requestBuilder(useSpawn, { elimit: buildDesired, home: roomName, priority: prio });
 	}
@@ -451,7 +451,7 @@ StructureController.prototype.runCensus = function () {
 		const towers = _.size(this.room.find(FIND_MY_STRUCTURES, { filter: Filter.loadedTower }));
 		// if (!_.isEmpty(hostiles) && room.my && (towers <= 0 || hostiles.length > towers)) {
 		if (towers <= 0 || this.room.hostiles.length > towers) {
-			const desired = Math.clamp(1, this.room.hostiles.length * 2, 8);
+			const desired = CLAMP(1, this.room.hostiles.length * 2, 8);
 			for (var di = defenders.length; di < desired; di++) {
 				prio = Math.min(PRIORITY_MED, Math.ceil(100 * (di / desired)));
 				const supplier = _.sample(['requestDefender', 'requestRanger']);
@@ -482,7 +482,7 @@ StructureController.prototype.runCensus = function () {
 	}
 
 	const maxScav = (this.level < 3) ? 6 : 4;
-	let scavNeed = Math.clamp(2, resDecay, maxScav);
+	let scavNeed = CLAMP(2, resDecay, maxScav);
 	const scavHave = scav.length;
 	// @todo: Every tick we can pretty easily get this value. Can we do anything useful with it?
 	if (this.room.energyPct < 0.25)
@@ -499,7 +499,7 @@ StructureController.prototype.runCensus = function () {
 			return;
 		}
 		// prio = 100 - Math.ceil(100 * (scavHave / scavNeed));
-		prio = Math.clamp(0, Math.ceil(100 * (scavHave / scavNeed)), 75);
+		prio = CLAMP(0, Math.ceil(100 * (scavHave / scavNeed)), 75);
 		if (scavHave <= 0 && assistingSpawn)
 			spawn = assistingSpawn;
 		// Log.warn("Short on scavengers at " + this.pos.roomName + ' (prio: ' + prio + ')');		
@@ -700,7 +700,7 @@ StructureController.prototype.updateRclAvg = function () {
 		return;
 	if (this.memory.rclLastTick !== null && this.level <= this.memory.level) {
 		var diff = this.progress - this.memory.rclLastTick;
-		this.memory.rclAvgTick = Math.mmAvg(diff, this.memory.rclAvgTick, 1000);
+		this.memory.rclAvgTick = MM_AVG(diff, this.memory.rclAvgTick, 1000);
 	}
 	this.memory.rclLastTick = this.progress;
 };

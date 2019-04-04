@@ -1,0 +1,21 @@
+/**  */
+'use strict';
+
+const BaseMap = require('os.ds.map');
+
+class LazyMap extends BaseMap {
+	constructor(factory, itr) {
+		super(itr);
+		this.factory = factory;
+	}
+
+	get(key) {
+		if (!super.has(key)) {
+			super.set(key, this.factory(key));
+		}
+		return super.get(key);
+	}
+
+}
+
+module.exports = LazyMap;

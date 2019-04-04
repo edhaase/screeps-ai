@@ -138,8 +138,7 @@ Creep.prototype.runRole = function () {
 	var role = require(`role-${roleName}`);
 	role.run.call(this);
 	var used = Game.cpu.getUsed() - start;
-	this.memory.cpu = Math.mmAvg(used, this.memory.cpu, 100);
-	Volatile[`role-${roleName}`] = _.round((Volatile[`role-${roleName}`] || 0) + used, 3);
+	this.memory.cpu = MM_AVG(used, this.memory.cpu, 100);
 	// console.log(this.name + ' used ' + used + ' cpu');
 };
 

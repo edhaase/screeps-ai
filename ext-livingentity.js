@@ -132,7 +132,7 @@ class LivingEntity extends RoomObject {
 		if (this.hasActiveBodypart && this.hasActiveBodypart(HEAL) && this.hitPct > 0.50) {
 			if (opts.hits != null) {
 				const diff = this.hits - opts.hits;
-				opts.hma = Math.mmAvg(diff, opts.hma || 0, 3);
+				opts.hma = MM_AVG(diff, opts.hma || 0, 3);
 				if (opts.hma < 0 || (-diff / this.hitsMax) > 0.10) {
 					this.pushState('FleeRoom', { room: this.room.name });
 					opts.hma = 0;

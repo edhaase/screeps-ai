@@ -23,7 +23,7 @@ module.exports = {
 		const towers = _.size(census.room.find(FIND_MY_STRUCTURES, { filter: Filter.loadedTower }));
 		if (towers > 0 && census.room.hostiles.length < towers)
 			return 0;
-		return Math.clamp(1, census.room.hostiles.length * 2, 8);
+		return CLAMP(1, census.room.hostiles.length * 2, 8);
 	},
 	body: function () {
 		// pick ranged or melee at random?

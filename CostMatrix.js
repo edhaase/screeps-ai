@@ -9,9 +9,9 @@
 /* eslint-disable no-magic-numbers */
 
 const Intel = require('Intel');
-const { LazyMap } = require('DataStructures');
-const LRU = require('LRU');
-const { VisibilityError } = require('Error');
+const DelegatingLazyMap = require('os.ds.dele.lazymap');
+const LRU = require('os.ds.lru');
+const { VisibilityError } =  require('os.core.errors');
 
 const COST_MATRIX_EXPIRATION = 5;
 const COST_MATRIX_CACHE_SIZE = 150;
@@ -44,7 +44,7 @@ class CostMatrix extends PathFinder.CostMatrix {
 	}
 
 	add(x, y, value) {
-		this.set(x, y, Math.clamp(0, this.get(x, y) + value, 255));
+		this.set(x, y, CLAMP(0, this.get(x, y) + value, 255));
 	}
 
 	/** @return CostMatrix - new cost matrix of sum */
@@ -53,7 +53,7 @@ class CostMatrix extends PathFinder.CostMatrix {
 		var x, y;
 		for (x = 0; x <= 49; x++)
 			for (y = 0; y <= 49; y++)
-				c.set(x, y, Math.clamp(0, a.get(x, y) + b.get(x, y), 255));
+				c.set(x, y, CLAMP(0, a.get(x, y) + b.get(x, y), 255));
 		return c;
 	}
 
@@ -63,7 +63,7 @@ class CostMatrix extends PathFinder.CostMatrix {
 		var x, y;
 		for (x = 0; x <= 49; x++)
 			for (y = 0; y <= 49; y++)
-				c.set(x, y, Math.clamp(0, Math.abs(b.get(x, y) - a.get(x, y)), 255));
+				c.set(x, y, CLAMP(0, Math.abs(b.get(x, y) - a.get(x, y)), 255));
 		return c;
 	}
 
@@ -123,7 +123,7 @@ class CostMatrix extends PathFinder.CostMatrix {
 				// let v = _.padLeft(this.get(x,y).toString(16),2,'0').toUpperCase();
 				let n = this.get(x, y);
 				n = n.toString(16);
-				// n = Math.clamp(0, n, 99);
+				// n = CLAMP(0, n, 99);
 				let v = _.padLeft(n, pad, '0');
 
 				// if(v == '00') v = '##';
@@ -327,7 +327,7 @@ class TowerThreatMatrix extends CostMatrix {
 	addTower(target) {
 		// Just trust that this works..
 		this.apply((x, y) => this.add(x, y,
-			Math.clamp(TOWER_OPTIMAL_RANGE,
+			CLAMP(TOWER_OPTIMAL_RANGE,
 				TOWER_FALLOFF_RANGE - target.pos.getRangeTo(x, y),
 				TOWER_FALLOFF_RANGE) - TOWER_OPTIMAL_RANGE
 		));
@@ -399,14 +399,14 @@ class LazyMatrixStore {
 // global.LOGISTICS_MATRIX = new Proxy(CostMatrix.cache, new LazyMatrixStore(LogisticsMatrix));
 // global.FIXED_OBSTACLE_MATRIX = new Proxy(CostMatrix.cache, new LazyMatrixStore(FixedObstacleMatrix, 30));
 
-global.LOGISTICS_MATRIX = new LazyMap(
+global.LOGISTICS_MATRIX = new DelegatingLazyMap(
 	(roomName) => (Game.rooms[roomName] && new LogisticsMatrix(roomName)) || new CostMatrix,
 	new LRU({ ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE })
 );
 
 // map.get(roomname) has no idea about whether the item exists or if there will be an error.
 // we can't throw an error this way.
-global.LOGISTICS_MATRIX = new LazyMap(
+global.LOGISTICS_MATRIX = new DelegatingLazyMap(
 	(roomName) => {
 		try {
 			return (new LogisticsMatrix(roomName));
@@ -423,7 +423,7 @@ global.LOGISTICS_MATRIX = new LazyMap(
 	new LRU({ ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE })
 ); */
 
-global.FIXED_OBSTACLE_MATRIX = new LazyMap(
+global.FIXED_OBSTACLE_MATRIX = new DelegatingLazyMap(
 	(roomName) => {
 		try {
 			if (Game.rooms[roomName])

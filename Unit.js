@@ -182,12 +182,12 @@ module.exports = {
 			// At rcl 2 plus extensions that's 550 energy or 4 WORK, 1 CARRY, 2 MOVE
 			// Without remainder redistribute we'd have 3-1-2
 			Log.debug(`Upgrader energy available: ${avail} = ${w} + ${c} + ${m}`,  'Unit');
-			const pc = Math.clamp(1, Math.floor(c / BODYPART_COST[CARRY]), lc);
-			const pm = Math.clamp(1, Math.floor(m / BODYPART_COST[MOVE]), lm);
+			const pc = CLAMP(1, Math.floor(c / BODYPART_COST[CARRY]), lc);
+			const pm = CLAMP(1, Math.floor(m / BODYPART_COST[MOVE]), lm);
 			const rc = c - pc * BODYPART_COST[CARRY];
 			const rm = m - pm * BODYPART_COST[MOVE];
 			const rem = rc + rm;
-			const pw = Math.clamp(1, Math.floor( (w+rem) / BODYPART_COST[WORK]), Math.min(lw, workDiff));
+			const pw = CLAMP(1, Math.floor( (w+rem) / BODYPART_COST[WORK]), Math.min(lw, workDiff));
 			Log.debug(`Upgrader energy remaining: ${rc} ${rm} = ${rem}`, 'Unit');
 			Log.debug(`Upgrader parts available: ${pw} ${pc} ${pm}`, 'Unit');
 			body = Util.RLD([pw, WORK, pc, CARRY, pm, MOVE]);
@@ -225,8 +225,8 @@ module.exports = {
 		const rm = m - pm * BODYPART_COST[MOVE];
 		const rc = c - pc * BODYPART_COST[CARRY];
 		const rem = rw + rc + rm;
-		// const pc = Math.clamp(1, Math.floor((c + rem) / BODYPART_COST[CARRY]), Math.min(lc, pw + pm));
-		// const pw = Math.clamp(1, Math.floor( (w+rem) / BODYPART_COST[WORK]), Math.min(lw, partLimit));
+		// const pc = CLAMP(1, Math.floor((c + rem) / BODYPART_COST[CARRY]), Math.min(lc, pw + pm));
+		// const pw = CLAMP(1, Math.floor( (w+rem) / BODYPART_COST[WORK]), Math.min(lw, partLimit));
 		Log.debug(`Build energy remaining: ${rw} ${rc} ${rm} = ${rem}`, 'Unit');
 		Log.debug(`Build parts available: ${pw} ${pc} ${pm}`, 'Unit');
 		Log.debug(``, 'Unit');
@@ -277,8 +277,8 @@ module.exports = {
 		let capacity = Math.ceil(spawn.room.energyCapacityAvailable * 0.75);
 		if (home !== spawn.pos.roomName)
 			capacity /= 2; // Smaller scavs in remote rooms.
-		// var body, avail = Math.clamp(250, capacity, 1500) - BODYPART_COST[WORK];
-		var body, avail = Math.clamp(250, capacity, 1500) - UNIT_COST([WORK, MOVE]);
+		// var body, avail = CLAMP(250, capacity, 1500) - BODYPART_COST[WORK];
+		var body, avail = CLAMP(250, capacity, 1500) - UNIT_COST([WORK, MOVE]);
 		if (hasRoad)
 			body = Arr.repeat([CARRY, CARRY, MOVE], avail);
 		else
@@ -322,7 +322,7 @@ module.exports = {
 
 	requestPilot: function (spawn, roomName) {
 		const MAX_PILOT_ENERGY = 750;
-		const amt = Math.clamp(SPAWN_ENERGY_START, spawn.room.energyAvailable, MAX_PILOT_ENERGY);
+		const amt = CLAMP(SPAWN_ENERGY_START, spawn.room.energyAvailable, MAX_PILOT_ENERGY);
 		const body = Arr.repeat([WORK, CARRY, MOVE, MOVE], amt);
 		return spawn.submit({ body, memory: { role: 'pilot', home: roomName || spawn.pos.roomName }, priority: PRIORITY_MAX });
 	},

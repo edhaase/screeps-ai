@@ -10,8 +10,8 @@
 'use strict';
 
 const Intel = require('Intel');
-const { LazyMap } = require('DataStructures');
-const LRU = require('LRU');
+const DelegatingLazyMap = require('os.ds.dele.lazymap');
+const LRU = require('os.ds.lru');
 
 const ROUTE_EXPIRATION = 150;	// Ticks before a route expires
 const ROUTE_CACHE_SIZE = 150;			// Number of route entries to cache
@@ -84,7 +84,7 @@ class Route {
 }
 
 Route.cache = new LRU({ ttl: ROUTE_EXPIRATION, max: ROUTE_CACHE_SIZE });
-Route.terrain = new LazyMap(
+Route.terrain = new DelegatingLazyMap(
 	(roomName) => Intel.scoreTerrain(roomName),
 	new LRU({ tt: ROUTE_EXPIRATION, max: ROUTE_CACHE_SIZE })
 );

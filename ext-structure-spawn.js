@@ -56,7 +56,7 @@ const ON_ERROR_SLEEP_DELAY = 50;
  *
  */
 StructureSpawn.prototype.run = function () {
-	this.memory.u = Math.mmAvg((this.spawning ? 1 : 0), this.memory.u, CREEP_LIFE_TIME);
+	this.memory.u = MM_AVG((this.spawning ? 1 : 0), this.memory.u, CREEP_LIFE_TIME);
 
 	// this.say('U: ' + _.round(this.memory.u,2), this.pos, {color: 'yellow'});	
 	//if(this.spawning && !(Game.time&2))
@@ -156,9 +156,9 @@ StructureSpawn.prototype.getNextId = function () {
 StructureSpawn.prototype.resetEnergyClock = function () {
 	if (this.memory.e > 3)
 		Log.debug(`Energy clock reset after ${this.memory.e} ticks`, 'Spawn');
-	// this.memory.edelay = Math.cmAvg(this.memory.e || 0, this.memory.edelay || 0, 25);
+	// this.memory.edelay = CM_AVG(this.memory.e || 0, this.memory.edelay || 0, 25);
 	var test = this.memory.edelay;
-	this.memory.edelay = Math.mmAvg(this.memory.e || 0, this.memory.edelay, 25);
+	this.memory.edelay = MM_AVG(this.memory.e || 0, this.memory.edelay, 25);
 	Log.debug(`edelay mmAvg (${this.memory.e || 0}) ${test} --> ${this.memory.edelay}`, 'Spawn');
 	this.memory.e = undefined;
 	return this;

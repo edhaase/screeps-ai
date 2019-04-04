@@ -53,7 +53,7 @@ class Empire {
 		if (Memory.gclLastTick == null)
 			Memory.gclLastTick = Game.gcl.progress;
 		var diff = Game.gcl.progress - Memory.gclLastTick;
-		Memory.gclAverageTick = Math.cmAvg(diff, Memory.gclAverageTick, GCL_MOVING_AVG_DURATION);
+		Memory.gclAverageTick = CM_AVG(diff, Memory.gclAverageTick, GCL_MOVING_AVG_DURATION);
 		Memory.gclLastTick = Game.gcl.progress;
 	}
 

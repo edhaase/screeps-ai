@@ -5,7 +5,7 @@
 
 /* global DEFINE_CACHED_GETTER */
 
-const { VisibilityError } = require('Error');
+const { VisibilityError } = require('os.core.errors');
 
 DEFINE_CACHED_GETTER(RoomPosition.prototype, 'room', rp => Game.rooms[rp.roomName]);
 

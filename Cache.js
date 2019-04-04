@@ -5,7 +5,7 @@
 
 /** */
 /* global DEFINE_CACHED_GETTER */
-const LRU = require('LRU');
+const LRU = require('os.ds.lru');
 const TTL = 1500;
 const MAX = 1500;
 const map = new LRU({ ttl: TTL, max: MAX });

@@ -6,6 +6,8 @@
  */
 'use strict';
 
+/* global Log */
+
 class LRU {
 
 	// cache entries are objects with
@@ -58,8 +60,8 @@ class LRU {
 	}
 
 	evict() {
-		let curr,count = 0;
-		const {max} = this;
+		let curr, count = 0;
+		const { max } = this;
 		const now = this.ttl ? Game.time : false;
 		for (curr = this.head; curr; curr = curr.next) {
 			++count;
@@ -144,7 +146,7 @@ class LRU {
 		for (curr = this.head; curr; curr = curr.next)
 			yield accessFn(curr);
 	}
-	
+
 	/**
 	 * Remove entry `curr` from the linked list.
 	 * @private

@@ -9,7 +9,7 @@
 
 /* eslint-disable consistent-return */
 
-const { VisibilityError } = require('Error');
+const { VisibilityError } = require('os.core.errors');
 
 const RESERVATION_STEAL_MARGIN = 200;	// Give a player time to reclaim their remote
 

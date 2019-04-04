@@ -217,13 +217,13 @@ StructureTerminal.prototype.runAutoSell = function (resource = RESOURCE_THIS_TIC
 			price = _.min(orders, 'price').price;
 
 		}
-		const amount = Math.clamp(0, 100 * Math.floor(1.10 * over / 100), this.store[resource]);
+		const amount = CLAMP(0, 100 * Math.floor(1.10 * over / 100), this.store[resource]);
 		const status = this.createSellOrder(resource, price, amount);
 		if (status === OK)
 			return true;
 	}
 
-	const moving = Math.clamp(TERMINAL_MIN_SEND, over, TERMINAL_MAXIMUM_AUTOSELL);
+	const moving = CLAMP(TERMINAL_MIN_SEND, over, TERMINAL_MAXIMUM_AUTOSELL);
 	return this.sell(resource, moving) === OK;
 };
 
@@ -400,10 +400,10 @@ StructureTerminal.prototype.deal = function (id, amount, order = {}) {
 		// Don't change credits here, we're using transactions to track that.
 		const dist = Game.map.getRoomLinearDistance(order.roomName, this.pos.roomName, true);
 		const cost = this.calcTransactionCost(amount, order.roomName);
-		this.memory.avgCost = Math.cmAvg(cost, this.memory.avgCost || 0, 100);
-		this.memory.avgDist = Math.cmAvg(dist, this.memory.avgDist || 0, 100);
-		this.memory.avgFee = Math.cmAvg(this.getFee(order.roomName), this.memory.avgFee || 0, 100);
-		this.memory.avgAmt = Math.cmAvg(amt, this.memory.avgAmt || 0, 100);
+		this.memory.avgCost = CM_AVG(cost, this.memory.avgCost || 0, 100);
+		this.memory.avgDist = CM_AVG(dist, this.memory.avgDist || 0, 100);
+		this.memory.avgFee = CM_AVG(this.getFee(order.roomName), this.memory.avgFee || 0, 100);
+		this.memory.avgAmt = CM_AVG(amt, this.memory.avgAmt || 0, 100);
 		this.busy = true; // Multiple deals can be run per tick, so let's not prevent that.
 		this.store[RESOURCE_ENERGY] -= cost; // Adjust energy storage so further calls make smart decisions.
 	}
