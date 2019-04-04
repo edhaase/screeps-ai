@@ -36,6 +36,7 @@ class AbortError extends Error {
 	}
 }
 
+/** InterTick object is no longer valid */
 class ActorHasCeased extends Error {
 	constructor(actorName) {
 		super();
@@ -43,17 +44,19 @@ class ActorHasCeased extends Error {
 	}
 }
 
+/** Permissions error */
+class OperationNotPermitted extends Error {
+
+}
+
 module.exports = {
+	// NotFoundError,
 	AbortError,
 	ActorHasCeased, // For ITO objects
-
-	NotOwnerError,
+	// InvalidArgumentsError,
 	NoPathFoundError,
-	/* NotFoundError,
-	NotEnoughResourcesError,
-	InvalidArgumentsError */
-
+	// NotEnoughResourcesError,
+	NotOwnerError,
+	OperationNotPermitted,
 	VisibilityError,
-
-
 };

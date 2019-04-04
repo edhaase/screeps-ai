@@ -186,9 +186,11 @@ class Kernel {
 				Log.debug(`${thread.pid}/${thread.tid} Orphaned thread killed on tick ${Game.time} (age ${Game.time - thread.born} ticks)`, 'Kernel');
 				this.killThread(thread.tid);
 				return;
+			} else if (process.sleep && Game.time < process.sleep) {
+				return;
 			}
-			// throw new Error(`${thread.pid}/${thread.tid} Orphan thread`);
-			if (process.sleep || thread.sleep)
+
+			if (thread.sleep && Game.time < thread.sleep)
 				return;
 			const start = Game.cpu.getUsed();
 			if (thread.timeout !== undefined && Game.time > thread.timeout)
@@ -256,6 +258,10 @@ class Kernel {
 		this.threadsByProcess.get(process).set(thread.tid, thread);
 		thread.born = Game.time;
 		return thread;
+	}
+
+	getCurrentThread() {
+		return this.threads.get(this.ctid);
 	}
 
 	get totalCpu() {

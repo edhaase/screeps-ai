@@ -3,6 +3,8 @@
 
 /* global ENV, ENVC, MAKE_CONSTANT, MAKE_CONSTANTS, PROCESS_NAMESPACE, Log */
 
+const { OperationNotPermitted } = require('os.core.errors');
+
 if (!Memory.process) {
 	Log.warn(`Initializing process memory space`, 'Memory');
 	Memory.process = {};
@@ -121,6 +123,21 @@ class Process {
 
 	attachThread(thread, priority = this.default_thread_prio) {
 		return global.kernel.attachThread(thread, priority);
+	}
+
+	getCurrentThread() {
+		const thread = global.kernel.getCurrentThread(); // Should hopefully always be the same one running
+		if (thread && thread.pid !== this.pid)
+			throw new OperationNotPermitted(`Process ${this.pid} does not have permission to access ${thread.tid} in process ${thread.pid}`)
+		return thread;
+	}
+
+	sleepThread(ticks) {
+		this.getCurrentThread().sleep = Game.time + ticks;
+	}
+
+	sleepProcess(ticks) {
+		this.sleep = Game.time + ticks;
 	}
 
 	/** Logging */
