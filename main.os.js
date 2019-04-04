@@ -15,7 +15,6 @@ global.Cache = require('Cache');
 global.Empire = require('Empire');
 global.Event = require('Event');
 global.Group = require('Group');
-global.Scheduler = require('Scheduler');
 global.Time = require('Time');
 global.Player = require('Player');
 global.Filter = require('Filter');
