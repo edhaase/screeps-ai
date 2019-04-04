@@ -142,15 +142,19 @@ class Kernel {
 			var thread, i = this.queue.length - 1;
 			for (; i >= 0; i--) {
 				thread = this.queue[i];
-				if (Game.cpu.getUsed() + thread.avgCpu >= this.throttle) {
+				if (Game.cpu.getUsed() + thread.avgUsrCpu >= this.throttle) {
 					this.lastRunCpu = Game.cpu.getUsed();
-					yield Log.warn(`Kernel paused at ${this.lastRunCpu} / ${this.throttle} cpu usage on tick ${Game.time}`, 'Kernel');  // continue running next tick to prevent starvation
+					Log.warn(`Kernel paused at ${this.lastRunCpu} / ${this.throttle} cpu usage on tick ${Game.time}`, 'Kernel');  // continue running next tick to prevent starvation
+					break;
 				}
 				if (!this.threads.has(thread.tid)) {	// clean up dead threads
 					this.queue.splice(i, 1);
 					continue;
 				}
+				const start = Game.cpu.getUsed();
 				this.runThread(thread);
+				const delta = Game.cpu.getUsed() - start;
+				thread.avgSysCpu = MM_AVG(delta, thread.avgSysCpu); // May count zeroes for sleeping threads
 			}
 
 			// Post tick cleanup
@@ -192,9 +196,9 @@ class Kernel {
 			const { done, value } = thread.next();
 			const delta = Game.cpu.getUsed() - start;
 			thread.lastRunCpu = delta;
-			thread.minCpu = Math.min(thread.minCpu, delta);
+			thread.minCpu = Math.min(thread.minCpu, delta); // Already initialized on attach
 			thread.maxCpu = Math.max(thread.maxCpu, delta);
-			thread.avgCpu = MM_AVG(delta, thread.avgCpu || 0);
+			thread.avgUsrCpu = MM_AVG(delta, thread.avgUsrCpu);	// Tracks only samples of when a thread actually runs
 			if (done) {
 				Log.debug(`${thread.pid}/${thread.tid} Thread exiting normally on tick ${Game.time} (age ${Game.time - thread.born} ticks)`, 'Kernel');
 				this.killThread(thread.tid);
@@ -237,7 +241,8 @@ class Kernel {
 		if (!thread.tid)
 			thread.tid = Process.getNextId('T');
 		thread.pid = pid;
-		thread.avgCpu = 0;
+		thread.avgUsrCpu = 0;
+		thread.avgSysCpu = 0;
 		thread.minCpu = Infinity;
 		thread.maxCpu = -Infinity;
 		if (this.threads.has(thread.tid))

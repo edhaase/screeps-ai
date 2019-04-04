@@ -39,8 +39,8 @@ class Stats extends Process {
 				this.stats['heap'] = Game.cpu.getHeapStatistics();
 			this.stats.process = { name: {}, pid: {} };
 			for (const [pid, p] of global.kernel.process) {
-				const { totalCpu, minCpu, maxCpu, avgCpu } = p;
-				this.stats.process.pid[pid] = { totalCpu, minCpu, maxCpu, avgCpu };
+				const { totalCpu, minCpu, maxCpu, avgUsrCpu, avgSysCpu } = p;
+				this.stats.process.pid[pid] = { totalCpu, minCpu, maxCpu, avgUsrCpu, avgSysCpu };
 
 				var { total = 0, min = Infinity, avg = 0, max = 0 } = this.stats.process.name[p.name] || {};
 				total += totalCpu;

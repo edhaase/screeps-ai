@@ -66,28 +66,35 @@ class Process {
 	get totalCpu() {
 		var total = 0;
 		for (const [, thread] of this.threads)
-			total += thread.lastRunCpu;
+			total += (thread.lastRunCpu || 0);
 		return _.round(total, CPU_PRECISION);
 	}
 
-	get avgCpu() {
+	get avgSysCpu() {
 		var total = 0;
 		for (const [, thread] of this.threads)
-			total += thread.lastRunCpu;
-		return _.round(total / this.threads.size, CPU_PRECISION);
+			total += (thread.avgSysCpu || 0);
+		return _.round(total, CPU_PRECISION);
+	}
+
+	get avgUsrCpu() {
+		var total = 0;
+		for (const [, thread] of this.threads)
+			total += (thread.avgUsrCpu || 0);
+		return _.round(total, CPU_PRECISION);
 	}
 
 	get minCpu() {
 		var total = 0;
 		for (const [, thread] of this.threads)
-			total += thread.minCpu;
+			total += (thread.minCpu || 0);
 		return _.round(total, CPU_PRECISION);
 	}
 
 	get maxCpu() {
 		var total = 0;
 		for (const [, thread] of this.threads)
-			total += thread.maxCpu;
+			total += (thread.maxCpu || 0);
 		return _.round(total, CPU_PRECISION);
 	}
 
