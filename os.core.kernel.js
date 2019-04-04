@@ -143,7 +143,7 @@ class Kernel {
 				thread = this.queue[i];
 				if (Game.cpu.getUsed() + thread.avgCpu >= this.throttle) {
 					this.lastRunCpu = Game.cpu.getUsed();
-					yield;  // continue running next tick to prevent starvation
+					yield Log.warn(`Kernel paused at ${this.lastRunCpu} / ${this.throttle} cpu usage on tick ${Game.time}`, 'Kernel');  // continue running next tick to prevent starvation
 				}
 				if (!this.threads.has(thread.tid)) {	// clean up dead threads
 					this.queue.splice(i, 1);
