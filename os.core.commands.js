@@ -71,6 +71,8 @@ global.kill = function (pid) {
 
 global.killAll = function () {
 	for (const [pid,] of kernel.process) {
+		if (pid === 0)
+			continue;
 		kernel.killProcess(pid);
 	}
 };
