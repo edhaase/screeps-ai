@@ -44,7 +44,7 @@ class Legacy extends Process {
 
 	*invoker(id, collection = undefined, method = 'run') {
 		const ito = ITO.make(id, collection);
-		this.debug(`New legacy invoker for ${ito}`);
+		this.debug(`New legacy invoker for ${ito} on tick ${Game.time}`);
 		try {
 			while (true) {
 				yield ito[method]();

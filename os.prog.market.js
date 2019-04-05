@@ -36,7 +36,7 @@ class MarketProc extends Process {
 	*removeOldOrders() {
 		while (true) {
 			const delay = ENVC('market.order_cleanup_freq', DEFAULT_MARKET_ORDER_CLEANUP_FREQ, 1);
-			yield* Async.waitForTick(Game.time + delay);
+			yield this.sleepThread(delay);
 			this.debug(`Removing old orders`);
 			if (_.isEmpty(Game.market.orders))
 				continue;

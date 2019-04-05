@@ -80,7 +80,7 @@ class Kernel {
 			if (p && p.onReload)
 				p.onReload();
 		}
-		Log.info(`Init complete`, 'Kernel');
+		Log.info(`Init complete on tick ${Game.time}`, 'Kernel');
 	}
 
 	saveProcessTable() {
@@ -153,6 +153,7 @@ class Kernel {
 				}
 				const start = Game.cpu.getUsed();
 				this.runThread(thread);
+				thread.lastRunTick = Game.time;
 				const delta = Game.cpu.getUsed() - start;
 				thread.avgSysCpu = MM_AVG(delta, thread.avgSysCpu); // May count zeroes for sleeping threads
 			}

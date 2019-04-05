@@ -11,6 +11,10 @@ class BaseMap extends Map {
 		return _.sortByOrder([...this.keys()], fn, order);
 	}
 
+	sortValues(fn, order) {
+		return _.sortByOrder([...this.values()], fn, order);
+	}
+
 	sum(fn) {
 		var total = 0;
 		for (const [, v] of this)

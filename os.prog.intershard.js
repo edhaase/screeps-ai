@@ -1,9 +1,13 @@
 /** os.prog.intershard.js - Intershard behavior */
 'use strict';
 
-/* global InterShardMemory */
+/* global InterShardMemory, ENVC */
 
 const Process = require('os.core.process');
+
+const IST_DEFAULT_MAIN_THREAD_DELAY = 10;
+
+const IST_MAIN_THREAD_DELAY = ENVC('intershard.main_thread_delay', IST_DEFAULT_MAIN_THREAD_DELAY);
 
 class Intershard extends Process {
 	constructor(opts) {
@@ -24,7 +28,11 @@ class Intershard extends Process {
 			return;
 		}
 		this.startThread(this.writer, null, undefined, `IST-W`);
-		while (!(yield)) {
+		yield* this.watchdog();
+	}
+
+	*watchdog() {
+		while (true) {
 			for (const [name, limit] of Object.entries(Game.cpu.shardLimits)) {
 				if (!limit || limit <= 0 || name === Game.shard.name)
 					continue;
@@ -35,6 +43,7 @@ class Intershard extends Process {
 				this.workers.set(thread.key, thread);
 				this.debug(`Starting watcher thread for shard ${name}`);
 			}
+			yield this.sleepThread(IST_MAIN_THREAD_DELAY); // Pause execution and put the thread to sleep
 		}
 	}
 
