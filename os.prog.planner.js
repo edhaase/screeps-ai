@@ -1,6 +1,7 @@
 /** os.prog.planner.js - Room planner */
 'use strict';
 
+const Async = require('os.core.async');
 const Process = require('os.core.process');
 
 class PlannerProc extends Process {
@@ -27,8 +28,9 @@ class PlannerProc extends Process {
 	}
 
 	*plan(room) {
+		yield* Async.waitForCpu();
 		this.debug(`Planning ${room.name} on tick ${Game.time}`);
-		yield require('Planner').buildRoom(room);
+		require('Planner').buildRoom(room);
 	}
 }
 

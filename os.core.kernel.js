@@ -7,6 +7,8 @@ const Pager = require('os.core.pager');
 const Process = require('os.core.process');
 const LazyMap = require('os.ds.lazymap');
 const BaseArray = require('os.ds.array');
+const BaseMap = require('os.ds.map');
+const PriorityQueue = require('os.ds.pq');
 
 const MAX_PRECISION = 7;
 const DEFAULT_PRECISION = 5;
@@ -26,8 +28,9 @@ class Kernel {
 		MAKE_CONSTANT(this, 'instantiated', Game.time);
 		MAKE_CONSTANT(this, 'process', new Map());
 		MAKE_CONSTANT(this, 'processByName', new LazyMap(() => new BaseArray()));
-		MAKE_CONSTANT(this, 'threads', new Map());
+		MAKE_CONSTANT(this, 'threads', new BaseMap());
 		MAKE_CONSTANT(this, 'threadsByProcess', new WeakMap());
+		MAKE_CONSTANT(this, 'schedule', new PriorityQueue(null, (itm) => itm.priority));
 		this.queue = [];
 
 		this.postTickFn = {};	// Clear the post-tick actions list
@@ -139,17 +142,13 @@ class Kernel {
 		while (!this.halt) {
 			const MIN_CPU_THIS_TICK = Math.min(Game.cpu.limt, Game.cpu.tickLimit);
 			this.throttle = (Game.cpu.bucket / global.BUCKET_MAX > 0.5) ? Game.cpu.tickLimit : MIN_CPU_THIS_TICK;
-			var thread, i = this.queue.length - 1;
-			for (; i >= 0; i--) {
-				thread = this.queue[i];
+			this.queue = this.schedule.slice(0);
+			var thread; // , i = this.queue.length - 1;
+			while ((thread = this.queue.pop()) != null) {
 				if (Game.cpu.getUsed() + thread.avgUsrCpu >= this.throttle) {
 					this.lastRunCpu = Game.cpu.getUsed();
 					Log.warn(`Kernel paused at ${this.lastRunCpu} / ${this.throttle} cpu usage on tick ${Game.time}`, 'Kernel');  // continue running next tick to prevent starvation
 					break;
-				}
-				if (!this.threads.has(thread.tid)) {	// clean up dead threads
-					this.queue.splice(i, 1);
-					continue;
 				}
 				const start = Game.cpu.getUsed();
 				this.runThread(thread);
@@ -203,7 +202,7 @@ class Kernel {
 			thread.maxCpu = Math.max(thread.maxCpu, delta);
 			thread.avgUsrCpu = MM_AVG(delta, thread.avgUsrCpu);	// Tracks only samples of when a thread actually runs
 			if (done) {
-				Log.debug(`${thread.pid}/${thread.tid} Thread exiting normally on tick ${Game.time} (age ${Game.time - thread.born} ticks)`, 'Kernel');
+				Log.debug(`${thread.pid}/${thread.tid} Thread exiting normally on tick ${Game.time} (age ${Game.time - thread.born} ticks) [${thread.desc}]`, 'Kernel');
 				this.killThread(thread.tid);
 			} else if (value === true && maxTimes > 0)
 				this.runThread(thread, maxTimes - 1);
@@ -222,16 +221,23 @@ class Kernel {
 	killThread(tid) {
 		const thread = this.threads.get(tid);
 		this.threads.delete(thread.tid);
-		const process = this.process.get(thread.pid);
-		if (!process)
-			return;
-		const threadGroup = this.threadsByProcess.get(process);
-		threadGroup.delete(thread.tid);
-		if (process.onThreadExit)
-			process.onThreadExit(thread.tid, thread);
-		if (threadGroup.size <= 0) {
-			Log.warn(`${thread.pid}/${thread.tid} Last thread exiting, terminating process on tick ${Game.time} (age ${Game.time - process.born} ticks)`, 'Kernel');
-			this.killProcess(thread.pid);
+		try {
+			const process = this.process.get(thread.pid);
+			if (!process)
+				return;
+			const threadGroup = this.threadsByProcess.get(process);
+			threadGroup.delete(thread.tid);
+			if (process.onThreadExit)
+				process.onThreadExit(thread.tid, thread);
+			if (threadGroup.size <= 0) {
+				Log.warn(`${thread.pid}/${thread.tid} Last thread exiting, terminating process on tick ${Game.time} (age ${Game.time - process.born} ticks)`, 'Kernel');
+				this.killProcess(thread.pid);
+			}
+		} catch (e) {
+			Log.error(`Uncaught error while killing thread ${tid} on tick ${Game.time}`, 'Kernel');
+			Log.error(e.stack);
+		} finally {
+			this.postTick(() => _.remove(this.schedule, t => !this.threads.has(t.tid)), 'PurgeKilledThreads');
 		}
 	}
 
@@ -254,8 +260,10 @@ class Kernel {
 		thread.priority = tprio * (process.priority || ENV('process.default_priority', Process.PRIORITY_DEFAULT));
 		Log.debug(`${thread.pid}/${thread.tid} Attaching thread at priority ${thread.priority} total on tick ${Game.time}`, 'Kernel');
 		this.threads.set(thread.tid, thread);
-		const i = _.sortedIndex(this.queue, thread, x => 1 - x.priority); // Since we loop backwards
-		this.queue.splice(i, 0, thread);
+		// const i = _.sortedIndex(this.schedule, thread, x => 1 - x.priority); // Since we loop backwards
+		// this.schedule.splice(i, 0, thread);
+		this.schedule.insert(thread);
+		this.queue.unshift(thread);
 		this.threadsByProcess.get(process).set(thread.tid, thread);
 		thread.born = Game.time;
 		return thread;

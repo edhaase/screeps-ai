@@ -123,7 +123,7 @@ module.exports = {
 	},
 
 	*waitForCpu() {
-		while (Game.cpu.getUsed() > Game.cpu.limit)
+		while (Game.cpu.getUsed() > (global.kernel.throttle || Game.cpu.limit))
 			yield;
 	},
 

@@ -19,10 +19,8 @@ class PriorityQueue extends BaseArray {
 		return this.splice(indx, 0, elem);
 	}
 
-	// Use only if change a bunch of elements at once
-	sort() {
-
-	}
+	// Fixes a whole lot of weird stuff when using slice to clone
+	static get [Symbol.species]() { return BaseArray; }
 }
 
 module.exports = PriorityQueue;
