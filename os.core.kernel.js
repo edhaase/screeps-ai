@@ -239,7 +239,7 @@ class Kernel {
 			if (process.onThreadExit)
 				process.onThreadExit(thread.tid, thread);
 			if (threadGroup.size <= 0) {
-				Log.warn(`${thread.pid}/${thread.tid} Last thread exiting, terminating process on tick ${Game.time} (age ${Game.time - process.born} ticks)`, 'Kernel');
+				Log.warn(`${thread.pid}/${thread.tid}/${process.name} Last thread exiting, terminating process on tick ${Game.time} (age ${Game.time - process.born} ticks)`, 'Kernel');
 				this.killProcess(thread.pid);
 			}
 		} catch (e) {
