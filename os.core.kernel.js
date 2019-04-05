@@ -192,20 +192,23 @@ class Kernel {
 
 			if (thread.sleep && Game.time < thread.sleep)
 				return;
-			const start = Game.cpu.getUsed();
 			if (thread.timeout !== undefined && Game.time > thread.timeout)
 				thread.throw(new Error(`Thread exceeded time limit`));
+			const start = Game.cpu.getUsed();
 			const { done, value } = thread.next();
 			const delta = Game.cpu.getUsed() - start;
 			thread.lastRunCpu = delta;
-			thread.minCpu = Math.min(thread.minCpu, delta); // Already initialized on attach
-			thread.maxCpu = Math.max(thread.maxCpu, delta);
+			thread.minCpu = Math.max(0, Math.min(thread.minCpu, delta)); // Already initialized on attach (But why were we getting negative numbers?)
+			thread.maxCpu = Math.min(Game.cpu.tickLimit - 1, Math.max(thread.maxCpu, delta));
 			thread.avgUsrCpu = MM_AVG(delta, thread.avgUsrCpu);	// Tracks only samples of when a thread actually runs
 			if (done) {
 				Log.debug(`${thread.pid}/${thread.tid} Thread exiting normally on tick ${Game.time} (age ${Game.time - thread.born} ticks) [${thread.desc}]`, 'Kernel');
 				this.killThread(thread.tid);
-			} else if (value === true && maxTimes > 0)
+				return;
+			} else if (value === true && maxTimes > 0) {
 				this.runThread(thread, maxTimes - 1);
+			}
+
 		} catch (e) {
 			Log.error(`${thread.pid}/${thread.tid} Uncaught thread exception`, 'Kernel');
 			Log.error(e.stack);
