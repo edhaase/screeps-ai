@@ -33,7 +33,7 @@ global.threads = function (pid, sortBy = 'pid', order = ['asc']) {
 		return "No processes";
 	const head = `<th>pid/name</th><th>tid</th><th>priority</th><th>cpuLastTick</th><th>minCpu</th><th>avgUsrCpu</th><th>avgSysCpu</th><th>maxCpu</th><th>age</th><th>desc</th>`;
 	const rows = _.map(sorted, t => {
-		const p = kernel.process.get(t.pid);
+		const p = kernel.process.get(t.pid) || {};
 		return `<td>${t.pid}/${p.name}</td><td>${t.tid}</td><td>${t.priority}</td><td>${_.round(t.lastRunCpu, 5)}</td><td>${_.round(t.minCpu, 5)}</td><td>${_.round(t.avgUsrCpu, 5)}</td><td>${_.round(t.avgSysCpu, 5)}</td><td>${_.round(t.maxCpu, 5)}</td><td>${Game.time - t.born}</td><td>${t.desc || '-'}</td>`;
 	});
 	const body = _.map(rows, r => `<tr>${r}</tr>`);

@@ -3,6 +3,7 @@
 
 /* global ENV, ENVC, SEGMENT_PROC, MM_AVG, DEFERRED_MODULES, MAKE_CONSTANT, Log */
 
+const Async = require('os.core.async');
 const Pager = require('os.core.pager');
 const Process = require('os.core.process');
 const LazyMap = require('os.ds.lazymap');
@@ -125,8 +126,9 @@ class Kernel {
 			process.onExit();
 		if (parent && parent.onChildExit)
 			parent.onChildExit(pid, process);
-		// No need to find threads here, they'll die the next time they try to run
+
 		this.postTick(() => this.saveProcessTable());
+		this.postTick(() => _.remove(this.schedule, t => !this.threads.has(t.tid)), 'PurgeKilledThreads');
 	}
 
 	getProcessByName(name) {
@@ -151,7 +153,12 @@ class Kernel {
 					break;
 				}
 				const start = Game.cpu.getUsed();
-				this.runThread(thread);
+				try {
+					this.runThread(thread);
+				} catch (e) {
+					Log.error(e.stack, 'Kernel');
+					yield* Async.waitForTick(Game.time + 5);
+				}
 				thread.lastRunTick = Game.time;
 				const delta = Game.cpu.getUsed() - start;
 				thread.avgSysCpu = MM_AVG(delta, thread.avgSysCpu); // May count zeroes for sleeping threads
@@ -176,15 +183,14 @@ class Kernel {
 		this.ctid = thread.tid;
 		this.cpid = thread.pid;
 		const process = this.process.get(thread.pid);
-		if (process.ppid && !this.process.has(process.ppid)) {
-			Log.warn(`${thread.pid}/${thread.tid} Orphan process ${process.name} killed on tick ${Game.time} (age ${Game.time - process.born} ticks)`);
-			this.killProcess(process.pid);
-			return;
-		}
 		try {
 			if (!process) {
 				Log.debug(`${thread.pid}/${thread.tid} Orphaned thread killed on tick ${Game.time} (age ${Game.time - thread.born} ticks)`, 'Kernel');
 				this.killThread(thread.tid);
+				return;
+			} else if (process.ppid && !this.process.has(process.ppid)) {
+				Log.warn(`${thread.pid}/${thread.tid} Orphan process ${process.name} killed on tick ${Game.time} (age ${Game.time - process.born} ticks)`);
+				this.killProcess(process.pid);
 				return;
 			} else if (process.sleep && Game.time < process.sleep) {
 				return;
