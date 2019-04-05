@@ -128,7 +128,7 @@ class Process {
 	getCurrentThread() {
 		const thread = global.kernel.getCurrentThread(); // Should hopefully always be the same one running
 		if (thread && thread.pid !== this.pid)
-			throw new OperationNotPermitted(`Process ${this.pid} does not have permission to access ${thread.tid} in process ${thread.pid}`)
+			throw new OperationNotPermitted(`Process ${this.pid} does not have permission to access ${thread.tid} in process ${thread.pid}`);
 		return thread;
 	}
 
@@ -159,5 +159,8 @@ class Process {
 Process.PRIORITY_DEFAULT = ENVC('process.default_priority', 0.5, 0.0, 1.0);
 Process.PRIORITY_LOWEST = 1.0;
 Process.PRIORITY_HIGHEST = 0.0;
+
+Process.PRIORITY_CRITICAL = Process.PRIORITY_HIGHEST;
+Process.PRIORITY_IDLE = Process.PRIORITY_LOWEST;
 
 module.exports = Process;

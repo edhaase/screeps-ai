@@ -37,7 +37,7 @@ module.exports = {
 		}
 
 		const output = new Array(arr.length);
-		while (work.length && !(yield)) {
+		while (work.length) {
 			for (let i = work.length - 1; i >= 0; i--) {
 				const gen = work[i];
 				const { value, done } = gen.next();
@@ -46,6 +46,8 @@ module.exports = {
 				work.splice(i, 1);
 				output[gen.pos] = value;
 			}
+			if (work.length)
+				yield;
 		}
 		return output;
 	},

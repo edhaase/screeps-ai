@@ -38,7 +38,7 @@ class Pager {
 	}
 
 	static *fetch(pageId) {
-		Log.debug(`Fetching page ${pageId}`, 'Pager');
+		Log.debug(`FETCH START ${pageId} on ${Game.time}`, 'Pager');
 		if (PAGE_CACHE.has(pageId))
 			return PAGE_CACHE.get(pageId);
 		if (RawMemory.segments[pageId] === undefined)
@@ -46,6 +46,7 @@ class Pager {
 		while (RawMemory.segments[pageId] === undefined)
 			yield;
 		PAGE_CACHE.set(pageId, RawMemory.segments[pageId]);
+		Log.debug(`FETCH END ${pageId} on ${Game.time}`, 'Pager');
 		return PAGE_CACHE.get(pageId);
 	}
 
@@ -68,7 +69,7 @@ class Pager {
 	 * reset to primary segments to save time on next load.
 	 */
 	static *tick() {
-		Log.debug(`Startup`, 'Pager');
+		Log.debug(`Startup on ${Game.time}`, 'Pager');
 		while (!(yield)) {
 			if (PAGE_REQUESTS.size <= 0)
 				continue;

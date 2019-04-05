@@ -2,7 +2,7 @@
 'use strict';
 
 class LazyWeakMap extends WeakMap {
-	constructor(itr, factory) {
+	constructor(factory, itr) {
 		super(itr);
 		this.factory = factory;
 	}

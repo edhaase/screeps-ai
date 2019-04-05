@@ -7,9 +7,11 @@ const Async = require('os.core.async');
 const Pager = require('os.core.pager');
 const Process = require('os.core.process');
 const LazyMap = require('os.ds.lazymap');
+const LazyWeakMap = require('os.ds.lazyweakmap');
 const BaseArray = require('os.ds.array');
 const BaseMap = require('os.ds.map');
 const PriorityQueue = require('os.ds.pq');
+const { OperationNotPermitted } = require('os.core.errors');
 
 const MAX_PRECISION = 7;
 const DEFAULT_PRECISION = 5;
@@ -26,17 +28,30 @@ global.CPU_PRECISION = ENVC('process.default_cpu_precision', DEFAULT_PRECISION, 
 class Kernel {
 
 	constructor() {
+		/** We're a process! Sort of. */
+		MAKE_CONSTANT(this, 'pid', 0);
+		MAKE_CONSTANT(this, 'name', 'kernel');
+		MAKE_CONSTANT(this, 'friendlyName', 'Kernel');
+		MAKE_CONSTANT(this, 'born', Game.time);
 		MAKE_CONSTANT(this, 'instantiated', Game.time);
+		MAKE_CONSTANT(this, 'priority', Process.PRIORITY_CRITICAL);
+		// this.minCpu = Infinity;
+		// this.maxCpu = -Infinity;
+
+		/** Kernel specific stuff */
 		MAKE_CONSTANT(this, 'process', new Map());
 		MAKE_CONSTANT(this, 'processByName', new LazyMap(() => new BaseArray()));
 		MAKE_CONSTANT(this, 'threads', new BaseMap());
-		MAKE_CONSTANT(this, 'threadsByProcess', new WeakMap());
+		MAKE_CONSTANT(this, 'threadsByProcess', new LazyWeakMap(() => new Map()));
 		MAKE_CONSTANT(this, 'schedule', new PriorityQueue(null, (itm) => itm.priority));
 		this.queue = [];
+		this.process.set(0, this);
+		this.processByName.set('kernel', [this]);
 
 		this.postTickFn = {};	// Clear the post-tick actions list
 		this.halt = false;
 		this.throttle = Game.cpu.tickLimit;
+		Log.debug(`New kernel on tick ${Game.time}`, 'Kernel');
 	}
 
 	/**
@@ -44,8 +59,9 @@ class Kernel {
 	 */
 	*tick() {
 		try {
-			yield* this.wire();
-			yield* this.init();
+			yield* this.wire(); // Prototypes must be loaded first
+			this.startThread(this.init, [], Process.PRIORITY_CRITICAL, 'Init thread');
+			this.startThread(Pager.tick, [], Process.PRIORITY_IDLE, 'Pager thread');	// We want this to run last
 			yield* this.loop();
 		} catch (e) {
 			throw e;
@@ -54,7 +70,7 @@ class Kernel {
 
 	*wire() {
 		for (const m of DEFERRED_MODULES) {
-			if (Game.cpu.getUsed() > Game.cpu.limit) {
+			if (Game.cpu.getUsed() / Game.cpu.tickLimit > 0.90) {
 				Log.warn(`Module loader has yielded on ${Game.time}`, 'Kernel');
 				yield;
 			}
@@ -62,28 +78,31 @@ class Kernel {
 		}
 	}
 
-	/* eslint-disable require-yield */
 	*init() {
+		Log.debug(`Init started on ${Game.time}`, 'Kernel');
 		const [page] = yield* Pager.read([SEGMENT_PROC]);
+		Log.debug(`Process table fetched at ${Game.time}`, 'Kernel');
 		this.proc = JSON.parse(page || '[]');
+
 		for (const entry of this.proc) {
-			if (Game.cpu.getUsed() > Game.cpu.limit)
+			if (Game.cpu.getUsed() / Game.cpu.tickLimit > 0.90)
 				yield Log.warn(`Process loader has yielded on ${Game.time}`, 'Kernel');
+			this.cpid = entry.pid;
+			this.ctid = null;  // In case we call a thread specific method during class construction
 			const p = Process.deserializeByProcessName(entry);
-			this.threadsByProcess.set(p, new Map());
 			this.processByName.get(p.name).push(p);
 			Log.debug(`Reloaded ${p} on tick ${Game.time}`, 'Kernel');
 			this.process.set(p.pid, p);
 		}
 		// Call reload methods _after_ all process deserialized in case one of them needs to find another
 		for (const [, p] of this.process) {
-			if (Game.cpu.getUsed() > Game.cpu.limit)
+			if (Game.cpu.getUsed() / Game.cpu.tickLimit > 0.90)
 				yield Log.warn(`Process loader has yielded on ${Game.time}`, 'Kernel');
-			this.ctid = null;
 			this.cpid = p.pid;
 			if (p && p.onReload)
 				p.onReload();
 		}
+
 		Log.info(`Init complete on tick ${Game.time}`, 'Kernel');
 	}
 
@@ -92,11 +111,12 @@ class Kernel {
 		Pager.write(SEGMENT_PROC, JSON.stringify(this.proc));
 	}
 
-	startProcess(name, opts = {}, parent) {
+	startProcess(name, opts = {}, ppid) {
 		const entry = _.clone(opts);
 		entry.pid = Process.getNextId();
-		entry.ppid = (parent && parent.pid) || parent;
+		entry.ppid = ppid;
 		entry.name = name;
+		const parent = this.process.get(ppid);
 		const p = Process.deserializeByProcessName(entry);
 		this.threadsByProcess.set(p, new Map());
 		this.processByName.get(p.name).push(p);
@@ -110,6 +130,8 @@ class Kernel {
 			p.onStart();
 		if (p.onReload)
 			p.onReload();
+		if (parent && parent.onChildStart)
+			parent.onChildStart(entry.pid, p);
 		this.ctid = prevTid;
 		this.cpid = prevPid;
 		this.postTick(() => this.saveProcessTable());
@@ -117,18 +139,23 @@ class Kernel {
 	}
 
 	killProcess(pid) {
+		if (pid === 0)
+			throw new OperationNotPermitted(`Unable to kill kernel`);
 		const process = this.process.get(pid);
 		const parent = (process && process.parent);
 		this.process.delete(pid);			// Remove process instance from map
-		_.remove(this.proc, 'pid', pid);	// Remove process entry from memory
-		this.processByName.get(process.name).remove(process);	// Remove process from name index
-		if (process && process.onExit)
-			process.onExit();
-		if (parent && parent.onChildExit)
-			parent.onChildExit(pid, process);
+		_.remove(this.proc, 'pid', pid);	// Remove process entry from memory		
 
-		this.postTick(() => this.saveProcessTable());
-		this.postTick(() => _.remove(this.schedule, t => !this.threads.has(t.tid)), 'PurgeKilledThreads');
+		try {
+			this.processByName.get(process.name).remove(process);	// Remove process from name index
+			if (process && process.onExit)
+				process.onExit();
+			if (parent && parent.onChildExit)
+				parent.onChildExit(pid, process);
+		} finally {
+			this.postTick(() => this.saveProcessTable());
+			this.postTick(() => _.remove(this.schedule, t => !this.threads.has(t.tid)), 'PurgeKilledThreads');
+		}
 	}
 
 	getProcessByName(name) {
@@ -238,7 +265,7 @@ class Kernel {
 			threadGroup.delete(thread.tid);
 			if (process.onThreadExit)
 				process.onThreadExit(thread.tid, thread);
-			if (threadGroup.size <= 0) {
+			if (threadGroup.size <= 0 && thread.pid !== 0) {
 				Log.warn(`${thread.pid}/${thread.tid}/${process.name} Last thread exiting, terminating process on tick ${Game.time} (age ${Game.time - process.born} ticks)`, 'Kernel');
 				this.killProcess(thread.pid);
 			}
@@ -248,6 +275,12 @@ class Kernel {
 		} finally {
 			this.postTick(() => _.remove(this.schedule, t => !this.threads.has(t.tid)), 'PurgeKilledThreads');
 		}
+	}
+
+	startThread(co, args = [], prio, desc, pid = this.cpid || 0) {
+		const thread = co.apply(this, args);
+		thread.desc = desc;
+		return this.attachThread(thread, prio, pid);
 	}
 
 	/** Attach a separately created thread (kernel.attachThread(doStuff(42))) */
@@ -265,12 +298,10 @@ class Kernel {
 		thread.maxCpu = -Infinity;
 		if (this.threads.has(thread.tid))
 			throw new Error(`Thread ${thread.tid} already attached to process ${thread.pid}`);
-		// this.threadsByProcess.has()
-		thread.priority = tprio * (process.priority || ENV('process.default_priority', Process.PRIORITY_DEFAULT));
-		Log.debug(`${thread.pid}/${thread.tid} Attaching thread at priority ${thread.priority} total on tick ${Game.time}`, 'Kernel');
+		const pprio = (process.priority !== undefined) ? process.priority : ENV('process.default_priority', Process.PRIORITY_DEFAULT);
+		thread.priority = tprio * pprio;
+		Log.debug(`${thread.pid}/${thread.tid} Attaching thread at priority ${thread.priority} total on tick ${Game.time} [${thread.desc}]`, 'Kernel');
 		this.threads.set(thread.tid, thread);
-		// const i = _.sortedIndex(this.schedule, thread, x => 1 - x.priority); // Since we loop backwards
-		// this.schedule.splice(i, 0, thread);
 		this.schedule.insert(thread);
 		this.queue.unshift(thread);
 		this.threadsByProcess.get(process).set(thread.tid, thread);

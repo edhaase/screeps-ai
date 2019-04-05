@@ -61,14 +61,11 @@ DEFER_REQUIRE('Group');
 
 // Defer prototype extensions
 
-const Async = require('os.core.async');
-const Pager = require('os.core.pager');
 const Kernel = require('os.core.kernel');
 const kernel = new Kernel();
 global.kernel = kernel; // Publish to global scope for commands
 
-// const coro = kernel.tick();
-const coro = Async.concurrent([kernel.tick(), Pager.tick()]);
+const coro = kernel.tick();
 module.exports.loop = function () {
 	coro.next();
 };
