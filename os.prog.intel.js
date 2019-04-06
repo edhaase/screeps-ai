@@ -1,7 +1,7 @@
 /** os.prog.intel.js */
 'use strict';
 
-/* global IS_MMO */
+/* global ENV, ENVC, IS_MMO, Log */
 
 const ForeignSegment = require('os.core.network.foreign');
 const Pager = require('os.core.pager');
@@ -23,6 +23,7 @@ class IntelProc extends Process {
 		if (IS_MMO) {
 			const allianceThread = this.startThread(this.fetchAllianceData, null, undefined, `Alliance loader`);
 			allianceThread.timeout = Game.time + 5;
+			yield* this.waitForThread(allianceThread); // Needs to be thread so we can take advantage of timeout.
 		} else {
 			this.warn(`We're not running on MMO, some functions may be disabled`);
 		}
@@ -62,7 +63,7 @@ class IntelProc extends Process {
 
 	*fetchAllianceData() {
 		// LeagueOfAutomatedNations
-		const [alliancesPage, botsPage] = yield* ForeignSegment.read([['LeagueOfAutomatedNations', 99, 1], ['LeagueOfAutomatedNations', 98, 0.5]]);
+		const [alliancesPage, botsPage] = yield* ForeignSegment.read([['LeagueOfAutomatedNations', 99, 1], ['LeagueOfAutomatedNations', 98, 0.75]]);
 		const alliances = _.attempt(JSON.parse, alliancesPage);
 		const bots = _.attempt(JSON.parse, botsPage);
 		if (alliances instanceof Error)
@@ -90,6 +91,8 @@ class IntelProc extends Process {
 					if (!segment)
 						continue;
 					this.warn(`Found segment at ${user} ${id} ${segment}`);
+					if (ENV('intel.recon_segment_notify', false))
+						Log.notify(`Segment scanner found segment at ${user} ${id} ${segment}`);
 				}
 			}
 			yield this.sleepThread(1000);

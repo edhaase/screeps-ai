@@ -140,6 +140,11 @@ class Process {
 		this.sleep = Game.time + ticks;
 	}
 
+	*waitForThread(thread) {
+		while (global.kernel.threads.has(thread.tid))
+			yield;
+	}
+
 	/** Logging */
 	log(level = Log.LEVEL_WARN, msg) {
 		Log.log(level, `${this.pid}/${global.kernel.ctid || '-'} ${msg}`, this.friendlyName);
