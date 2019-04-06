@@ -182,16 +182,17 @@ class Kernel {
 					Log.warn(`Kernel paused at ${this.lastRunCpu} / ${this.throttle} cpu usage on tick ${Game.time}`, 'Kernel');  // continue running next tick to prevent starvation
 					break;
 				}
-				const start = Game.cpu.getUsed();
+
 				try {
+					const start = Game.cpu.getUsed();
 					this.runThread(thread);
+					thread.lastRunTick = Game.time;
+					const delta = Game.cpu.getUsed() - start;
+					thread.avgSysCpu = MM_AVG(delta, thread.avgSysCpu); // May count zeroes for sleeping threads
 				} catch (e) {
 					Log.error(e.stack, 'Kernel');
 					yield* Async.waitForTick(Game.time + 5);
 				}
-				thread.lastRunTick = Game.time;
-				const delta = Game.cpu.getUsed() - start;
-				thread.avgSysCpu = MM_AVG(delta, thread.avgSysCpu); // May count zeroes for sleeping threads
 			}
 
 			// Post tick cleanup
@@ -209,7 +210,7 @@ class Kernel {
 		}
 	}
 
-	runThread(thread, maxTimes = global.MAX_THREAD_RUN_PER_TICK) {
+	runThread(thread) {
 		this.ctid = thread.tid;
 		this.cpid = thread.pid;
 		const process = this.process.get(thread.pid);
@@ -245,10 +246,9 @@ class Kernel {
 				Log.debug(`${thread.pid}/${thread.tid} Thread exiting normally on tick ${Game.time} (age ${Game.time - thread.born} ticks) [${thread.desc}]`, 'Kernel');
 				this.killThread(thread.tid);
 				return;
-			} else if (value === true && maxTimes > 0) {
-				this.runThread(thread, maxTimes - 1);
+			} else if (value === true) {
+				this.queue.unshift(thread); // Run it again, Sam
 			}
-
 		} catch (e) {
 			Log.error(`${thread.pid}/${thread.tid} Uncaught thread exception [${thread.desc}]`, 'Kernel');
 			Log.error(e.stack);

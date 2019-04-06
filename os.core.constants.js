@@ -23,4 +23,3 @@ global.INVADER_USERNAME = 'Invader';
 global.SOURCE_KEEPER_USERNAME = 'Source Keeper';
 
 MAKE_CONSTANT(global, 'PROCESS_NAMESPACE', 'os.prog.');
-global.MAX_THREAD_RUN_PER_TICK = ENV('MAX_THREAD_RUN_PER_TICK', 100);
