@@ -234,12 +234,12 @@ class Kernel {
 				return;
 			}
 
+			if (thread.timeout !== undefined && Game.time > thread.timeout) // Even pending threads can time out
+				thread.throw(new Error(`Thread exceeded time limit`));
 			if (thread.state === 'PENDING')
 				return; // We're waiting for a response.
 			if (thread.sleep && Game.time < thread.sleep)
 				return;
-			if (thread.timeout !== undefined && Game.time > thread.timeout)
-				thread.throw(new Error(`Thread exceeded time limit`));
 			if (this.pending_error.has(thread)) {
 				const err = this.pending_error.get(thread);
 				this.pending_error.delete(thread);
@@ -260,6 +260,8 @@ class Kernel {
 				Log.debug(`${thread.pid}/${thread.tid} Thread exiting normally on tick ${Game.time} (age ${Game.time - thread.born} ticks) [${thread.desc}]`, 'Kernel');
 				this.killThread(thread.tid);
 				return;
+			} else if (value === undefined || value === false) {
+				return; // paused for the tick
 			} else if (value === true) {
 				this.queue.unshift(thread); // Run it again, Sam
 			} else if (value instanceof Promise) {
@@ -274,6 +276,8 @@ class Kernel {
 					})
 					;
 				// .then(() => this.queue.unshift(thread)); // Kick us off again? (Don't know if we've been skipped on the tick of resolution)
+			} else {
+				// @todo yield handlers?
 			}
 		} catch (e) {
 			Log.error(`${thread.pid}/${thread.tid} Uncaught thread exception [${thread.desc}]`, 'Kernel');
