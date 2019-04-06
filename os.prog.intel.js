@@ -97,6 +97,10 @@ class IntelProc extends Process {
 					this.warn(`Found segment at ${user} ${id} ${segment}`);
 					if (ENV('intel.recon_segment_notify', false))
 						Log.notify(`Segment scanner found segment at ${user} ${id} ${segment}`);
+					if (!this.intel.segments)
+						this.intel.segments = {};
+					const key = `${user}_${id}`;
+					this.intel.segments[key] = segment;
 				}
 			}
 			yield this.sleepThread(1000);
