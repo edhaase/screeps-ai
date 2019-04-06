@@ -113,10 +113,10 @@ module.exports = {
 				amt -= lab.mineralAmount;
 			if (amt <= 0)
 				continue;
-			Log.warn(`Loading ${amt} ${compound} to ${lab} (${lab.mineralAmount})`);
+			Log.warn(`Loading ${amt} ${compound} to ${lab} (${lab.mineralAmount})`, 'Creep');
 			this.pushState('Transfer', { src: terminal.id, dst: lab.id, res: compound, amt }, false);
 			if (lab.mineralType && lab.mineralType !== compound) {
-				Log.warn(`Scientest needs to unload lab first`);
+				Log.warn(`Scientest needs to unload lab first`, 'Creep');
 				this.pushState('Transfer', { src: lab.id, dst: terminal.id, amt: lab.mineralAmount, res: lab.mineralType }, false);
 				console.log(ex(this.memory.state));
 				console.log(ex(this.memory.stack));
