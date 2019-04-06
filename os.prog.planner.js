@@ -25,6 +25,7 @@ class PlannerProc extends Process {
 			this.startThread(this.plan, [room], undefined, `Room planner ${room.name}`);
 			yield true;
 		}
+		yield Promise.all(this.threads); // Proof of concept. Works because map is an iterable
 	}
 
 	*plan(room) {
