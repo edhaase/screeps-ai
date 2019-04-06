@@ -12,6 +12,7 @@ const LazyWeakMap = require('os.ds.lazyweakmap');
 const Pager = require('os.core.pager');
 const PriorityQueue = require('os.ds.pq');
 const Process = require('os.core.process');
+const Thread = require('os.core.thread');
 
 const { OperationNotPermitted } = require('os.core.errors');
 
@@ -46,8 +47,7 @@ class Kernel {
 		MAKE_CONSTANT(this, 'threads', new BaseMap());
 		MAKE_CONSTANT(this, 'threadsByProcess', new LazyWeakMap(() => new Map()));
 		MAKE_CONSTANT(this, 'schedule', new PriorityQueue(null, (itm) => itm.priority));
-		MAKE_CONSTANT(this, 'pending_error', new WeakMap());
-		MAKE_CONSTANT(this, 'pending_deliver', new WeakMap());
+		this.threadClass = Thread;
 		this.queue = [];
 		this.process.set(0, this);
 		this.processByName.set('kernel', [this]);
@@ -234,28 +234,7 @@ class Kernel {
 				return;
 			}
 
-			if (thread.timeout !== undefined && Game.time > thread.timeout) // Even pending threads can time out
-				thread.throw(new Error(`Thread exceeded time limit`));
-			if (thread.state === 'PENDING')
-				return; // We're waiting for a response.
-			if (thread.sleep && Game.time < thread.sleep)
-				return;
-			if (this.pending_error.has(thread)) {
-				const err = this.pending_error.get(thread);
-				this.pending_error.delete(thread);
-				thread.throw(err);
-			}
-			const deliverable = this.pending_deliver.get(thread);
-			if (deliverable)
-				this.pending_deliver.delete(thread);
-			thread.lastRunUsrTick = Game.time;
-			const start = Game.cpu.getUsed();
-			const { done, value } = thread.next(deliverable);
-			const delta = Game.cpu.getUsed() - start;
-			thread.lastRunCpu = delta;
-			thread.minCpu = Math.max(0, Math.min(thread.minCpu, delta)); // Already initialized on attach (But why were we getting negative numbers?)
-			thread.maxCpu = Math.min(Game.cpu.tickLimit - 1, Math.max(thread.maxCpu, delta));
-			thread.avgUsrCpu = MM_AVG(delta, thread.avgUsrCpu);	// Tracks only samples of when a thread actually runs
+			const { done, value } = thread.next();
 			if (done) {
 				Log.debug(`${thread.pid}/${thread.tid} Thread exiting normally on tick ${Game.time} (age ${Game.time - thread.born} ticks) [${thread.desc}]`, 'Kernel');
 				this.killThread(thread.tid);
@@ -264,18 +243,6 @@ class Kernel {
 				return; // paused for the tick
 			} else if (value === true) {
 				this.queue.unshift(thread); // Run it again, Sam
-			} else if (value instanceof Promise) {
-				thread.state = 'PENDING';
-				value
-					.then((res) => this.pending_deliver.set(thread, res))
-					.catch((err) => this.pending_error.set(thread, err))
-					.then(() => thread.state = 'RUNNING')
-					.then(() => {
-						if (thread.lastRunSysTick === Game.time) // We've already skipped it this tick, so we're safe to repush it
-							this.queue.unshift(thread);
-					})
-					;
-				// .then(() => this.queue.unshift(thread)); // Kick us off again? (Don't know if we've been skipped on the tick of resolution)
 			} else {
 				// @todo yield handlers?
 			}
@@ -316,26 +283,22 @@ class Kernel {
 		}
 	}
 
-	startThread(co, args = [], prio, desc, pid = this.cpid || 0) {
-		const thread = co.apply(this, args);
-		thread.desc = desc;
+	startThread(co, args = [], prio, desc, pid = this.cpid || 0, thisArg = this) {
+		const coro = co.apply(thisArg, args);
+		const thread = new this.threadClass(coro, pid, desc);
 		return this.attachThread(thread, prio, pid);
 	}
 
 	/** Attach a separately created thread (kernel.attachThread(doStuff(42))) */
-	attachThread(thread, tprio = Process.PRIORITY_DEFAULT, pid = this.cpid) {
-		// const thread = (coro instanceof GeneratorFunction) ? coro : coro();	
+	attachThread(thread, tprio = Process.PRIORITY_DEFAULT) {
+		if (!thread || !(thread instanceof this.threadClass))
+			throw new TypeError(`Expected thread object`);
+		const { pid } = thread;
 		const process = this.process.get(pid);
 		if (!process)
 			throw new Error(`Can not attach thread, no such process ${pid}`);
 		if (!thread.tid)
 			thread.tid = Process.getNextId('T');
-		thread.pid = pid;
-		thread.avgUsrCpu = 0;
-		thread.avgSysCpu = 0;
-		thread.minCpu = Infinity;
-		thread.maxCpu = -Infinity;
-		thread.state = 'RUNNING';
 		if (this.threads.has(thread.tid))
 			throw new Error(`Thread ${thread.tid} already attached to process ${thread.pid}`);
 		const pprio = (process.priority !== undefined) ? process.priority : ENV('process.default_priority', Process.PRIORITY_DEFAULT);
@@ -345,7 +308,6 @@ class Kernel {
 		this.schedule.insert(thread);
 		this.queue.unshift(thread);
 		this.threadsByProcess.get(process).set(thread.tid, thread);
-		thread.born = Game.time;
 		return thread;
 	}
 
@@ -358,6 +320,10 @@ class Kernel {
 		for (const [, thread] of this.threads)
 			total += thread.lastRunCpu;
 		return _.round(total, CPU_PRECISION);
+	}
+
+	toString() {
+		return `[Process ${this.pid} ${this.friendlyName}]`;
 	}
 }
 

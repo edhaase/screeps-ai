@@ -116,9 +116,7 @@ class Process {
 	}
 
 	startThread(co, args = [], prio, desc) {
-		const thread = co.apply(this, args);
-		thread.desc = desc;
-		return this.attachThread(thread, prio);
+		return global.kernel.startThread(co, args, prio, desc, this.pid, this);
 	}
 
 	attachThread(thread, priority = this.default_thread_prio) {

@@ -49,14 +49,19 @@ class OperationNotPermitted extends Error {
 
 }
 
+class TimeLimitExceeded extends Error {
+
+}
+
 module.exports = {
 	// NotFoundError,
+	// InvalidArgumentsError,
+	// NotEnoughResourcesError,
 	AbortError,
 	ActorHasCeased, // For ITO objects
-	// InvalidArgumentsError,
 	NoPathFoundError,
-	// NotEnoughResourcesError,
 	NotOwnerError,
 	OperationNotPermitted,
+	TimeLimitExceeded,
 	VisibilityError,
 };
