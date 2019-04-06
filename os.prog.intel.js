@@ -52,9 +52,11 @@ class IntelProc extends Process {
 	updateKnownPlayers() {
 		if (!this.intel || !this.intel.alliances)
 			return;
+		if (this.intel.players == null)
+			this.intel.players = {};
 		for (const [allianceName, alliance] of Object.entries(this.intel.alliances)) {
 			for (const name of alliance)
-				this.players[name] = allianceName;
+				this.intel.players[name] = allianceName;
 		}
 	}
 
@@ -68,7 +70,6 @@ class IntelProc extends Process {
 		this.intel.alliances = alliances;	// Override local copy if we have an update
 		if (bots instanceof Error)
 			return this.warn(`Unable to load bots data`);
-		this.players = {};
 		this.intel.bots = _.attempt(JSON.parse, bots);
 		this.warn(`Loaded ${alliances}`);
 		this.warn(`Loaded ${bots}`);
@@ -97,9 +98,9 @@ class IntelProc extends Process {
 
 	*getfsSegmentReconNames() {
 		if (Memory.players)
-			yield* Object.keys(Memory.player);
-		if (this.players)
-			yield* Object.keys(this.players);
+			yield* Object.keys(Memory.players);
+		if (this.intel.players)
+			yield* Object.keys(this.intel.players);
 	}
 }
 
