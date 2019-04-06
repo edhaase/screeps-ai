@@ -219,7 +219,11 @@ class Kernel {
 				this.killThread(thread.tid);
 				return;
 			} else if (process.ppid && !this.process.has(process.ppid)) {
-				Log.warn(`${thread.pid}/${thread.tid} Orphan process ${process.name} killed on tick ${Game.time} (age ${Game.time - process.born} ticks)`);
+				Log.warn(`${thread.pid}/${thread.tid} Orphan process ${process.name} killed on tick ${Game.time} (age ${Game.time - process.born} ticks)`, 'Kernel');
+				this.killProcess(process.pid);
+				return;
+			} else if (process.timeout !== undefined && Game.time > process.timeout) {
+				Log.warn(`${thread.pid}/${thread.tid} Process ${process.name} timed out on tick ${Game.time} (age ${Game.time - process.born} ticks)`, 'Kernel');
 				this.killProcess(process.pid);
 				return;
 			} else if (process.sleep && Game.time < process.sleep) {
