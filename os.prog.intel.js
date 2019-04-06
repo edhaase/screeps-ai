@@ -71,8 +71,8 @@ class IntelProc extends Process {
 		if (bots instanceof Error)
 			return this.warn(`Unable to load bots data`);
 		this.intel.bots = _.attempt(JSON.parse, bots);
-		this.warn(`Loaded ${alliances}`);
-		this.warn(`Loaded ${bots}`);
+		this.warn(`Loaded ${alliancesPage}`);
+		this.warn(`Loaded ${botsPage}`);
 		return alliances;
 	}
 
@@ -86,7 +86,7 @@ class IntelProc extends Process {
 			for (const user of names) {
 				for (var id = RECON_SEGMENT_MAX; id >= RECON_SEGMENT_MIN; id--) {
 					thread.title = `Scanning foreign segment ${user} ${id}`;
-					const segment = yield* ForeignSegment.fetch(user, id);
+					const segment = yield* ForeignSegment.fetch([user, id]);
 					if (!segment)
 						continue;
 					this.warn(`Found segment at ${user} ${id} ${segment}`);

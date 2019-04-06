@@ -29,6 +29,8 @@ class ForeignSegment {
 	 * Segment id may be undefined to request user's default public segment
 	 */
 	static *fetch([user, sid, priority = 0.5]) {
+		if (sid == null || isNaN(sid) || !Number.isInteger(sid))
+			throw new TypeError(`Requested segment id ${sid} is not valid`);
 		Log.debug(`Fetching foreign segment ${user} ${sid} on ${Game.time}`, 'ForeignSegments');
 		try {
 			SEGMENT_REQUESTS.insert({ user, id: sid, priority });
@@ -61,7 +63,7 @@ class ForeignSegment {
 				Log.debug(`Requesting ${user} ${id} ${priority}`, 'ForeignSegments');
 				yield RawMemory.setActiveForeignSegment(user, id); // Request load, and pause
 				// if (RawMemory.foreignSegment === undefined) // No segment found here, throw error
-				const resp = RawMemory.foreignSegment || {username: user, id, data: null};
+				const resp = RawMemory.foreignSegment || { username: user, id, data: null };
 				SEGMENT_RESPONSES.set(`${user}_${id}`, resp);
 			}
 			Log.debug(`Segment requests complete, resetting to default segment ${DEFAULT_FOREIGN_SEGMENT}`, 'ForeignSegments');
