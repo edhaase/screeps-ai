@@ -29,7 +29,7 @@ class ForeignSegment {
 			RawMemory.setActiveForeignSegment(user, id);
 			last_change = Game.time;
 			while (!SEGMENT_REQUESTS.length)
-				yield;
+				yield (global.kernel.getCurrentThread().sleep = Game.time + FS_IDLE_POLL_FREQ);
 		}
 	}
 	/**
