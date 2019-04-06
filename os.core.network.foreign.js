@@ -1,17 +1,18 @@
 /** os.core.network.foreign.js - Load foreign segments */
 'use strict';
 
-/* global Log, ENV */
+/* global Log, ENV, ENVC */
 
 const PriorityQueue = require('os.ds.pq');
 
 const DEFAULT_FS_IDLE_RESET = 5;
+const DEFAULT_FS_POLL_FREQ = 3;
 const DEFAULT_FOREIGN_SEGMENT = ENV('network.default_foreign_segment', ['LeagueOfAutomatedNations', 99]);
 
 const SEGMENT_REQUESTS = new PriorityQueue(null, x => x.priority);
 
 const FS_IDLE_RESET = ENV(`network.fs_idle_reset`, DEFAULT_FS_IDLE_RESET);
-
+const FS_IDLE_POLL_FREQ = ENVC(`network.fs_idle_poll_freq`, DEFAULT_FS_POLL_FREQ, 1);
 let last_change = Game.time;
 
 /**
@@ -22,14 +23,14 @@ class ForeignSegment {
 	static *tickIdleReset() {
 		while (true) {
 			while (Game.time - last_change < FS_IDLE_RESET)
-				yield;
+				yield (global.kernel.getCurrentThread().sleep = Game.time + FS_IDLE_POLL_FREQ);
 			Log.debug(`Segment requests complete, resetting to default segment ${DEFAULT_FOREIGN_SEGMENT} (idle ${Game.time - last_change})`, 'ForeignSegments');
 			const [user, id] = DEFAULT_FOREIGN_SEGMENT;
 			RawMemory.setActiveForeignSegment(user, id);
 			last_change = Game.time;
 			while (!SEGMENT_REQUESTS.length)
 				yield;
-		}		
+		}
 	}
 	/**
 	 * Self-contained state machine. While idle waits for requests.
