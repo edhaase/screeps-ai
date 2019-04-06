@@ -67,6 +67,7 @@ class Kernel {
 			this.startThread(this.init, [], Process.PRIORITY_CRITICAL, 'Init thread');
 			this.startThread(Pager.tick, [], Process.PRIORITY_IDLE, 'Pager thread');	// We want this to run last
 			this.startThread(ForeignSegment.tickAsync, [], Process.PRIORITY_IDLE, 'Foreign segment thread');
+			this.startThread(ForeignSegment.tickIdleReset, [], Process.PRIORITY_IDLE, 'Foreign segment idle reset thread');
 			yield* this.loop();
 		} catch (e) {
 			throw e;
@@ -187,8 +188,8 @@ class Kernel {
 
 				try {
 					const start = Game.cpu.getUsed();
+					thread.lastRunSysTick = Game.time;
 					this.runThread(thread);
-					thread.lastRunTick = Game.time;
 					const delta = Game.cpu.getUsed() - start;
 					thread.avgSysCpu = MM_AVG(delta, thread.avgSysCpu); // May count zeroes for sleeping threads
 				} catch (e) {
@@ -247,6 +248,7 @@ class Kernel {
 			const deliverable = this.pending_deliver.get(thread);
 			if (deliverable)
 				this.pending_deliver.delete(thread);
+			thread.lastRunUsrTick = Game.time;
 			const start = Game.cpu.getUsed();
 			const { done, value } = thread.next(deliverable);
 			const delta = Game.cpu.getUsed() - start;
@@ -266,6 +268,10 @@ class Kernel {
 					.then((res) => this.pending_deliver.set(thread, res))
 					.catch((err) => this.pending_error.set(thread, err))
 					.then(() => thread.state = 'RUNNING')
+					.then(() => {
+						if (thread.lastRunSysTick === Game.time) // We've already skipped it this tick, so we're safe to repush it
+							this.queue.unshift(thread);
+					})
 					;
 				// .then(() => this.queue.unshift(thread)); // Kick us off again? (Don't know if we've been skipped on the tick of resolution)
 			}

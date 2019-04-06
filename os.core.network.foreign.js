@@ -3,22 +3,34 @@
 
 /* global Log, ENV */
 
-const Async = require('os.core.async');
 const PriorityQueue = require('os.ds.pq');
-const LRU = require('os.ds.lru');
+
+const DEFAULT_FS_IDLE_RESET = 5;
+const DEFAULT_FOREIGN_SEGMENT = ENV('network.default_foreign_segment', ['LeagueOfAutomatedNations', 99]);
 
 const SEGMENT_REQUESTS = new PriorityQueue(null, x => x.priority);
 
-const DEFAULT_FOREIGN_SEGMENT = ENV('network.default_foreign_segment', ['LeagueOfAutomatedNations', 99]);
-const FS_TTL = 100;
-const FS_MAX = 100;
-const SEGMENT_RESPONSES = new LRU({ ttl: FS_TTL, max: FS_MAX });
+const FS_IDLE_RESET = ENV(`network.fs_idle_reset`, DEFAULT_FS_IDLE_RESET);
+
+let last_change = Game.time;
 
 /**
  * Low level access to memory segments as "pages". These are handled purely as strings.
  * Translation occurs elsewhere.
  */
 class ForeignSegment {
+	static *tickIdleReset() {
+		while (true) {
+			while (Game.time - last_change < FS_IDLE_RESET)
+				yield;
+			Log.debug(`Segment requests complete, resetting to default segment ${DEFAULT_FOREIGN_SEGMENT} (idle ${Game.time - last_change})`, 'ForeignSegments');
+			const [user, id] = DEFAULT_FOREIGN_SEGMENT;
+			RawMemory.setActiveForeignSegment(user, id);
+			last_change = Game.time;
+			while (!SEGMENT_REQUESTS.length)
+				yield;
+		}		
+	}
 	/**
 	 * Self-contained state machine. While idle waits for requests.
 	 * If requets come in, start serving them by demand. When we're done,
@@ -27,8 +39,6 @@ class ForeignSegment {
 	static *tickAsync() {
 		Log.debug(`Startup`, 'ForeignSegments');
 		while (!(yield)) {
-			if (!SEGMENT_REQUESTS.length)
-				continue; // Two-state machine, so don't kick off unless we have work to do
 			while (SEGMENT_REQUESTS.length) {
 				const { user, id, priority, res, rej, throwOnFail } = SEGMENT_REQUESTS.pop();
 				Log.debug(`Requesting ${user} ${id} ${priority} on tick ${Game.time}`, 'ForeignSegments');
@@ -41,9 +51,7 @@ class ForeignSegment {
 				if (res && resp)
 					res(resp.data);
 			}
-			Log.debug(`Segment requests complete, resetting to default segment ${DEFAULT_FOREIGN_SEGMENT}`, 'ForeignSegments');
-			const [user, id] = DEFAULT_FOREIGN_SEGMENT;
-			RawMemory.setActiveForeignSegment(user, id);
+
 		}
 	}
 
