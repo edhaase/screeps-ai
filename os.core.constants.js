@@ -9,7 +9,8 @@ global.SEGMENT_MARKET = 1;	// Market stats
 global.SEGMENT_CRON = 2;	// Cron schedule
 global.SEGMENT_STATS = 3;	// Runtime stats
 global.SEGMENT_BUILD = 4;	// Build templates
-global.SEGMENT_INTEL = 5;	// Intel gathering
+
+global.THP_SEGMENT_INTEL = 5; // Intel gathering (Span 3 = Segment 15-17)
 
 global.BUCKET_MAX = ENV('BUCKET_MAX', 10000);
 

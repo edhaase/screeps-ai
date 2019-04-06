@@ -4,6 +4,9 @@
 const Pager = require('os.core.pager');
 const Process = require('os.core.process');
 
+const DEFAULT_STATS_COMMIT_FREQ = 10; // In seconds
+const STATS_COMMIT_FREQ = ENVC('stats.commit_freq', DEFAULT_STATS_COMMIT_FREQ, 1);
+
 const TICK_LENGTH_UPDATE_FREQ = 1000;
 const MS_TO_SECONDS = 1000;
 
@@ -14,6 +17,16 @@ class Stats extends Process {
 		this.default_thread_prio = Process.PRIORITY_HIGHEST;
 	}
 
+	*writeThread() {
+		while (!(yield)) {
+			const now = Date.now() / 1000;
+			if (this.nextWrite !== undefined && now < this.nextWrite)
+				continue;
+			Pager.write(SEGMENT_STATS, JSON.stringify(this.stats)); // Needs serialization
+			this.nextWrite = now + STATS_COMMIT_FREQ;
+		}
+	}
+
 	*run() {
 		const [page] = yield* Pager.read([SEGMENT_STATS]);
 		this.stats = _.attempt(JSON.parse, page);
@@ -22,7 +35,7 @@ class Stats extends Process {
 			this.stats = {};
 		}
 		this.debug(`Next tick length update in ${this.stats['nextTSU'] - Game.time}`);
-
+		this.startThread(this.writeThread, null, Process.PRIORITY_HIGHEST, `Stats flush thread`);
 		while (true) {
 			if (!this.stats['nextTSU'] || Game.time >= this.stats['nextTSU']) {
 				this.stats['nextTSU'] = Game.time + TICK_LENGTH_UPDATE_FREQ;
@@ -49,8 +62,6 @@ class Stats extends Process {
 				avg = _.round(MM_AVG(total, avg), 5);
 				this.stats.process.name[p.name] = { total, min, avg, max };
 			}
-
-			Pager.write(SEGMENT_STATS, JSON.stringify(this.stats)); // Needs serialization
 			yield;
 		}
 	}

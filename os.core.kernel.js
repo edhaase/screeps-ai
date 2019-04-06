@@ -90,26 +90,32 @@ class Kernel {
 		Log.debug(`Process table fetched at ${Game.time}`, 'Kernel');
 		this.proc = JSON.parse(page || '[]');
 
-		for (const entry of this.proc) {
-			if (Game.cpu.getUsed() / Game.cpu.tickLimit > 0.90)
-				yield Log.warn(`Process loader has yielded on ${Game.time}`, 'Kernel');
-			this.cpid = entry.pid;
-			this.ctid = null;  // In case we call a thread specific method during class construction
-			const p = Process.deserializeByProcessName(entry);
-			this.processByName.get(p.name).push(p);
-			Log.debug(`Reloaded ${p} on tick ${Game.time}`, 'Kernel');
-			this.process.set(p.pid, p);
-		}
-		// Call reload methods _after_ all process deserialized in case one of them needs to find another
-		for (const [, p] of this.process) {
-			if (Game.cpu.getUsed() / Game.cpu.tickLimit > 0.90)
-				yield Log.warn(`Process loader has yielded on ${Game.time}`, 'Kernel');
-			this.cpid = p.pid;
-			if (p && p.onReload)
-				p.onReload();
-		}
+		try {
+			for (const entry of this.proc) {
+				if (Game.cpu.getUsed() / Game.cpu.tickLimit > 0.90)
+					yield Log.warn(`Process loader has yielded on ${Game.time}`, 'Kernel');
+				this.cpid = entry.pid;
+				this.ctid = null;  // In case we call a thread specific method during class construction
+				const p = Process.deserializeByProcessName(entry);
+				this.processByName.get(p.name).push(p);
+				Log.debug(`Reloaded ${p} on tick ${Game.time}`, 'Kernel');
+				this.process.set(p.pid, p);
+			}
+			// Call reload methods _after_ all process deserialized in case one of them needs to find another
+			for (const [, p] of this.process) {
+				if (Game.cpu.getUsed() / Game.cpu.tickLimit > 0.90)
+					yield Log.warn(`Process loader has yielded on ${Game.time}`, 'Kernel');
+				this.cpid = p.pid;
+				if (p && p.onReload)
+					p.onReload();
+			}
 
-		Log.info(`Init complete on tick ${Game.time}`, 'Kernel');
+			Log.info(`Init complete on tick ${Game.time}`, 'Kernel');
+		} catch (e) {
+			Log.error(`Uncaught exception in process loader`);
+			Log.error(e);
+			Log.error(e.stack);
+		}
 	}
 
 	saveProcessTable() {
@@ -180,7 +186,8 @@ class Kernel {
 			this.queue = this.schedule.slice(0);
 			var thread; // , i = this.queue.length - 1;
 			while ((thread = this.queue.pop()) != null) {
-				if (Game.cpu.getUsed() + thread.avgUsrCpu >= this.throttle) {
+				const AVG_USED = Math.max(thread.avgSysCpu, thread.avgUsrCpu);
+				if (Game.cpu.getUsed() + AVG_USED >= this.throttle) {
 					this.lastRunCpu = Game.cpu.getUsed();
 					Log.warn(`Kernel paused at ${this.lastRunCpu} / ${this.throttle} cpu usage on tick ${Game.time}`, 'Kernel');  // continue running next tick to prevent starvation
 					break;

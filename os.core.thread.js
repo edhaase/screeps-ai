@@ -6,7 +6,7 @@
 const { TimeLimitExceeded } = require('os.core.errors');
 
 const THREAD_CONTINUE = { done: false, value: undefined };
-const DEFAULT_WAIT_TIMEOUT = 25;
+const DEFAULT_WAIT_TIMEOUT = 100;
 
 class Thread {
 	constructor(co, pid, desc) {
@@ -88,7 +88,9 @@ class Thread {
 					.then(() => this.state = Thread.STATE_RUNNING)
 					;
 				const WAIT_TIMEOUT = ENVC('threads.wait_timeout', DEFAULT_WAIT_TIMEOUT, 0);
-				if (WAIT_TIMEOUT > 0)
+				if (value.timeout)
+					this.wait_timeout = Game.time + value.timeout;
+				else if (WAIT_TIMEOUT > 0)
 					this.wait_timeout = Game.time + WAIT_TIMEOUT;
 				return THREAD_CONTINUE; // Lie, we're handling this matter internally.
 			}

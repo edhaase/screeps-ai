@@ -1,10 +1,10 @@
 /** os.prog.intel.js */
 'use strict';
 
-/* global ENV, ENVC, IS_MMO, Log */
+/* global ENV, ENVC, IS_MMO, Log, THP_SEGMENT_INTEL */
 
 const ForeignSegment = require('os.core.network.foreign');
-const Pager = require('os.core.pager');
+const Pager = require('os.core.pager.thp');
 const Process = require('os.core.process');
 
 const RECON_SEGMENT_MAX = ENVC('intel.recon_segment_max', 99, 0, 99);
@@ -13,28 +13,39 @@ const ALLIANCE_UNKNOWN = '?';
 
 class IntelProc extends Process {
 	*run() {
-		const [page] = yield* Pager.read([SEGMENT_INTEL]);
+		const [page] = yield* Pager.read([THP_SEGMENT_INTEL]);
 		this.intel = _.attempt(JSON.parse, page);
 		if (this.intel instanceof Error || !this.intel) {
 			this.warn(`Segment corrupt, resetting`);
 			this.intel = {};
 		}
-
+		
 		if (IS_MMO) {
 			const allianceThread = this.startThread(this.fetchAllianceData, null, undefined, `Alliance loader`);
 			allianceThread.timeout = Game.time + 5;
-			yield* this.waitForThread(allianceThread); // Needs to be thread so we can take advantage of timeout.
+			// yield* this.waitForThread(allianceThread); // Needs to be thread so we can take advantage of timeout.
+			yield allianceThread;
 		} else {
 			this.warn(`We're not running on MMO, some functions may be disabled`);
 		}
 
 		this.updateKnownPlayers();
 		this.startThread(this.fsSegmentRecon, null, undefined, `Foreign segment recon`);
+		this.startThread(this.writeThread, null, undefined, `Intel write thread`);
 
 		while (true) {
-			Pager.write(SEGMENT_INTEL, JSON.stringify(this.intel)); // Needs serialization
 			yield this.sleepThread(255);
 			global.Intel.evict();
+		}
+	}
+
+	*writeThread() {
+		while (true) {
+			yield this.sleepThread(15);
+			const str = JSON.stringify(this.intel);
+			//  const compress = LZW.encode(str);
+			// this.info(`Writing intel segment compressed, ${compress.length} / ${str.length} bytes`);
+			yield Pager.write(THP_SEGMENT_INTEL, str);
 		}
 	}
 

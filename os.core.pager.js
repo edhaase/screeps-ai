@@ -57,6 +57,7 @@ class Pager {
 			throw new Error(`Maximum length exceeded ${value.length}/${global.MAX_PAGE_SIZE}`);
 		PAGE_CACHE.set(pageId, value);
 		RawMemory.segments[pageId] = value;
+		Log.debug(`Writing page ${pageId} on tick ${Game.time}`, 'Pager');
 	}
 
 	static invalidate(pageId) {

@@ -10,7 +10,8 @@ const DEFAULT_THP_PAGE_SPAN = 3;
 
 MAKE_CONSTANT(global, 'THP_PAGE_SPAN', ENV('pager.thp_page_span', DEFAULT_THP_PAGE_SPAN));
 MAKE_CONSTANT(global, 'THP_MAX_PAGE_COUNT', Math.floor(MAX_PAGE_COUNT / THP_PAGE_SPAN));
-MAKE_CONSTANT(global, 'THP_MIN_PAGE_ID', THP_PAGE_SPAN*2); // Leave 6 pages free?
+MAKE_CONSTANT(global, 'THP_MIN_PAGE_ID', THP_PAGE_SPAN * 2); // Leave 6 pages free?
+MAKE_CONSTANT(global, 'THP_MAX_PAGE_SIZE', MAX_PAGE_SIZE * THP_PAGE_SPAN);
 // MAKE_CONSTANT(global, 'THP_MAX_PAGE_ID', THP_MAX_PAGE_COUNT - 1);
 
 class THP {
@@ -21,14 +22,20 @@ class THP {
 	}
 
 	static *fetch(id) {
-		const pages = yield* Pager.read(this.calcPages(id * global.THP_PAGE_SPAN));
+		const pages = yield* Pager.read(THP.calcPages(id * global.THP_PAGE_SPAN));
 		return pages.join('');
 	}
 
-	static write(id, v, limit = global.MAX_PAGE_SIZE) {
+	static write(id, value, size = global.MAX_PAGE_SIZE) {
+		if (value == null || typeof value !== 'string')
+			throw new TypeError(`Expected string, ${typeof value}`);
+		if (value.length > global.THP_MAX_PAGE_SIZE)
+			throw new Error(`Maximum length exceeded ${value.length}/${global.THP_MAX_PAGE_SIZE}`);
+		const idx = id * global.THP_PAGE_SPAN;
 		for (var i = 0; i < global.THP_PAGE_SPAN; i++) {
-			const str = v.slice(limit * i, limit * (i + 1));
-			console.log(`writing ${id + i} [${str.length}] [${str}]`);
+			const str = value.slice(size * i, size * (i + 1));
+			// console.log(`writing ${id + i} [${str.length}] [${str}]`);
+			Pager.write(idx + i, str);
 		}
 	}
 
