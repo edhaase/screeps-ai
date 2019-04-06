@@ -86,7 +86,7 @@ class IntelProc extends Process {
 				this.info(`No segments to scan, going to sleep`);
 			for (const user of names) {
 				for (var id = RECON_SEGMENT_MAX; id >= RECON_SEGMENT_MIN; id--) {
-					thread.title = `Scanning foreign segment ${user} ${id}`;
+					thread.desc = `Scanning foreign segment ${user} ${id}`;
 					const segment = yield* ForeignSegment.fetch([user, id]);
 					if (!segment)
 						continue;
