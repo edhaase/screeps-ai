@@ -37,7 +37,7 @@ class IntelProc extends Process {
 
 	*fetchAllianceData(intelProcess) {
 		// LeagueOfAutomatedNations
-		const [alliancesPage, botsPage] = yield* ForeignSegment.read([['LeagueOfAutomatedNations', 99, 1], ['LeagueOfAutomatedNations', 98, 0.75]]);
+		const [alliancesPage, botsPage] = yield ForeignSegment.fetchMultiAsync([['LeagueOfAutomatedNations', 99, 1, false], ['LeagueOfAutomatedNations', 98, 0.75, false]]);
 		const alliances = _.attempt(JSON.parse, alliancesPage);
 		const bots = _.attempt(JSON.parse, botsPage);
 		if (alliances instanceof Error)

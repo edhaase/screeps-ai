@@ -63,11 +63,15 @@ class IntelProc extends Process {
 
 	*fetchAllianceData() {
 		// LeagueOfAutomatedNations
-		const [alliancesPage, botsPage] = yield* ForeignSegment.read([['LeagueOfAutomatedNations', 99, 1], ['LeagueOfAutomatedNations', 98, 0.75]]);
+		const [alliancesPage, botsPage] = yield ForeignSegment.fetchMultiAsync([['LeagueOfAutomatedNations', 99, 1, false], ['LeagueOfAutomatedNations', 98, 0.75, false]]);
+
 		const alliances = _.attempt(JSON.parse, alliancesPage);
 		const bots = _.attempt(JSON.parse, botsPage);
-		if (alliances instanceof Error)
-			return this.warn(`Unable to load alliances data`);
+		if (alliances instanceof Error) {
+			this.warn(`Unable to load alliances data`);
+			this.warn(`${alliancesPage}`);
+			return;
+		}
 		this.intel.alliances = alliances;	// Override local copy if we have an update
 		if (bots instanceof Error)
 			return this.warn(`Unable to load bots data`);
@@ -87,7 +91,7 @@ class IntelProc extends Process {
 			for (const user of names) {
 				for (var id = RECON_SEGMENT_MAX; id >= RECON_SEGMENT_MIN; id--) {
 					thread.desc = `Scanning foreign segment ${user} ${id}`;
-					const segment = yield* ForeignSegment.fetch([user, id]);
+					const segment = yield ForeignSegment.fetchAsync([user, id, 0.5, false]);
 					if (!segment)
 						continue;
 					this.warn(`Found segment at ${user} ${id} ${segment}`);

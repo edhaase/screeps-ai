@@ -46,6 +46,8 @@ class Kernel {
 		MAKE_CONSTANT(this, 'threads', new BaseMap());
 		MAKE_CONSTANT(this, 'threadsByProcess', new LazyWeakMap(() => new Map()));
 		MAKE_CONSTANT(this, 'schedule', new PriorityQueue(null, (itm) => itm.priority));
+		MAKE_CONSTANT(this, 'pending_error', new WeakMap());
+		MAKE_CONSTANT(this, 'pending_deliver', new WeakMap());
 		this.queue = [];
 		this.process.set(0, this);
 		this.processByName.set('kernel', [this]);
@@ -64,7 +66,7 @@ class Kernel {
 			yield* this.wire(); // Prototypes must be loaded first
 			this.startThread(this.init, [], Process.PRIORITY_CRITICAL, 'Init thread');
 			this.startThread(Pager.tick, [], Process.PRIORITY_IDLE, 'Pager thread');	// We want this to run last
-			this.startThread(ForeignSegment.tick, [], Process.PRIORITY_IDLE, 'Foreign segment thread');
+			this.startThread(ForeignSegment.tickAsync, [], Process.PRIORITY_IDLE, 'Foreign segment thread');
 			yield* this.loop();
 		} catch (e) {
 			throw e;
@@ -231,12 +233,22 @@ class Kernel {
 				return;
 			}
 
+			if (thread.state === 'PENDING')
+				return; // We're waiting for a response.
 			if (thread.sleep && Game.time < thread.sleep)
 				return;
 			if (thread.timeout !== undefined && Game.time > thread.timeout)
 				thread.throw(new Error(`Thread exceeded time limit`));
+			if (this.pending_error.has(thread)) {
+				const err = this.pending_error.get(thread);
+				this.pending_error.delete(thread);
+				thread.throw(err);
+			}
+			const deliverable = this.pending_deliver.get(thread);
+			if (deliverable)
+				this.pending_deliver.delete(thread);
 			const start = Game.cpu.getUsed();
-			const { done, value } = thread.next();
+			const { done, value } = thread.next(deliverable);
 			const delta = Game.cpu.getUsed() - start;
 			thread.lastRunCpu = delta;
 			thread.minCpu = Math.max(0, Math.min(thread.minCpu, delta)); // Already initialized on attach (But why were we getting negative numbers?)
@@ -248,6 +260,14 @@ class Kernel {
 				return;
 			} else if (value === true) {
 				this.queue.unshift(thread); // Run it again, Sam
+			} else if (value instanceof Promise) {
+				thread.state = 'PENDING';
+				value
+					.then((res) => this.pending_deliver.set(thread, res))
+					.catch((err) => this.pending_error.set(thread, err))
+					.then(() => thread.state = 'RUNNING')
+					;
+				// .then(() => this.queue.unshift(thread)); // Kick us off again? (Don't know if we've been skipped on the tick of resolution)
 			}
 		} catch (e) {
 			Log.error(`${thread.pid}/${thread.tid} Uncaught thread exception [${thread.desc}]`, 'Kernel');
@@ -305,6 +325,7 @@ class Kernel {
 		thread.avgSysCpu = 0;
 		thread.minCpu = Infinity;
 		thread.maxCpu = -Infinity;
+		thread.state = 'RUNNING';
 		if (this.threads.has(thread.tid))
 			throw new Error(`Thread ${thread.tid} already attached to process ${thread.pid}`);
 		const pprio = (process.priority !== undefined) ? process.priority : ENV('process.default_priority', Process.PRIORITY_DEFAULT);
