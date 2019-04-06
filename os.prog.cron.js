@@ -21,14 +21,15 @@ class Cron extends Process {
 			if (!job || Game.time < job.next)
 				continue;
 			this.debug(`Wants to start ${job}`);
-			if (job.lastPid && global.kernel.process.get(job.lastPid)) {
-				this.warn(`Can't start job ${job.name}, last process still running (pid ${job.lastPid})`);
-				continue;
-			}
 			this.queue.shift(); // Remove job
 
 			try {
-				const process = this.startProcess(job.name, job.opts);
+				let process = job.lastPid && global.kernel.process.get(job.lastPid);
+				if (process) {
+					this.warn(`Can't start job ${job.name}, last process still running (pid ${job.lastPid})`);
+				} else {
+					process = this.startProcess(job.name, job.opts);
+				}
 				if (job.freq > 0) {
 					job.next = Game.time + job.freq;
 					job.lastPid = process.pid;
