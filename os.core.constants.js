@@ -16,6 +16,7 @@ global.BUCKET_MAX = ENV('BUCKET_MAX', 10000);
 global.RUNTIME_ID = Game.time;
 global.IS_PTR = !!(Game.shard && Game.shard.ptr);
 global.IS_SIM = !!Game.rooms['sim'];
+global.IS_MMO = !!(Game.shard && Game.shard.name && Game.shard.name.startsWith('shard'));
 
 global.INVADER_USERNAME = 'Invader';
 global.SOURCE_KEEPER_USERNAME = 'Source Keeper';

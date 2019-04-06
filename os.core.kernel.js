@@ -4,13 +4,15 @@
 /* global ENV, ENVC, SEGMENT_PROC, MM_AVG, DEFERRED_MODULES, MAKE_CONSTANT, Log */
 
 const Async = require('os.core.async');
-const Pager = require('os.core.pager');
-const Process = require('os.core.process');
-const LazyMap = require('os.ds.lazymap');
-const LazyWeakMap = require('os.ds.lazyweakmap');
 const BaseArray = require('os.ds.array');
 const BaseMap = require('os.ds.map');
+const ForeignSegment = require('os.core.network.foreign');
+const LazyMap = require('os.ds.lazymap');
+const LazyWeakMap = require('os.ds.lazyweakmap');
+const Pager = require('os.core.pager');
 const PriorityQueue = require('os.ds.pq');
+const Process = require('os.core.process');
+
 const { OperationNotPermitted } = require('os.core.errors');
 
 const MAX_PRECISION = 7;
@@ -62,6 +64,7 @@ class Kernel {
 			yield* this.wire(); // Prototypes must be loaded first
 			this.startThread(this.init, [], Process.PRIORITY_CRITICAL, 'Init thread');
 			this.startThread(Pager.tick, [], Process.PRIORITY_IDLE, 'Pager thread');	// We want this to run last
+			this.startThread(ForeignSegment.tick, [], Process.PRIORITY_IDLE, 'Foreign segment thread');
 			yield* this.loop();
 		} catch (e) {
 			throw e;
@@ -243,7 +246,7 @@ class Kernel {
 			}
 
 		} catch (e) {
-			Log.error(`${thread.pid}/${thread.tid} Uncaught thread exception`, 'Kernel');
+			Log.error(`${thread.pid}/${thread.tid} Uncaught thread exception [${thread.desc}]`, 'Kernel');
 			Log.error(e.stack);
 			this.killThread(thread.tid);
 			if (process && process.flags & Process.FLAG_ALL_THREADS_CRITICAL)
@@ -259,8 +262,10 @@ class Kernel {
 		this.threads.delete(thread.tid);
 		try {
 			const process = this.process.get(thread.pid);
-			if (!process)
+			if (!process) {
+				Log.debug(`No process found for ${thread.pid}, no further cleanup needed`, 'Kernel');
 				return;
+			}
 			const threadGroup = this.threadsByProcess.get(process);
 			threadGroup.delete(thread.tid);
 			if (process.onThreadExit)

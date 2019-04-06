@@ -7,6 +7,8 @@ class BaseArray extends Array {
 		if (i !== -1)
 			this.splice(i, 1);
 	}
+
+	static get [Symbol.species]() { return Array; }
 }
 
 module.exports = BaseArray;

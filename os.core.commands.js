@@ -27,7 +27,7 @@ global.threads = function (pid, sortBy = 'pid', order = ['asc']) {
 	// @todo show threads for process
 	// [...kernel.threads.values()]
 	const allThreads = [...kernel.threads.values()];
-	const threads = (pid) ? _.filter(allThreads, 'pid', pid) : allThreads;
+	const threads = (pid !== undefined) ? _.filter(allThreads, 'pid', pid) : allThreads;
 	const sorted = _.sortByOrder(threads, sortBy, order);
 	if (!sorted || !sorted.length)
 		return "No processes";
