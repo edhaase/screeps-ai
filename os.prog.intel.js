@@ -81,7 +81,7 @@ class IntelProc extends Process {
 	*fsSegmentRecon() {
 		const thread = global.kernel.getCurrentThread();
 		while (true) {
-			const names = [...this.getfsSegmentReconNames()];
+			const names = _.unique([...this.getfsSegmentReconNames()]);
 			if (!names || !names.length)
 				this.info(`No segments to scan, going to sleep`);
 			for (const user of names) {

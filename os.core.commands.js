@@ -81,6 +81,9 @@ global.killThread = function (tid) {
 	kernel.killThread(tid);
 };
 
+global.gpbn = function(name) {
+	return kernel.getProcessByName(name);
+};
 
 class Tag {
 	constructor(name, content) {
