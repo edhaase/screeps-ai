@@ -27,7 +27,7 @@ class MarketProc extends Process {
 
 	*updateMarketHistory() {
 		while (!(yield)) {
-			if (Game.time % MARKET_HISTORY_FREQUENCY)
+			if (Game.time % MARKET_HISTORY_FREQUENCY) // Currently must poll on modulo
 				continue;
 			Market.updateMarket(MARKET_HISTORY_FREQUENCY);
 		}
