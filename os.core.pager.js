@@ -4,19 +4,19 @@
 /* global ENV, ENVC, MAKE_CONSTANT, Log, SEGMENT_PROC, SEGMENT_CRON, SEGMENT_STATS */
 
 const Async = require('os.core.async');
-const LRU = require('os.ds.lru');
 const LazyMap = require('os.ds.lazymap');
+const LRU = require('os.ds.lru');
 
-const DEFAULT_PAGE_CACHE_LIMIT = 100;
-const DEFAULT_MAX_PAGE_SIZE = 100 * 1024;
 const DEFAULT_MAX_ACTIVE_PAGES = 10;
-const DEFAULT_PAGES = [SEGMENT_PROC, SEGMENT_CRON, SEGMENT_STATS];
 const DEFAULT_MAX_PAGE_COUNT = 99;
+const DEFAULT_MAX_PAGE_SIZE = 100 * 1024;
+const DEFAULT_PAGE_CACHE_LIMIT = 100;
+const DEFAULT_PAGES = [SEGMENT_PROC, SEGMENT_CRON, SEGMENT_STATS];
 
-MAKE_CONSTANT(global, 'PAGE_CACHE_LIMIT', ENV('pager.page_cache_limit', DEFAULT_PAGE_CACHE_LIMIT));
 MAKE_CONSTANT(global, 'MAX_ACTIVE_PAGES', ENV('pager.max_active_pages', DEFAULT_MAX_ACTIVE_PAGES));
-MAKE_CONSTANT(global, 'MAX_PAGE_SIZE', ENV('pager.max_page_size', DEFAULT_MAX_PAGE_SIZE));
 MAKE_CONSTANT(global, 'MAX_PAGE_COUNT', ENVC('pager.max_page_count', DEFAULT_MAX_PAGE_COUNT, 0, DEFAULT_MAX_PAGE_COUNT));
+MAKE_CONSTANT(global, 'MAX_PAGE_SIZE', ENV('pager.max_page_size', DEFAULT_MAX_PAGE_SIZE));
+MAKE_CONSTANT(global, 'PAGE_CACHE_LIMIT', ENV('pager.page_cache_limit', DEFAULT_PAGE_CACHE_LIMIT));
 
 const PAGE_CACHE = new LRU({ max: global.PAGE_CACHE_LIMIT });
 const PAGE_REQUESTS = new LazyMap(() => 0);
