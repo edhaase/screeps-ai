@@ -13,15 +13,25 @@ const ALLIANCE_UNKNOWN = '?';
 
 class IntelProc extends Process {
 	*run() {
+		const [page] = yield* Pager.read([SEGMENT_INTEL]);
+		this.intel = _.attempt(JSON.parse, page);
+		if (this.intel instanceof Error || !this.intel) {
+			this.warn(`Segment corrupt, resetting`);
+			this.intel = {};
+		}
+
 		if (IS_MMO) {
-			const allianceThread = this.startThread(this.loadAllianceData, null, undefined, `Alliance loader`);
+			const allianceThread = this.startThread(this.fetchAllianceData, null, undefined, `Alliance loader`);
 			allianceThread.timeout = Game.time + 5;
 		} else {
 			this.warn(`We're not running on MMO, some functions may be disabled`);
 		}
+
+		this.updateKnownPlayers();
 		this.startThread(this.fsSegmentRecon, null, undefined, `Foreign segment recon`);
 
 		while (true) {
+			Pager.write(SEGMENT_INTEL, JSON.stringify(this.intel)); // Needs serialization
 			yield this.sleepThread(255);
 			global.Intel.evict();
 		}
@@ -39,16 +49,27 @@ class IntelProc extends Process {
 
 	}
 
-	*loadAllianceData() {
-		// LeagueOfAutomatedNations
-		const [alliances, bots] = yield* ForeignSegment.read([['LeagueOfAutomatedNations', 99, 1], ['LeagueOfAutomatedNations', 98, 0.5]]);
-		this.alliances = _.attempt(JSON.parse, alliances);
-		this.players = {};
-		this.bots = _.attempt(JSON.parse, bots);
-		for (const [allianceName, alliance] of Object.entries(this.alliances)) {
+	updateKnownPlayers() {
+		if (!this.intel || !this.intel.alliances)
+			return;
+		for (const [allianceName, alliance] of Object.entries(this.intel.alliances)) {
 			for (const name of alliance)
 				this.players[name] = allianceName;
 		}
+	}
+
+	*fetchAllianceData() {
+		// LeagueOfAutomatedNations
+		const [alliancesPage, botsPage] = yield* ForeignSegment.read([['LeagueOfAutomatedNations', 99, 1], ['LeagueOfAutomatedNations', 98, 0.5]]);
+		const alliances = _.attempt(JSON.parse, alliancesPage);
+		const bots = _.attempt(JSON.parse, botsPage);
+		if (alliances instanceof Error)
+			return this.warn(`Unable to load alliances data`);
+		this.intel.alliances = alliances;	// Override local copy if we have an update
+		if (bots instanceof Error)
+			return this.warn(`Unable to load bots data`);
+		this.players = {};
+		this.intel.bots = _.attempt(JSON.parse, bots);
 		this.warn(`Loaded ${alliances}`);
 		this.warn(`Loaded ${bots}`);
 		return alliances;
