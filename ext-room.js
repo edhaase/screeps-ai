@@ -24,6 +24,8 @@ DEFINE_CACHED_GETTER(Room.prototype, 'structures', r => r.find(FIND_STRUCTURES) 
 DEFINE_CACHED_GETTER(Room.prototype, 'structuresMy', r => r.find(FIND_MY_STRUCTURES) || []);
 DEFINE_CACHED_GETTER(Room.prototype, 'structuresByType', r => _.groupBy(r.structures, 'structureType'));
 DEFINE_CACHED_GETTER(Room.prototype, 'structureCountByType', r => _.countBy(r.structures, 'structureType'));
+DEFINE_CACHED_GETTER(Room.prototype, 'structuresObstacles', r => _.filter(r.structures, s => OBSTACLE_OBJECT_TYPES.includes(s.structureType)));
+
 DEFINE_CACHED_GETTER(Room.prototype, 'mineral', r => r.find(FIND_MINERALS)[0]);
 DEFINE_CACHED_GETTER(Room.prototype, 'tombstones', r => r.find(FIND_TOMBSTONES));
 DEFINE_CACHED_GETTER(Room.prototype, 'containers', r => r.structuresByType[STRUCTURE_CONTAINER] || []);
@@ -76,7 +78,7 @@ DEFINE_CACHED_GETTER(Room.prototype, 'canMine', function ({ controller }) {
  */
 DEFINE_CACHED_GETTER(Room.prototype, 'hostiles', function (room) {
 	if (_.get(room, 'controller.safeMode', 0) >= SAFE_MODE_IGNORE_TIMER) // abritary tick count before re-engaging
-	return [];
+		return [];
 	const r = [];
 	r.push.apply(r, room.find(FIND_HOSTILE_CREEPS, { filter: c => Filter.unauthorizedHostile(c) && !c.pos.isOnRoomBorder() }));
 	r.push.apply(r, room.find(FIND_HOSTILE_POWER_CREEPS, { filter: c => Filter.unauthorizedHostile(c) && !c.pos.isOnRoomBorder() }));
