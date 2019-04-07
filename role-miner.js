@@ -45,7 +45,7 @@ module.exports = {
 			if ((this.ticksToLive & 2) && container.hitsMax - container.hits >= (REPAIR_POWER * 6) && this.carryTotal >= this.carryCapacity)
 				this.repair(container);
 			if (!this.pos.isEqualTo(container.pos) && !container.pos.hasCreep())
-				this.moveTo(container, { range: 0 });
+				return this.pushState("EvadeMove", { pos: container.pos, range: 0 });
 		} else {
 			dest = new RoomPosition(dest.x, dest.y, dest.roomName);
 			if (!this.pos.isNearTo(dest)) {
