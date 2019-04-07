@@ -1,13 +1,14 @@
 /** os.prog.market.js - Market management */
 'use strict';
 
-/* global ENVC */
+/* global ENVC, Market */
 
 const Async = require('os.core.async');
 const Process = require('os.core.process');
 
 const DEFAULT_MARKET_ORDER_CLEANUP_FREQ = 100;
 const MARKET_HISTORY_FREQUENCY = 16;
+const EMPIRE_MARKET_RESYNC_FREQUENCY = 4095;
 
 class MarketProc extends Process {
 	constructor(opts) {
@@ -21,6 +22,8 @@ class MarketProc extends Process {
 		this.startThread(this.updateMarketHistory, null, undefined, 'Market transaction tracking');
 		while (true) {
 			global.RESOURCE_THIS_TICK = RESOURCES_ALL[Game.time % RESOURCES_ALL.length];
+			if (!(Game.time & EMPIRE_MARKET_RESYNC_FREQUENCY))
+				Market.resyncEmpireCredits();
 			yield;
 		}
 	}
