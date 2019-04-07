@@ -8,4 +8,4 @@ exports.xorcrypt = function xorcrypt(str, key) {
 		ret += String.fromCharCode(str.charCodeAt(i) ^ key.charCodeAt(i % key.length));
 	}
 	return ret;
-}
+};
