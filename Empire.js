@@ -16,43 +16,16 @@
 
 const Intel = require('Intel');
 
-const EMPIRE_EXPANSION_FREQUENCY = 4095; // Power of 2, minus 1
+
 const GCL_EXPANSION_GOAL = 10;
-const EMPIRE_MARKET_RESYNC_FREQUENCY = 4095;
 
 if (Memory.empire == null) {
 	Memory.empire = { autoExpand: true, credits: 0 };
 }
 
 class Empire {
-	static tick() {
-
-		// var used = Time.measure( () => this.drawVisuals() );
-		// console.log('used: ' + used);
-
-		if (!(Game.time & EMPIRE_MARKET_RESYNC_FREQUENCY))
-			Market.resyncEmpireCredits();
-
-		if (Game.time & EMPIRE_EXPANSION_FREQUENCY)
-			return;
-
-		if (Memory.empire && Memory.empire.autoExpand && this.ownedRoomCount() < Game.gcl.level) {
-			if (this.cpuAllowsExpansion())
-				Empire.expand();
-			else
-				Log.warn("Unable to expand, nearing cpu limit", "Empire");
-		}
-	}
-
 	static isAtExpansionGoal() {
 		return (Game.gcl.level >= GCL_EXPANSION_GOAL);
-	}
-
-	static cpuAllowsExpansion() {
-		// return (Memory.stats["cpu1000"] < Game.cpu.limit - 10);
-		const estCpuPerRoom = Memory.stats["cpu1000"] / this.ownedRoomCount();
-		Log.debug(`Empire estimated ${estCpuPerRoom} cpu used per room`, 'Empire');
-		return (Memory.stats["cpu1000"] + estCpuPerRoom) < Game.cpu.limit - 10;
 	}
 
 	/**
@@ -72,29 +45,7 @@ class Empire {
 		} */
 	}
 
-	/**
-	 * Find a room to take!
-	 */
-	static expand() {
-		const body = [MOVE, CLAIM];
-		const cost = UNIT_COST(body);
-		const spawns = _.reject(Game.spawns, r => r.isDefunct() || r.room.energyCapacityAvailable < cost);
-		if (!spawns || !spawns.length)
-			return Log.error(`No available spawn for expansion`, 'Empire');
-		const candidates = this.getAllCandidateRoomsByScore().value();
-		if (!candidates || !candidates.length)
-			return Log.error(`No expansion candidates`, 'Empire');
-		else
-			Log.warn(`Candidate rooms: ${candidates}`, 'Empire');
-		const [first] = candidates;
-		const spawn = _.min(spawns, s => Game.map.findRoute(s.pos.roomName, first).length);
-		Log.notify(`Expansion in progress! (Origin: ${spawn.pos.roomName})`);
-		spawn.submit({ body, memory: { role: 'pioneer', rooms: candidates }, priority: PRIORITY_MED });
-		// Pick a room!
-		// Verify it isn't owned or reserved. Continue picking.
-		// Launch claimer!
-		// Or build colonizer to target lock a room. (Except which room spawns him?)
-	}
+
 
 	// @todo Fuzz factor is still problematic.
 	static getAllCandidateRoomsByScore(range = 3) {
@@ -188,13 +139,6 @@ class Empire {
 		return OK;
 	}
 
-	/**
-	 * Returns the number of rooms we own.
-	 */
-	static ownedRoomCount() {
-		// return _.sum(Game.structures, s => s.structureType == STRUCTURE_CONTROLLER);
-		return _.sum(Game.rooms, "my");
-	}
 
 	static ownedRooms() {
 		return _.filter(Game.rooms, "my");

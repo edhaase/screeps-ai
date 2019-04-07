@@ -79,7 +79,7 @@ class Thread {
 			const { done, value } = result;
 			if (done)
 				this.res(result.value);
-			else if (value instanceof Promise) {
+			else if (value instanceof Promise || value instanceof Thread) {
 				Log.debug(`Thread ${this.tid}/${this.desc} yielded promise on tick ${Game.time}`, 'Kernel');
 				this.state = Thread.STATE_PENDING;
 				value // Keep this short, promise resolution is janky.

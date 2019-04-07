@@ -51,12 +51,13 @@ global.reinitAll = function () {
 	global.killAll();
 	global.startProcess('cron');
 	global.startProcess('intershard');
+	global.startProcess('empire');
 	global.startProcess('legacy', { title: 'Creep runner', collection: 'creeps', identifier: 'name' });
 	global.startProcess('legacy', { title: 'Powercreep runner', collection: 'powerCreeps', identifier: 'name' });
 	global.startProcess('legacy', { title: 'Structure runner', collection: 'structures', identifier: 'id' });
 	global.startProcess('legacy', { title: 'Flag runner', collection: 'flags', identifier: 'name' });
 	global.startProcess('legacy-rooms', { title: 'Room runner' });
-	global.startProcess('stats');
+	global.startProcess('stats');	
 	global.startProcess('market');
 	global.startProcess('intel');
 };
