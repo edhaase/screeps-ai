@@ -1,7 +1,7 @@
 /** main.js */
 'use strict';
 
-/* global DEFER_REQUIRE */
+/* global DEFER_REQUIRE, ENV */
 
 require('os.core.macros');				// Required because we want to be lazy
 require('os.core.constants');			// Required for RUNTIME_ID
@@ -69,3 +69,8 @@ const coro = kernel.tick();
 module.exports.loop = function () {
 	coro.next();
 };
+
+if (ENV('runtime.enable_memhack', true)) {
+	const memhack = require('os.core.memhack').wrap;
+	module.exports.loop = memhack(module.exports.loop);
+}

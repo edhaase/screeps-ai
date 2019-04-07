@@ -8,36 +8,42 @@ const DEFAULT_GC_FREQ = 100;
 class GCP {
 	static *tick() {
 		// Cleanup memory
-		while (true) {
-			yield* GCP.cleanupCreepMemory();
-			yield GCP.cleanupGroups();
-			yield GCP.cleanupFlags();
-			yield GCP.cleanupSpawns();
-			yield GCP.cleanupRooms();
-			yield GCP.cleanupStructures();
+		while (!(yield)) {
+			Log.debug(`Running cleanup`, 'GC');
+			GCP.cleanupCreepMemory();
+			GCP.cleanupGroups();
+			GCP.cleanupFlags();
+			GCP.cleanupSpawns();
+			GCP.cleanupRooms();
+			GCP.cleanupStructures();
 			global.kernel.getCurrentThread().sleep = Game.time + ENVC('memory.gc_freq', DEFAULT_GC_FREQ, 0);
+			Log.debug(`Cleanup complete`, 'GC');
 		}
 	}
 
-	static *cleanupCreepMemory() {
+	static cleanupCreepMemory() {
 		for (const name in Memory.creeps) {
-			yield true;
 			if (Game.creeps[name])
 				continue;
 			this.debug(`Garbage collecting creep ${name}`);
 			// const age = Game.time - Memory.creeps[name].born;
 			// if (Memory.creeps[name].gid)
 			//	_.remove(Memory.groups[members], id => id === name);
-			const memory = Memory.creeps[name];
-			const roleName = memory.role;
-			Memory.creeps[name] = undefined;
 			try {
-				const role = require(`role-${roleName}`);
-				if (!role.onCleanup)
-					continue;
-				role.onCleanup(memory, name);
+				const memory = Memory.creeps[name];
+				const roleName = memory.role;
+				delete Memory.creeps[name]; // Don't set to undefined, if memhack enabled the key will still be iterable
+				try {
+					const role = require(`role-${roleName}`);
+					if (!role.onCleanup)
+						continue;
+					role.onCleanup(memory, name);
+				} catch (e) {
+					Log.error(e.stack, 'Creep');
+				}
 			} catch (e) {
-				Log.error(e.stack, 'Creep');
+				Log.error(`Error garbage collecting ${name}`, 'GC');
+				Log.error(e.stack);
 			}
 		}
 	}
