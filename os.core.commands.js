@@ -42,6 +42,27 @@ global.threads = function (pid, sortBy = 'pid', order = ['asc']) {
 	return `<table width='1200px'><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table`;
 };
 
+
+global.events = function (sortBy = 'event', order = ['asc']) {
+	const allEvents = _(Game.rooms).map(r => r.getEventLog()).flatten().value();
+	const lookup = _(global).pick((v, k) => k.startsWith('EVENT_') && !k.startsWith('EVENT_ATTACK_') && !k.startsWith('EVENT_HEAL_')).invert().value();
+	const sorted = _.sortByOrder(allEvents, sortBy, order);
+	for (const event of sorted) {
+		event.eventName = lookup[event.event];
+		event.object = Game.getObjectById(event.objectId);
+		if (!event.data)
+			continue;
+		if (event.data.targetId) {
+			event.target = Game.getObjectById(event.data.targetId);
+			delete event.data.targetId;
+		}
+
+	}
+	const head = `<th>Event</th><th>Object</th><th>Target</th><th>Data</th>`;
+	const rows = _.map(sorted, r => `<tr><td>${r.eventName || r.event || '-'}</td><td>${r.object}</td><td>${r.target || '-'}</td><td>${JSON.stringify(r.data)}</td></tr>`);
+	return `<table width='1200px'><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table`;
+};
+
 global.startProcess = function (name, opts) {
 	// @todo call start process
 	kernel.startProcess(name, opts);
@@ -57,7 +78,7 @@ global.reinitAll = function () {
 	global.startProcess('legacy', { title: 'Structure runner', collection: 'structures', identifier: 'id' });
 	global.startProcess('legacy', { title: 'Flag runner', collection: 'flags', identifier: 'name' });
 	global.startProcess('legacy-rooms', { title: 'Room runner' });
-	global.startProcess('stats');	
+	global.startProcess('stats');
 	global.startProcess('market');
 	global.startProcess('intel');
 };

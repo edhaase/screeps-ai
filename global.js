@@ -389,94 +389,10 @@ global.STACK_TRACE = function () {
 	return new Error("Stack Trace").stack;
 };
 
-/* global.defineLazyProperties = function(scope, obj) {
-	_.each(obj, (v,k) => DEFINE_CACHED_GETTER(scope, k, v));
-}
-
-defineLazyProperties(global, {
-	'MSG_ERR': () => {
-		var rtn = _(global)
-		.pick((v,k) => k.startsWith('ERR_'))
-		.invert()
-		.value();
-		rtn[OK] = "OK";
-		return rtn;
-	}
-}) */
-
 /* global.HSV_COLORS = [];
 for(var i=0; i<100; i++)
 	HSV_COLORS[i] = Util.getColorBasedOnPercentage(i);
 */
-
-/** command */
-global.GC = function () {
-	// if(Game.time % 10000 === 0) {
-	if ((Game.time & 16383) === 0) {
-		GCStructureMemory();
-	}
-	if ((Game.time & 15))
-		return;
-
-	// var groups = {};
-	var name;
-	for (name in Memory.creeps) {
-		if (Game.creeps[name])
-			continue;
-		const age = Game.time - Memory.creeps[name].born;
-		const maxAge = _.get(Memory, 'stats.maxAge', CREEP_LIFE_TIME);
-		if (age > CREEP_LIFE_TIME)
-			Log.debug(`Garbage collecting ${name} (age: ${age})`, 'GC');
-		if (age > maxAge)
-			Log.info(`New max age! ${name} with ${age} ticks!`);
-		_.set(Memory, 'stats.maxAge', Math.max(maxAge, age));
-		if (Memory.creeps[name].gid)
-			_.remove(Memory.groups[members], id => id === name);
-		const memory = Memory.creeps[name];
-		const roleName = memory.role;
-		Memory.creeps[name] = undefined;
-		const role = require(`role-${roleName}`);
-		if (!role.onCleanup)
-			continue;
-		try {
-			role.onCleanup(memory, name);
-		} catch (e) {
-			Log.error(e, 'Creep');
-		}
-	}
-
-	for (name in Memory.groups.members) {
-		if (Memory.group.members[name].length > 0)
-			continue;
-		Log.debug(`Garbage collecting group ${name}`, 'GC');
-		Memory.group.members[name] = undefined;
-		Memory.group.memory[name] = undefined;
-	}
-
-	for (name in Memory.flags) {
-		if (!Game.flags[name] || _.isEmpty(Memory.flags[name])) {
-			Memory.flags[name] = undefined;
-		}
-	}
-
-	for (name in Memory.spawns) {
-		if (!Game.spawns[name]) {
-			Memory.spawns[name] = undefined;
-		}
-	}
-
-
-
-	Memory.rooms = _.omit(Memory.rooms, _.isEmpty);
-};
-
-global.GCStructureMemory = function () {
-	for (var id in Memory.structures)
-		if (!Game.structures[id]) { // || _.isEmpty(Memory.structures[id])) {
-			Log.notify(`Garbage collecting structure ${id}, ${JSON.stringify(Memory.structures[id])}`);
-			Memory.structures[id] = undefined;
-		}
-};
 
 global.profile = function (ticks = 30, filter = null) {
 	Game.profiler.profile(ticks, filter);
