@@ -402,7 +402,8 @@ StructureController.prototype.runCensus = function () {
 	}
 	if (dual !== true) {
 		sources.forEach(source => {
-			const forSource = _.filter(miners, { memory: { dest: source.pos } }); // No role check, we already know it's a miner for this room.
+			// Obect form filter doesn't work anymore
+			const forSource = _.filter(miners, c => source.pos.isEqualToPlain(c.memory.dest)); // No role check, we already know it's a miner for this room.
 			if (_.any(forSource, { ticksToLive: undefined }))
 				return; // If we're currently spawning a creep, skip the rest.
 			const [, cost,] = source.getClosestSpawn({}, 'cache');
