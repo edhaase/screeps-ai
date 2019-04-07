@@ -483,7 +483,10 @@ global.profile = function (ticks = 30, filter = null) {
 };
 
 global.progress = function () {
-	const ticksTilGCL = (Game.gcl.progressTotal - Game.gcl.progress) / Memory.gclAverageTick;
+	const [statsProc] = kernel.getProcessByName('stats');
+	if (!stats)
+		return "Stats not available at this time";
+	const ticksTilGCL = (Game.gcl.progressTotal - Game.gcl.progress) / statsProc.stats.gclAverageTick;
 	console.log(`Time till GCL ${(Game.gcl.level + 1)}: ${Time.estimate(ticksTilGCL)} ${Log.progress(Game.gcl.progress, Game.gcl.progressTotal)}`);
 	_(Game.rooms)
 		.map('controller')

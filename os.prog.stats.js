@@ -1,6 +1,8 @@
 /** prog-stats.js */
 'use strict';
 
+/* global CM_AVG, ENVC, SEGMENT_STATS */
+
 const Pager = require('os.core.pager');
 const Process = require('os.core.process');
 
@@ -9,12 +11,14 @@ const STATS_COMMIT_FREQ = ENVC('stats.commit_freq', DEFAULT_STATS_COMMIT_FREQ, 1
 
 const TICK_LENGTH_UPDATE_FREQ = 1000;
 const MS_TO_SECONDS = 1000;
+const GCL_MOVING_AVG_DURATION = 1000;
+
 
 class Stats extends Process {
 	constructor(opts) {
 		super(opts);
-		this.priority = Process.PRIORITY_HIGHEST;
-		this.default_thread_prio = Process.PRIORITY_HIGHEST;
+		this.priority = Process.PRIORITY_CRITICAL;
+		this.default_thread_prio = Process.PRIORITY_CRITICAL;
 	}
 
 	*writeThread() {
@@ -36,6 +40,7 @@ class Stats extends Process {
 		}
 		this.debug(`Next tick length update in ${this.stats['nextTSU'] - Game.time}`);
 		this.startThread(this.writeThread, null, Process.PRIORITY_HIGHEST, `Stats flush thread`);
+		this.startThread(this.updateGCL, null, Process.PRIORITY_LOWEST, `GCL Tracking`);
 		while (true) {
 			if (!this.stats['nextTSU'] || Game.time >= this.stats['nextTSU']) {
 				this.stats['nextTSU'] = Game.time + TICK_LENGTH_UPDATE_FREQ;
@@ -66,9 +71,13 @@ class Stats extends Process {
 		}
 	}
 
-	*wait() {
-		while (true)
-			yield;
+	*updateGCL() {
+		this.gclLastTick = Game.gcl.progress;
+		while (!(yield)) {
+			const delta = Game.gcl.progress - this.gclLastTick;
+			this.stats.gclAverageTick = CM_AVG(delta, this.stats.gclAverageTick, GCL_MOVING_AVG_DURATION);
+			this.gclLastTick = Game.gcl.progress;
+		}
 	}
 
 	updateTickLength(freq = 1000) {

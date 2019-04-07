@@ -17,7 +17,6 @@
 const Intel = require('Intel');
 
 const EMPIRE_EXPANSION_FREQUENCY = 4095; // Power of 2, minus 1
-const GCL_MOVING_AVG_DURATION = 1000;
 const GCL_EXPANSION_GOAL = 10;
 const EMPIRE_MARKET_RESYNC_FREQUENCY = 4095;
 
@@ -27,7 +26,7 @@ if (Memory.empire == null) {
 
 class Empire {
 	static tick() {
-		Empire.updateGCL();
+
 		// var used = Time.measure( () => this.drawVisuals() );
 		// console.log('used: ' + used);
 
@@ -47,14 +46,6 @@ class Empire {
 
 	static isAtExpansionGoal() {
 		return (Game.gcl.level >= GCL_EXPANSION_GOAL);
-	}
-
-	static updateGCL() {
-		if (Memory.gclLastTick == null)
-			Memory.gclLastTick = Game.gcl.progress;
-		var diff = Game.gcl.progress - Memory.gclLastTick;
-		Memory.gclAverageTick = CM_AVG(diff, Memory.gclAverageTick, GCL_MOVING_AVG_DURATION);
-		Memory.gclLastTick = Game.gcl.progress;
 	}
 
 	static cpuAllowsExpansion() {
