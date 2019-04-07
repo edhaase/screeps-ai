@@ -13,6 +13,7 @@ const Pager = require('os.core.pager');
 const PriorityQueue = require('os.ds.pq');
 const Process = require('os.core.process');
 const Thread = require('os.core.thread');
+const GCP = require('os.gc');
 
 const { OperationNotPermitted } = require('os.core.errors');
 
@@ -68,6 +69,7 @@ class Kernel {
 			this.startThread(Pager.tick, [], Process.PRIORITY_IDLE, 'Pager thread');	// We want this to run last
 			this.startThread(ForeignSegment.tickAsync, [], Process.PRIORITY_IDLE, 'Foreign segment thread');
 			this.startThread(ForeignSegment.tickIdleReset, [], Process.PRIORITY_IDLE, 'Foreign segment idle reset thread');
+			this.startThread(GCP.tick, [], Process.PRIORITY_IDLE, 'Memory garbage collection thread');
 			yield* this.loop();
 		} catch (e) {
 			throw e;
@@ -267,7 +269,9 @@ class Kernel {
 
 	killThread(tid) {
 		const thread = this.threads.get(tid);
-		this.threads.delete(thread.tid);
+		if (!thread)
+			return false; // No such thread
+		this.threads.delete(tid);
 		try {
 			const process = this.process.get(thread.pid);
 			if (!process) {

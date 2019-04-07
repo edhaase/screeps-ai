@@ -1,30 +1,27 @@
-/** os.prog.gc.js - Garbage collection process */
+/** os.gc.js - Memory garbage collection*/
 'use strict';
 
-/* global Log */
+/* global ENVC, Log */
 
-const Process = require('os.core.process');
+const DEFAULT_GC_FREQ = 100;
 
-class GCP extends Process {
-	constructor(opts) {
-		super(opts);
-		this.priority = Process.PRIORITY_LOWEST;
-		this.default_thread_prio = Process.PRIORITY_LOWEST;
-	}
-
-	*run() {
+class GCP {
+	static *tick() {
 		// Cleanup memory
-		this.cleanupCreepMemory();
-		this.cleanupGroups();
-		this.cleanupFlags();
-		this.cleanupSpawns();
-		this.cleanupRooms();
-		this.cleanupStructures();
-		yield;
+		while (true) {
+			yield* GCP.cleanupCreepMemory();
+			yield GCP.cleanupGroups();
+			yield GCP.cleanupFlags();
+			yield GCP.cleanupSpawns();
+			yield GCP.cleanupRooms();
+			yield GCP.cleanupStructures();
+			global.kernel.getCurrentThread().sleep = Game.time + ENVC('memory.gc_freq', DEFAULT_GC_FREQ, 0);
+		}
 	}
 
-	cleanupCreepMemory() {
+	static *cleanupCreepMemory() {
 		for (const name in Memory.creeps) {
+			yield true;
 			if (Game.creeps[name])
 				continue;
 			this.debug(`Garbage collecting creep ${name}`);
@@ -45,7 +42,7 @@ class GCP extends Process {
 		}
 	}
 
-	cleanupGroups() {
+	static cleanupGroups() {
 		for (const name in Memory.groups.members) {
 			if (Memory.group.members[name].length > 0)
 				continue;
@@ -55,7 +52,7 @@ class GCP extends Process {
 		}
 	}
 
-	cleanupFlags() {
+	static cleanupFlags() {
 		for (const name in Memory.flags) {
 			if (Game.flags[name] && !_.isEmpty(Memory.flags[name]))
 				continue;
@@ -64,7 +61,7 @@ class GCP extends Process {
 		}
 	}
 
-	cleanupSpawns() {
+	static cleanupSpawns() {
 		for (const name in Memory.spawns) {
 			if (Game.spawns[name])
 				continue;
@@ -73,17 +70,21 @@ class GCP extends Process {
 		}
 	}
 
-	cleanupRooms() {
+	static cleanupRooms() {
 		Memory.rooms = _.omit(Memory.rooms, _.isEmpty);
 	}
 
-	cleanupStructures() {
+	static cleanupStructures() {
 		for (const id in Memory.structures) {
 			if (Game.structures[id])
 				continue;
 			this.debug(`Garbage collecting structure ${id}, ${JSON.stringify(Memory.structures[id])}`);
 			Memory.structures[id] = undefined;
 		}
+	}
+
+	static debug(msg) {
+		Log.debug(msg, 'GC');
 	}
 }
 

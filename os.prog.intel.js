@@ -19,7 +19,7 @@ class IntelProc extends Process {
 			this.warn(`Segment corrupt, resetting`);
 			this.intel = {};
 		}
-		
+
 		if (IS_MMO) {
 			const allianceThread = this.startThread(this.fetchAllianceData, null, undefined, `Alliance loader`);
 			allianceThread.timeout = Game.time + 5;
@@ -82,14 +82,13 @@ class IntelProc extends Process {
 			this.warn(`Unable to load alliances data`);
 			this.warn(`${alliancesPage}`);
 			return;
+		} else {
+			this.intel.alliances = alliances;	// Override local copy if we have an update
 		}
-		this.intel.alliances = alliances;	// Override local copy if we have an update
 		if (bots instanceof Error)
-			return this.warn(`Unable to load bots data`);
-		this.intel.bots = _.attempt(JSON.parse, bots);
-		this.warn(`Loaded ${alliancesPage}`);
-		this.warn(`Loaded ${botsPage}`);
-		return alliances;
+			this.warn(`Unable to load bots data`);
+		else
+			this.intel.bots = _.attempt(JSON.parse, bots);
 	}
 
 	/** Scans foreign segments for interesting stuff */

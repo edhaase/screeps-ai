@@ -50,7 +50,6 @@ class Cron extends Process {
 
 	init() {
 		this.queue.length = 0;
-		this.schedule(new Cron.Job(Game.time + 1500, 'gc', {}, 1500));
 		this.schedule(new Cron.Job(Game.time + 150, 'planner', {}, 150));
 		this.schedule(new Cron.Job(Game.time + 20000, 'intel-alliances', {}, 20000));
 	}
