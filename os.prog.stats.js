@@ -20,13 +20,37 @@ class Stats extends Process {
 		this.priority = Process.PRIORITY_CRITICAL;
 		this.default_thread_prio = Process.PRIORITY_CRITICAL;
 	}
-
+	
+	/** Grafana has an update frequency in wall-time, so we don't need to write every tick */
 	*writeThread() {
 		while (!(yield)) {
 			const now = Date.now() / 1000;
 			if (this.nextWrite !== undefined && now < this.nextWrite)
 				continue;
-			Pager.write(SEGMENT_STATS, JSON.stringify(this.stats)); // Needs serialization
+			/** This only needs to be saved if we're about to update stats */
+			this.stats['bucket'] = Game.cpu.bucket;
+			this.stats['cpu'] = Game.cpu;
+			this.stats['gcl'] = Game.gpl;
+			this.stats['cpu']['used'] = _.round(global.kernel.lastRunCpu, CPU_PRECISION);
+			this.stats['gcl'] = Game.gcl;
+			this.stats['gpl'] = Game.gpl;
+			this.stats['credits'] = Game.market.credits;
+			if (Game.cpu.getHeapStatistics)
+				this.stats['heap'] = Game.cpu.getHeapStatistics();
+			/** This on the other hand.. Is also safe */
+			this.stats.process = { name: {}, pid: {} };
+			for (const [pid, p] of global.kernel.process) {
+				const { totalCpu, minCpu, maxCpu, avgUsrCpu, avgSysCpu } = p;
+				this.stats.process.pid[pid] = { totalCpu, minCpu, maxCpu, avgUsrCpu, avgSysCpu };
+
+				var { total = 0, min = Infinity, avg = 0, max = 0 } = this.stats.process.name[p.name] || {};
+				total += totalCpu;
+				min = _.round(Math.min(min, minCpu), 5);
+				max = _.round(Math.max(max, maxCpu), 5);
+				avg = _.round(MM_AVG(total, avg), 5);
+				this.stats.process.name[p.name] = { total, min, avg, max };
+			}
+			Pager.write(SEGMENT_STATS, JSON.stringify(this.stats));
 			this.nextWrite = now + STATS_COMMIT_FREQ;
 		}
 	}
@@ -45,27 +69,6 @@ class Stats extends Process {
 			if (!this.stats['nextTSU'] || Game.time >= this.stats['nextTSU']) {
 				this.stats['nextTSU'] = Game.time + TICK_LENGTH_UPDATE_FREQ;
 				this.updateTickLength(TICK_LENGTH_UPDATE_FREQ);
-			}
-			this.stats['bucket'] = Game.cpu.bucket;
-			this.stats['cpu'] = Game.cpu;
-			this.stats['gcl'] = Game.gpl;
-			this.stats['cpu']['used'] = _.round(global.kernel.lastRunCpu, CPU_PRECISION);
-			this.stats['gcl'] = Game.gcl;
-			this.stats['gpl'] = Game.gpl;
-			this.stats['credits'] = Game.market.credits;
-			if (Game.cpu.getHeapStatistics)
-				this.stats['heap'] = Game.cpu.getHeapStatistics();
-			this.stats.process = { name: {}, pid: {} };
-			for (const [pid, p] of global.kernel.process) {
-				const { totalCpu, minCpu, maxCpu, avgUsrCpu, avgSysCpu } = p;
-				this.stats.process.pid[pid] = { totalCpu, minCpu, maxCpu, avgUsrCpu, avgSysCpu };
-
-				var { total = 0, min = Infinity, avg = 0, max = 0 } = this.stats.process.name[p.name] || {};
-				total += totalCpu;
-				min = _.round(Math.min(min, minCpu), 5);
-				max = _.round(Math.max(max, maxCpu), 5);
-				avg = _.round(MM_AVG(total, avg), 5);
-				this.stats.process.name[p.name] = { total, min, avg, max };
 			}
 			yield;
 		}
