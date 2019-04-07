@@ -17,6 +17,10 @@ const GCP = require('os.gc');
 
 const { OperationNotPermitted } = require('os.core.errors');
 
+const DEFAULT_HEAP_CHECK_FREQ = 10;
+const DEFAULT_HEAP_WARNING = 0.80;
+const DEFAULT_HEAP_CRITICAL = 0.95;
+
 const MAX_PRECISION = 7;
 const DEFAULT_PRECISION = 5;
 global.CPU_PRECISION = ENVC('process.default_cpu_precision', DEFAULT_PRECISION, 0, MAX_PRECISION);
@@ -65,6 +69,7 @@ class Kernel {
 	*tick() {
 		try {
 			yield* this.wire(); // Prototypes must be loaded first
+			this.startThread(this.watchdog, [], Process.PRIORITY_CRITICAL, 'Kernel watchdog thread');
 			this.startThread(this.init, [], Process.PRIORITY_CRITICAL, 'Init thread');
 			this.startThread(Pager.tick, [], Process.PRIORITY_IDLE, 'Pager thread');	// We want this to run last
 			this.startThread(ForeignSegment.tickAsync, [], Process.PRIORITY_IDLE, 'Foreign segment thread');
@@ -73,6 +78,34 @@ class Kernel {
 			yield* this.loop();
 		} catch (e) {
 			throw e;
+		}
+	}
+
+	getHeapUsagePct() {
+		const { total_heap_size, externally_allocated_size, heap_size_limit } = Game.cpu.getHeapStatistics();
+		return (total_heap_size + externally_allocated_size) / heap_size_limit;
+	}
+
+	/** Kernel watch thread attempts to keep heap under control and halts if we're in trouble. */
+	*watchdog() {
+		while (!(yield this.sleepThread(ENV('kernel.heap_check_freq', DEFAULT_HEAP_CHECK_FREQ)))) {
+			const heapUsage = this.getHeapUsagePct();
+			if (heapUsage < ENVC('kernel.heap_warning', DEFAULT_HEAP_WARNING, 0, 1))
+				continue;
+			if (heapUsage >= ENVC('kernel.heap_critical', DEFAULT_HEAP_CRITICAL, 0, 1)) {
+				Log.notify(`Heap exceeded critical limit, cpu halted on tick ${Game.time}`);
+				yield; // In case we need a tick to send the message.
+				Game.cpu.halt();
+			}
+			if (!global.gc) {
+				Log.warn(`Manual gc unavailable (heap ${100 * heapUsage})`, 'Kernel');
+				continue;
+			}
+			global.gc(true);
+			yield;
+			const heapAfter = this.getHeapUsagePct();
+			if (heapAfter < heapUsage)
+				Log.notify(`Manual gc intervention reduced heap usage from ${heapUsage} to ${heapAfter} on tick ${Game.time}`);
 		}
 	}
 
@@ -320,6 +353,10 @@ class Kernel {
 		this.queue.unshift(thread);
 		this.threadsByProcess.get(process).set(thread.tid, thread);
 		return thread;
+	}
+
+	sleepThread(ticks) {
+		this.getCurrentThread().sleep = Game.time + ticks;
 	}
 
 	getCurrentThread() {
