@@ -128,8 +128,7 @@ class Kernel {
 
 		try {
 			for (const entry of this.proc) {
-				if (Game.cpu.getUsed() / Game.cpu.tickLimit > 0.90)
-					yield Log.warn(`Process loader has yielded on ${Game.time}`, 'Kernel');
+				yield true;	// yield and wait for cpu
 				this.cpid = entry.pid;
 				this.ctid = null;  // In case we call a thread specific method during class construction
 				const p = Process.deserializeByProcessName(entry);
