@@ -52,6 +52,7 @@ class Kernel {
 		MAKE_CONSTANT(this, 'threads', new BaseMap());
 		MAKE_CONSTANT(this, 'threadsByProcess', new LazyWeakMap(() => new Map()));
 		MAKE_CONSTANT(this, 'schedule', new PriorityQueue(null, (itm) => itm.priority));
+		this.nextThreadId = 0;  // Threads are transient, so we don't need anything fancy here.
 		this.threadClass = Thread;
 		this.queue = [];
 		this.process.set(0, this);
@@ -341,8 +342,8 @@ class Kernel {
 		const process = this.process.get(pid);
 		if (!process)
 			throw new Error(`Can not attach thread, no such process ${pid}`);
-		if (!thread.tid)
-			thread.tid = Process.getNextId('T');
+		if (thread.tid == null)
+			thread.tid = this.nextThreadId++;
 		if (this.threads.has(thread.tid))
 			throw new Error(`Thread ${thread.tid} already attached to process ${thread.pid}`);
 		const pprio = (process.priority !== undefined) ? process.priority : ENV('process.default_priority', Process.PRIORITY_DEFAULT);
