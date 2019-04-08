@@ -32,15 +32,13 @@ class Legacy extends Process {
 		const missed = _.filter(collection, c => !this.table.has(c[iden]) && c.run);
 		if (!missed || !missed.length)
 			return;
-		yield* Async.each(missed, function* (itm) {
-			while (Game.cpu.getUsed() > Game.cpu.tickLimit - MARGIN)
-				yield;
+		for (const itm of missed) {
 			const thread = this.startThread(this.invoker, [itm[iden], col, method], undefined, itm.toString());
 			thread.key = itm[iden];
 			this.table.set(thread.key, thread);
-		}, this);
+			yield true;
+		}
 	}
-
 
 	*invoker(id, collection = undefined, method = 'run') {
 		const ito = ITO.make(id, collection);
