@@ -7,8 +7,6 @@ const Process = require('os.core.process');
 
 const DEFAULT_EMPIRE_EXPANSION_FREQ = 2056; // Let's set this to at least higher than a creep life time.
 
-const EMPIRE_EXPANSION_FREQUENCY = ENV('empire.expansion_freq', DEFAULT_EMPIRE_EXPANSION_FREQ); // Power of 2, minus 1
-
 class EmpireProc extends Process {
 	constructor(opts) {
 		super(opts);
@@ -16,11 +14,10 @@ class EmpireProc extends Process {
 		this.default_thread_prio = Process.PRIORITY_IDLE;
 	}
 
-	*run() {
+	/* eslint-disable require-yield */
+	*run() {		
 		this.startThread(this.autoExpand, null, Process.PRIORITY_IDLE, `Automatic empire expansion`);
-		while (!(yield)) {
-			/** Spin */
-		}
+		return false;
 	}
 
 	/** Periodically attempts to expand to a new room */
@@ -58,7 +55,7 @@ class EmpireProc extends Process {
 		const [first] = candidates;
 		const spawn = _.min(spawns, s => Game.map.findRoute(s.pos.roomName, first).length);
 		Log.notify(`Expansion in progress! (Origin: ${spawn.pos.roomName})`);
-		return yield spawn.submit({ body: [MOVE, CLAIM], memory: { role: 'pioneer', rooms: candidates }, priority: PRIORITY_MED });		
+		return yield spawn.submit({ body: [MOVE, CLAIM], memory: { role: 'pioneer', rooms: candidates }, priority: PRIORITY_MED });
 	}
 
 	static cpuAllowsExpansion() {
