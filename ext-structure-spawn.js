@@ -147,10 +147,12 @@ StructureSpawn.prototype.initCreep = function (name, roleName, job) {
  * initial role to further increase potential number of names.
  */
 const CREEP_ID_ROLLOVER = 1000;
+const CREEP_ID_SHARD = (Game.shard && Game.shard.name && Game.shard.name.slice(-1)) || '';
 StructureSpawn.prototype.getNextId = function () {
 	if (Memory.creepnum == null)
 		Memory.creepnum = 0;
-	return Memory.creepnum++ % CREEP_ID_ROLLOVER;
+	const creepNum = Memory.creepnum++ % CREEP_ID_ROLLOVER;
+	return `${CREEP_ID_SHARD}${creepNum}`;
 };
 
 StructureSpawn.prototype.resetEnergyClock = function () {
