@@ -199,6 +199,7 @@ class Kernel {
 				process.onExit();
 			if (parent && parent.onChildExit)
 				parent.onChildExit(pid, process);
+			delete Memory.process[pid];
 		} finally {
 			this.postTick(() => this.saveProcessTable());
 			this.postTick(() => _.remove(this.schedule, t => !this.threads.has(t.tid)), 'PurgeKilledThreads');
