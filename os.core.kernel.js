@@ -218,7 +218,7 @@ class Kernel {
 	*loop() {
 		while (!this.halt) {
 			const MIN_CPU_THIS_TICK = Math.min(Game.cpu.limt, Game.cpu.tickLimit);
-			this.throttle = (Game.cpu.bucket / global.BUCKET_MAX > 0.5) ? Game.cpu.tickLimit : MIN_CPU_THIS_TICK;
+			this.throttle = (Game.cpu.bucket / global.BUCKET_MAX > 0.5) ? Game.cpu.tickLimit * 0.90 : MIN_CPU_THIS_TICK;
 			this.queue = this.schedule.slice(0);
 			var thread; // , i = this.queue.length - 1;
 			while ((thread = this.queue.pop()) != null) {
