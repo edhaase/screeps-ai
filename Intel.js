@@ -22,6 +22,7 @@ class Intel {
 		if (Room.getType(room.name) !== 'Room')
 			return;
 		const { controller = {} } = room;
+		const last = (Memory.intel[room.name] && Memory.intel[room.name].tick) || NaN;
 		const intel = {
 			tick: Game.time,
 			sources: room.sources.map(({ id, pos }) => ({ id, pos })) || [],
@@ -36,7 +37,7 @@ class Intel {
 		};
 		Memory.intel[room.name] = intel;
 		// Log.info(`New intel report for ${room.name}: ${ex(intel)}`,'Intel');
-		Log.debug(`New intel report for ${room.name}`, 'Intel');
+		Log.debug(`New intel report for ${room.name} on ${Game.time} (last ${Game.time - last})`, 'Intel');
 	}
 
 	static markCandidateForRemoteMining(room) {
