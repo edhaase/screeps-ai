@@ -216,25 +216,37 @@ global.tbl = function (itr, map, opts = {}) {
 	return `<table ${style}>${content}</table>`;
 };
 
-Cmd.register('events', events, 'Show recent event log for all rooms', [], 'Reporting');
+function clearWatches() {
+	return `<script>var memory = angular.element($('.memory-watch')).scope().MemoryMain; memory.watches.filter(w => w.path !== "").forEach(w => memory.removeWatch(w.path));</script>`;
+}
+
+function showRoom(roomName, shard = Game.shard.name) {
+	return `<script>window.location.href = '#!/room/${shard}/${roomName}'</script>`;
+}
+
 Cmd.register('getProcessByName', gpbn, 'Find all processes with name', ['gpbn']);
 Cmd.register('highlight', hl, 'Highlight a given object in the current room', ['hl']);
 Cmd.register('kill', kill, 'Kill a process by pid');
 Cmd.register('killAll', killAll, 'Terminate all running processes');
 Cmd.register('killThread', killThread, 'Terminate a running thread by id');
-Cmd.register('proc', proc, 'Show process table', [], 'Reporting');
-Cmd.register('progress', progress, 'Show room and GCL progress', [], 'Reporting');
 Cmd.register('reinitAll', reinitAll);
 Cmd.register('reinitCron', reinitCron);
 Cmd.register('startProcess', start, 'Launch a process', ['start']);
-Cmd.register('stats', stats, 'Show empire stats for this shard', [], 'Reporting');
 Cmd.register('stop', stop, 'Attempt to gracefully stop a process');
+
+Cmd.register('events', events, 'Show recent event log for all rooms', [], 'Reporting');
+Cmd.register('proc', proc, 'Show process table', [], 'Reporting');
+Cmd.register('progress', progress, 'Show room and GCL progress', [], 'Reporting');
+Cmd.register('stats', stats, 'Show empire stats for this shard', [], 'Reporting');
 Cmd.register('storage', storage, 'Show storage report', [], 'Reporting');
 Cmd.register('terminals', terminals, 'Show terminal report', [], 'Reporting');
 Cmd.register('threads', threadReport, 'Show threads', [], 'Reporting');
 
+Cmd.register('clearWatches', clearWatches, 'Clear the memory watch', ['cw'], 'GUI');
+Cmd.register('showRoom', showRoom, 'Switch the GUI to a room', [], 'GUI');
+
 const Inspector = require('os.core.ins.inspector');
-Cmd.register('getParamStr', Inspector.getParamStr, 'Show the parameter names for a function', ['params'], 'Inspector');
 Cmd.register('explain', (x) => JSON.stringify(x, null, 2), 'Explain (Pretty print an object)', ['ex'], 'Inspector');
+Cmd.register('getParamStr', Inspector.getParamStr, 'Show the parameter names for a function', ['params'], 'Inspector');
 Cmd.register('inspect', Inspector.inspect, 'Inspect an object or prototype', ['ins'], 'Inspector');
 Cmd.register('prop_find', Inspector.findProperty, 'Find a property in a prototype chain', ['propf'], 'Inspector');
