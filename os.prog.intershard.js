@@ -26,8 +26,6 @@ class Intershard extends Process {
 		this.shardData = new Map();
 		this.shardStrs = new Map();
 		this.ack_cb = new Map();
-
-		this.process.shards = {};
 	}
 
 	onThreadExit(tid, thread) {
