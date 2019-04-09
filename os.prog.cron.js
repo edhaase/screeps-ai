@@ -73,12 +73,6 @@ class Cron extends Process {
 		const str = JSON.stringify(this.queue);
 		Pager.write(SEGMENT_CRON, str);
 	}
-
-
-	*wait() {
-		while (true)
-			yield;
-	}
 }
 
 Cron.Job = class {
