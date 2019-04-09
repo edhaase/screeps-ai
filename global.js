@@ -449,40 +449,11 @@ global.profile = function (ticks = 30, filter = null) {
 	Game.profiler.profile(ticks, filter);
 };
 
-global.progress = function () {
-	const [statsProc] = kernel.getProcessByName('stats');
-	if (!stats)
-		return "Stats not available at this time";
-	const ticksTilGCL = (Game.gcl.progressTotal - Game.gcl.progress) / statsProc.stats.gclAverageTick;
-	console.log(`Time till GCL ${(Game.gcl.level + 1)}: ${Time.estimate(ticksTilGCL)} ${Log.progress(Game.gcl.progress, Game.gcl.progressTotal)}`);
-	_(Game.rooms)
-		.map('controller')
-		.filter('my')
-		.filter(c => c.level < 8)
-		// .each(c => console.log("Room: " + c.room.name + ", RCL: " + (c.level+1) + ", " + c.estimate()))
-		.each(c => console.log(`Room: ${c.room.name}, RCL: ${(c.level + 1)}, ${c.estimate()} ${Log.progress(c.room.controller.progress, c.room.controller.progressTotal)}, ${_.round(c.memory.rclAvgTick, 2)} e/t`))
-		.commit();
-};
-
-global.stats = function () {
-	console.log(`Bucket: ${Game.cpu.bucket}`);
-	console.log(`Rooms: ${_.size(Game.rooms)}`);
-	console.log(`Creeps: ${_.size(Game.creeps)}`);
-	console.log(`Structures: ${_.size(Game.structures)}`);
-	console.log(`Flags: ${_.size(Game.flags)}`);
-	console.log(`Construction sites: ${_.size(Game.constructionSites)}`);
-	if (Memory.profiler)
-		console.log(`Profiler: ${(Memory.profiler.disableTick - Game.time)}`);
-	console.log(ex(_.countBy(Game.creeps, 'memory.role')));
-};
-
 // ncshupheo's wall score
 global.wcmc = (hits) => Math.floor(254 * Math.sqrt(Math.sqrt(hits / WALL_HITS_MAX)) + 1);
 
 global.goid = (x) => Game.getObjectById(x);				// get object by id
-global.ex = (x) => JSON.stringify(x, null, 2);	// explain
 global.exg = (x) => ex(goid(x));
-global.hl = (x, radius = 5) => x.room.visual.circle(x.pos, { fill: 'red', radius, lineStyle: 'dashed' });
 
 global.wroom = function (roomName, fn) {			// with room
 	const ob = _.find(Game.structures, (s) => s.structureType === STRUCTURE_OBSERVER && Game.map.getRoomLinearDistance(s.pos.roomName, roomName) <= OBSERVER_RANGE);
@@ -490,46 +461,6 @@ global.wroom = function (roomName, fn) {			// with room
 		return ob.exec(roomName, fn);
 	else
 		return "No observer in range";
-};
-
-global.terminals = function () {
-	var output = '<table>';
-	// border under headers, alternate color
-	// Game.getObjectById('579faa680700be0674d30ef3').progressTotal - Game.getObjectById('579faa680700be0674d30ef3').progress
-	const rooms = _.filter(Game.rooms, r => (_.get(r, 'controller.my', false) && r.terminal != null));
-	const terminals = _.map(rooms, 'terminal');
-	// let terminals = _.map(rooms, r => Game.rooms[r].terminal);
-	const headers = ['res'].concat(_.map(rooms, 'name'));
-	let rows = _.map(RESOURCES_ALL, function (res) {
-		const stored = _.map(terminals, t => _.get(t, 'store.' + res, 0));
-		return [`<font color=${RES_COLORS[res]}>${res}</font>`].concat(stored);
-	});
-	rows = _.filter(rows, r => _.any(r, v => v > 0));
-	const totals = _.map(terminals, 'total');
-	const credits = _.map(terminals, t => Math.floor(t.credits));
-	rows.unshift(['total'].concat(totals));
-	rows.unshift(['credits'].concat(credits));
-	output += '</table>';
-	console.log(Log.table(headers, rows));
-};
-
-global.storage = function () {
-	var output = '<table>';
-	// border under headers, alternate color
-	// Game.getObjectById('579faa680700be0674d30ef3').progressTotal - Game.getObjectById('579faa680700be0674d30ef3').progress
-	const rooms = _.filter(Game.rooms, r => (_.get(r, 'controller.my', false) && r.storage != null));
-	const sts = _.map(rooms, 'storage');
-	// let terminals = _.map(rooms, r => Game.rooms[r].terminal);
-	const headers = ['res'].concat(_.map(rooms, 'name'));
-	let rows = _.map(RESOURCES_ALL, function (res) {
-		const stored = _.map(sts, t => _.get(t, `store.${res}`, 0));
-		return [res].concat(stored);
-	});
-	rows = _.filter(rows, r => _.any(r, v => v > 0));
-	const totals = _.map(sts, 'total');
-	rows.unshift(['total'].concat(totals));
-	output += '</table>';
-	console.log(Log.table(headers, rows));
 };
 
 /**

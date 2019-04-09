@@ -26,7 +26,7 @@ global.Intel = require('Intel');
 // Deffered modules though we can load when we have cpu for it
 DEFER_REQUIRE('global');
 DEFER_REQUIRE('os.core.errors');	// Required here to get the stack trace size increase
-DEFER_REQUIRE('os.core.commands');
+DEFER_REQUIRE('os.core.commands.default');
 DEFER_REQUIRE('os.ext.spawn');
 DEFER_REQUIRE('ext-constructionsite');
 DEFER_REQUIRE('ext-roomobject');
@@ -74,3 +74,18 @@ if (ENV('runtime.enable_memhack', true)) {
 	const memhack = require('os.core.memhack').wrap;
 	module.exports.loop = memhack(module.exports.loop);
 }
+
+
+global.rceTest = function (cmd, args) {
+	const orig = console.log;
+	try {
+		const msgs = [];
+		console.log = function () {
+			msgs.push(JSON.stringify(arguments));
+		};
+		const result = global[cmd].apply(global, args);
+		return { result, msgs };
+	} finally {
+		console.log = orig;
+	}
+};
