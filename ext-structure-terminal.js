@@ -141,7 +141,7 @@ StructureTerminal.prototype.updateOrders = function () {
 		if (newPrice < 0.25)
 			continue;
 		const status = this.changeOrderPrice(order.id, newPrice);
-		Log.notify(`[Terminal] ${order.roomName} Reducing order price on old order ${order.id} from ${order.price} to ${newPrice} status ${status}`);
+		Log.warn(`[Terminal] ${order.roomName} Reducing order price on old order ${order.id} from ${order.price} to ${newPrice} status ${status}`);
 	}
 };
 
