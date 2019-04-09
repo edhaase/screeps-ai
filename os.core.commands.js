@@ -89,8 +89,11 @@ global.reinitCron = function () {
 };
 
 global.kill = function (pid) {
-	// @todo kill a process
 	kernel.killProcess(pid);
+};
+
+global.stop = function (pid, timeout = undefined) {
+	kernel.stopProcess(pid, timeout);	// graceful shutdown
 };
 
 global.killAll = function () {

@@ -20,6 +20,7 @@ const { OperationNotPermitted } = require('os.core.errors');
 const DEFAULT_HEAP_CHECK_FREQ = 10;
 const DEFAULT_HEAP_WARNING = 0.80;
 const DEFAULT_HEAP_CRITICAL = 0.95;
+const DEFAULT_SHUTDOWN_GRACE_PERIOD = 10;
 
 const MAX_PRECISION = 7;
 const DEFAULT_PRECISION = 5;
@@ -204,6 +205,17 @@ class Kernel {
 			this.postTick(() => this.saveProcessTable());
 			this.postTick(() => _.remove(this.schedule, t => !this.threads.has(t.tid)), 'PurgeKilledThreads');
 		}
+	}
+
+	stopProcess(pid, timeout = ENV('kernel.shutdown_grace_period', DEFAULT_SHUTDOWN_GRACE_PERIOD)) {
+		if (pid === 0)
+			throw new OperationNotPermitted(`Unable to stop kernel`);
+		const process = this.process.get(pid);
+		process.timeout = Game.time + timeout;
+		if (process && process.shutdown) {
+			return process.shutdown();
+		}
+		return false;
 	}
 
 	getProcessByName(name) {

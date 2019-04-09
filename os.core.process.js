@@ -110,6 +110,11 @@ class Process {
 		this.startThread(this.run, undefined, undefined, 'Main thread');
 	}
 
+	shutdown() {
+		/** A graceful shutdown has been requested */
+		global.kernel.killProcess(this.pid);
+	}
+
 	/** Thread management */
 	startProcess(name, opts, ppid = this.pid) {
 		return global.kernel.startProcess(name, opts, ppid);
