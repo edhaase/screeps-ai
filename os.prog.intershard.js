@@ -114,9 +114,9 @@ class Intershard extends Process {
 			return;
 		}
 		this.shardData.set(shardName, data);
-		yield* this.processAcks(data, shardName);		// If we incoming acks, process them.
-		yield* this.processInbound(data, shardName);	// If we have incoming messages, process and ack.
-		yield* this.flushAcks(data, shardName);// Drop any outgoing acks if the related message is gone
+		yield* this.processAcks(data, shardName);		// If we have incoming acks, process them.
+		// yield* this.processInbound(data, shardName);	// If we have incoming messages, process and ack.
+		// yield* this.flushAcks(data, shardName);// Drop any outgoing acks if the related message is gone
 	}
 
 	static getFormatter() {

@@ -5,7 +5,7 @@
 
 /* eslint-disable no-magic-numbers, no-undef */
 
-global.WHOAMI = _.find(Game.structures).owner.username;
+global.WHOAMI = (_.find(Game.structures) || _.find(Game.creeps)).owner.username;
 global.PREVENT_UNCLAIM = ['E59S39', 'E58S41'];
 global.INVADER_USERNAME = 'Invader';
 global.SOURCE_KEEPER_USERNAME = 'Source Keeper';
