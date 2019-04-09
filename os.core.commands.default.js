@@ -218,19 +218,20 @@ global.tbl = function (itr, map, opts = {}) {
 
 Cmd.register('events', events, 'Show recent event log for all rooms', [], 'Reporting');
 Cmd.register('getProcessByName', gpbn, 'Find all processes with name', ['gpbn']);
+Cmd.register('highlight', hl, 'Highlight a given object in the current room', ['hl']);
 Cmd.register('kill', kill, 'Kill a process by pid');
 Cmd.register('killAll', killAll, 'Terminate all running processes');
 Cmd.register('killThread', killThread, 'Terminate a running thread by id');
 Cmd.register('proc', proc, 'Show process table', [], 'Reporting');
+Cmd.register('progress', progress, 'Show room and GCL progress', [], 'Reporting');
 Cmd.register('reinitAll', reinitAll);
 Cmd.register('reinitCron', reinitCron);
 Cmd.register('startProcess', start, 'Launch a process', ['start']);
-Cmd.register('stop', stop, 'Attempt to gracefully stop a process');
-Cmd.register('threads', threadReport, 'Show threads', [], 'Reporting');
-Cmd.register('progress', progress, 'Show room and GCL progress', [], 'Reporting');
 Cmd.register('stats', stats, 'Show empire stats for this shard', [], 'Reporting');
-Cmd.register('terminals', terminals, 'Show terminal report', [], 'Reporting');
+Cmd.register('stop', stop, 'Attempt to gracefully stop a process');
 Cmd.register('storage', storage, 'Show storage report', [], 'Reporting');
+Cmd.register('terminals', terminals, 'Show terminal report', [], 'Reporting');
+Cmd.register('threads', threadReport, 'Show threads', [], 'Reporting');
 
 const Inspector = require('os.core.ins.inspector');
 Cmd.register('getParamStr', Inspector.getParamStr, 'Show the parameter names for a function', ['params'], 'Inspector');
