@@ -159,7 +159,7 @@ function terminals() {
 	rows.unshift(['credits'].concat(credits));
 	output += '</table>';
 	console.log(Log.table(headers, rows));
-};
+}
 
 function storage() {
 	var output = '<table>';
@@ -178,7 +178,7 @@ function storage() {
 	rows.unshift(['total'].concat(totals));
 	output += '</table>';
 	console.log(Log.table(headers, rows));
-};
+}
 
 class Tag {
 	constructor(name, content) {
@@ -216,19 +216,24 @@ global.tbl = function (itr, map, opts = {}) {
 	return `<table ${style}>${content}</table>`;
 };
 
-Cmd.register('events', events, 'Show recent event log for all rooms');
-Cmd.register('ex', (x) => JSON.stringify(x, null, 2), 'Explain (Pretty print an object)');
+Cmd.register('events', events, 'Show recent event log for all rooms', [], 'Reporting');
 Cmd.register('getProcessByName', gpbn, 'Find all processes with name', ['gpbn']);
 Cmd.register('kill', kill, 'Kill a process by pid');
 Cmd.register('killAll', killAll, 'Terminate all running processes');
 Cmd.register('killThread', killThread, 'Terminate a running thread by id');
-Cmd.register('proc', proc, 'Show process table');
+Cmd.register('proc', proc, 'Show process table', [], 'Reporting');
 Cmd.register('reinitAll', reinitAll);
 Cmd.register('reinitCron', reinitCron);
 Cmd.register('startProcess', start, 'Launch a process', ['start']);
 Cmd.register('stop', stop, 'Attempt to gracefully stop a process');
-Cmd.register('threads', threadReport, 'Show threads');
-Cmd.register('progress', progress, 'Show room and GCL progress');
-Cmd.register('stats', stats, 'Show empire stats for this shard');
-Cmd.register('terminals', terminals, 'Show terminal report');
-Cmd.register('storage', storage, 'Show storage report');
+Cmd.register('threads', threadReport, 'Show threads', [], 'Reporting');
+Cmd.register('progress', progress, 'Show room and GCL progress', [], 'Reporting');
+Cmd.register('stats', stats, 'Show empire stats for this shard', [], 'Reporting');
+Cmd.register('terminals', terminals, 'Show terminal report', [], 'Reporting');
+Cmd.register('storage', storage, 'Show storage report', [], 'Reporting');
+
+const Inspector = require('os.core.ins.inspector');
+Cmd.register('getParamStr', Inspector.getParamStr, 'Show the parameter names for a function', ['params'], 'Inspector');
+Cmd.register('explain', (x) => JSON.stringify(x, null, 2), 'Explain (Pretty print an object)', ['ex'], 'Inspector');
+Cmd.register('inspect', Inspector.inspect, 'Inspect an object or prototype', ['ins'], 'Inspector');
+Cmd.register('prop_find', Inspector.findProperty, 'Find a property in a prototype chain', ['propf'], 'Inspector');

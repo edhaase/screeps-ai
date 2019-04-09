@@ -26,6 +26,7 @@ global.Intel = require('Intel');
 // Deffered modules though we can load when we have cpu for it
 DEFER_REQUIRE('global');
 DEFER_REQUIRE('os.core.errors');	// Required here to get the stack trace size increase
+DEFER_REQUIRE('os.core.ins.inspector');
 DEFER_REQUIRE('os.core.commands.default');
 DEFER_REQUIRE('os.ext.spawn');
 DEFER_REQUIRE('ext-constructionsite');

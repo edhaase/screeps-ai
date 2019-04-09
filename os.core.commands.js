@@ -3,26 +3,56 @@
 
 /* global MAKE_CONSTANT */
 
+const Inspector = require('os.core.ins.inspector');
+
 const COMMANDS = {};
-exports.register = function register(name, fn, desc = '-', aliases = []) {
+exports.register = function register(name, fn, desc = '-', aliases = [], category) {
 	MAKE_CONSTANT(global, name, fn);
-	COMMANDS[name] = [fn, desc, aliases];
+	const args = Inspector.getParamStr(fn);
+	COMMANDS[name] = [fn, desc, aliases, category, args];
 	for (const alias of aliases) {
 		MAKE_CONSTANT(global, alias, fn);
 	}
 };
 
-exports.list = function () {
+exports.showFull = function () {
 	var body = '';
 	const sorted = _.sortByOrder(Object.entries(COMMANDS), x => x[0], ['asc']);
-	for (const [name, [, desc,aliases]] of sorted) {
-		body += `<tr><td>${name}</td><td>${desc}</td><td>${aliases.join(',')}<td></tr>`;
+	const groups = _.groupBy(sorted, x => x[1][3] || '*');
+	const sortedGroups = _.sortByOrder(Object.entries(groups), x => x[0], ['asc']);
+	for (const [category, commands] of sortedGroups) {
+		if (category !== '*')
+			body += `<tr></tr><tr><td colspan=3><center><font color='green'>${category}</font></center></td></tr>`;
+		for (const [name, [, desc, aliases, , args]] of commands) {
+			body += `<tr><td>${name}</td><td>${desc}</td><td>${aliases.join(',')}<td><td>${args}</td></tr>`;
+		}
+	}
+	const head = `<tr><th>Name</th><th>Desc</th><th>Aliases</th><th>Params</th></tr>`;
+	return `<table style='width: 50vw'><thead>${head}<thead><tbody>${body}</tbody></table>`;
+};
+
+
+exports.showBrief = function () {
+	var body = '';
+	const sorted = _.sortByOrder(Object.entries(COMMANDS), x => x[0], ['asc']);
+	const groups = _.groupBy(sorted, x => x[1][3] || '*');
+	const sortedGroups = _.sortByOrder(Object.entries(groups), x => x[0], ['asc']);
+	for (const [category, commands] of sortedGroups) {
+		if (category !== '*')
+			body += `<tr></tr><tr><td colspan=3><center><font color='green'>${category}</font></center></td></tr>`;
+		for (const [name, [, desc, aliases]] of commands) {
+			body += `<tr><td>${name}</td><td>${desc}</td><td>${aliases.join(',')}<td></tr>`;
+		}
 	}
 	const head = `<tr><th>Name</th><th>Desc</th><th>Aliases</th></tr>`;
 	return `<table style='width: 30vw'><thead>${head}<thead><tbody>${body}</tbody></table>`;
 };
 
+exports.list = function (full = false) {
+	return (full) ? exports.showFull() : exports.showBrief();
+};
+
 /** Load one default command */
-exports.register('help', function () {
-	return exports.list();
+exports.register('help', function (full = false) {
+	return exports.list(full);
 }, 'Show available commands');
