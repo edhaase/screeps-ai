@@ -88,7 +88,7 @@ class Intershard extends Process {
 		while (!(yield)) {
 			if (!this.dirty)
 				continue;
-			this.contents.lastUpdate = Date.now();
+			this.data.lastUpdate = Date.now();
 			this.contents = JSON.stringify(this.data);
 			InterShardMemory.setLocal(this.contents);
 			this.dirty = false;
@@ -124,6 +124,7 @@ class Intershard extends Process {
 		return new Intl.DateTimeFormat("en-US", options);
 	}
 
+	// [Intershard] IKKGN.0/22 MSG 1XN TRX COMPLETE: SEND [4/8/2019, 11:48:10 PM] RECV [4/8/2019, 11:50:36 PM] ACKD  [4/8/2019, 11:50:56 PM]
 	*processAcks(data, shardName) {
 		const options = ENV(`intershard.date_format`, IST_DEFAULT_DATE_TIME_FORMAT_OPTIONS);
 		const formatter = new Intl.DateTimeFormat("en-US", options);
@@ -139,17 +140,14 @@ class Intershard extends Process {
 			delete messages.shard[shardName][id];
 			const [res] = this.ack_cb.get(id);
 			this.ack_cb.delete(id);
-			this.info(`MSG ${id} TRX COMPLETE: SEND ${formatter.format(message.ts)} RECV ${formatter.format(time)} ACKD  ${formatter.format(Date.now())}`);
+			this.info(`MSG ${id} TRX COMPLETE: SEND [${formatter.format(message.ts)}] RECV [${formatter.format(time)}] ACKD ${formatter.format(Date.now())}`);
 			_.attempt(res, Date.now());
 			yield true;
 		}
 	}
 
 	send(msg) {
-		const { messages } = this.data;
-		if (messages.shard[msg.dest] == null)
-			messages.shard[msg.dest] = {};
-		messages.shard[msg.dest][msg.id] = msg;
+		_.set(this.data, ['messages', msg.dest, msg.id], msg);
 		this.dirty = true; // Trigger write.
 		return new Promise((res, rej) => this.ack_cb.set(msg.id, [res, rej]));
 	}
