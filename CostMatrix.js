@@ -64,6 +64,7 @@ class LogisticsMatrix extends CostMatrix {
 		if (room.controller) // @todo if not a wall..
 			this.applyInRoomRadius((x, y) => this.set(x, y, 1), room.controller.pos, 3);
 		this.setRoads(room);
+		this.setStructureType(room, STRUCTURE_CONTAINER, 1);
 		this.setFixedObstacles(room);
 		this.setDynamicObstacles(room);
 		this.setSKLairs(room);
