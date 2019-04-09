@@ -42,6 +42,18 @@ class Body extends Array {
 		return _.countBy(this);
 	}
 
+	cycle(n) {
+		var arr = [];
+		for (var i = 0; i < n; i++)
+			arr.push(this[i % this.length]);
+		return arr;
+	}
+
+	repeat(maxCost, maxSize = MAX_CREEP_SIZE) {
+		var n = Math.min(maxSize / this.length, maxCost / UNIT_COST(this));
+		n = Math.floor(n);
+		return this.cycle(this.length * n);
+	}
 }
 
 module.exports = Body;
