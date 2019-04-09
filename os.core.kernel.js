@@ -56,6 +56,7 @@ class Kernel {
 		this.nextThreadId = 0;  // Threads are transient, so we don't need anything fancy here.
 		this.threadClass = Thread;
 		this.queue = [];
+		this.proc = [];				// Safety, must exist during bootstrap
 		this.process.set(0, this);
 		this.processByName.set('kernel', [this]);
 
