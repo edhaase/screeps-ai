@@ -5,7 +5,7 @@
 
 global.ex = (x) => JSON.stringify(x, null, 2);
 
-global.proc = function (sortBy = 'pid', order = ['asc']) {
+global.proc = function (sortBy = ENV('commands.proc.default_sort', 'pid'), order = ['asc']) {
 	/* for (const [pid, process] of kernel.process) {
 		console.log(`${process}`);
 		// @todo display more
@@ -23,7 +23,7 @@ global.proc = function (sortBy = 'pid', order = ['asc']) {
 	return `<table width='1200px'><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table`;
 };
 
-global.threads = function (pid, sortBy = 'pid', order = ['asc']) {
+global.threads = function (pid, sortBy = ENV('commands.threads.default_sort', 'pid'), order = ['asc']) {
 	// @todo show threads for process
 	// [...kernel.threads.values()]
 	const allThreads = [...kernel.threads.values()];
