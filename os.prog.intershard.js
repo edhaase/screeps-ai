@@ -128,7 +128,7 @@ class Intershard extends Process {
 		const options = ENV(`intershard.date_format`, IST_DEFAULT_DATE_TIME_FORMAT_OPTIONS);
 		const formatter = new Intl.DateTimeFormat("en-US", options);
 
-		const acks = _.det(data, ['acks', Game.shard.name], {});
+		const acks = _.get(data, ['acks', Game.shard.name], {});
 		const { messages } = this.data;
 		for (const [id, time] of acks) {
 			if (!this.ack_cb.has(id))
