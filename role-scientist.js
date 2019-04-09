@@ -89,12 +89,12 @@ module.exports = {
 			if (!boosts || !boosts.length)
 				continue;
 			const demand = _.unique(boosts, false, b => terminal.store[b] >= 750 && BOOST_PARTS[b]);
-			for (const resource of demand) {
-				current.push(resource);
+			for (const res of demand) {
+				current.push(res);
 				if (current.length >= labs.length)
 					break;
 			}
-			Log.debug(`${this.name} wants to support creep ${name} in under ${remainingTime} with ${demand}`, 'Creep');
+			Log.debug(`${this.name} wants to support creep ${name} in under ${remainingTime} with ${demand}`, 'Scientist');
 		}
 		if (!current || !current.length) {
 			this.say('Wait!');
@@ -113,13 +113,11 @@ module.exports = {
 				amt -= lab.mineralAmount;
 			if (amt <= 0)
 				continue;
-			Log.warn(`Loading ${amt} ${compound} to ${lab} (${lab.mineralAmount})`, 'Creep');
+			Log.warn(`${this.name}/${this.pos} Loading ${amt} ${compound} to ${lab} (${lab.mineralAmount}) on tick ${Game.time}`, 'Scientist');
 			this.pushState('Transfer', { src: terminal.id, dst: lab.id, res: compound, amt }, false);
 			if (lab.mineralType && lab.mineralType !== compound) {
-				Log.warn(`Scientest needs to unload lab first`, 'Creep');
 				this.pushState('Transfer', { src: lab.id, dst: terminal.id, amt: lab.mineralAmount, res: lab.mineralType }, false);
-				console.log(ex(this.memory.state));
-				console.log(ex(this.memory.stack));
+				Log.info(`${this.name}/${this.pos} Unloading ${lab.mineralAmount} ${lab.mineralType} from ${lab} to ${terminal}`, 'Scientist');
 			}
 		}
 	}
