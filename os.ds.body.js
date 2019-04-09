@@ -6,6 +6,10 @@
  * Unit.Body.from([WORK,CARRY,MOVE])
  */
 class Body extends Array {
+	constructor(itr) {
+		super(...itr);
+	}
+
 	/** override push to limit size */
 	push(part) {
 		if (this.length >= MAX_CREEP_SIZE)
@@ -54,6 +58,8 @@ class Body extends Array {
 		n = Math.floor(n);
 		return this.cycle(this.length * n);
 	}
+
+	static get [Symbol.species]() { return Array; }
 }
 
 module.exports = Body;
