@@ -32,8 +32,9 @@ class FixedObstacleMatrix extends CostMatrix {
 		const room = Game.rooms[roomName];
 		if (!room)
 			return;
-		// don't forget enemy non-public ramparts!
+		// don't forget enemy non-public ramparts!		
 		this.setRoads(room);
+		this.setStructureType(room, STRUCTURE_CONTAINER, 1);
 		this.setFixedObstacles(room);
 		this.setDynamicObstacles(room);
 		this.setSKLairs(room);

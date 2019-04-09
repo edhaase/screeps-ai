@@ -56,11 +56,15 @@ class RoomCostMatrix extends CostMatrix {
 		return this;
 	}
 
-	setRoads(room = this.room, score = 1) {
-		for (const { pos } of (room.structuresByType[STRUCTURE_ROAD] || [])) {
+	setStructureType(room = this.room, type, score = 1) {
+		for (const { pos } of (room.structuresByType[type] || [])) {
 			this.set(pos.x, pos.y, score);
 		}
 		return this;
+	}
+
+	setRoads(room = this.room, score = 1) {
+		return this.setStructureType(room, STRUCTURE_ROAD, score);
 	}
 
 	setTerrainWalls(roomName = this.roomName, score = TILE_UNWALKABLE) {
