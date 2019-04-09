@@ -7,7 +7,6 @@ const Pager = require('os.core.pager');
 const Process = require('os.core.process');
 
 const DEFAULT_STATS_COMMIT_FREQ = 10; // In seconds
-const STATS_COMMIT_FREQ = ENVC('stats.commit_freq', DEFAULT_STATS_COMMIT_FREQ, 1);
 
 const TICK_LENGTH_UPDATE_FREQ = 1000;
 const MS_TO_SECONDS = 1000;
@@ -20,7 +19,7 @@ class Stats extends Process {
 		this.priority = Process.PRIORITY_CRITICAL;
 		this.default_thread_prio = Process.PRIORITY_CRITICAL;
 	}
-	
+
 	/** Grafana has an update frequency in wall-time, so we don't need to write every tick */
 	*writeThread() {
 		while (!(yield)) {
@@ -51,7 +50,7 @@ class Stats extends Process {
 				this.stats.process.name[p.name] = { total, min, avg, max };
 			}
 			Pager.write(SEGMENT_STATS, JSON.stringify(this.stats));
-			this.nextWrite = now + STATS_COMMIT_FREQ;
+			this.nextWrite = now + ENVC('stats.commit_freq', DEFAULT_STATS_COMMIT_FREQ, 1);
 		}
 	}
 
