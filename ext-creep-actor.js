@@ -146,17 +146,11 @@ Creep.prototype.runRole = function () {
  * @return string
  */
 Creep.prototype.getRole = function () {
-	// Role in memory is now considered an override. In case of memory problems, role is inherited by name.
+	// Role in memory is now considered an override. In case of memory problems, role is inherited by name.	
 	if (Memory.creeps[this.name] && Memory.creeps[this.name].role)
 		return Memory.creeps[this.name].role;
-	var roleName = _.trimRight(this.name, '0123456789');
-	var result = _.attempt(() => require(`role-${roleName}`));
-	if (result instanceof Error) {
-		Log.warn(`Rolename ${roleName} not valid for creep ${this.name} at ${this.pos}: ${result}`, 'Creep');
-		return null;
-	}
-	Memory.creeps[this.name].role = roleName;
-	return roleName;
+	Log.notify(`Creep ${this.name}/${this.pos} missing role. recycling.`);
+	return this.setRole('recycle');
 };
 
 /**
@@ -165,8 +159,8 @@ Creep.prototype.getRole = function () {
 Creep.prototype.setRole = function (role) {
 	if (typeof role !== 'string')
 		throw new Error('setRole expects string');
-	this.memory.role = role;
 	this.say(`${role}!`);
+	return (this.memory.role = role);
 };
 
 /**
