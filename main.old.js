@@ -75,7 +75,6 @@ module.exports.loop = function () {
 	global.Player = loadModule('Player');
 	global.Filter = loadModule('Filter');
 	global.Route = loadModule('Route');
-	global.Command = loadModule('Command');
 	global.Market = loadModule('Market');
 	global.Intel = loadModule('Intel');
 	Object.assign(global, loadModule('astar_tedivm'));
@@ -150,7 +149,6 @@ module.exports.loop = function () {
 			if (Game.time % (DEFAULT_SPAWN_JOB_EXPIRE + 1) === 0)
 				stats.dTF = Time.measure(() => Util.invoke(Game.flags, 'run'));
 			stats.dEM = Time.measure(() => Empire.tick());
-			stats.dCS = Time.measure(() => Command.tick());
 		} catch (e) {
 			Log.error(`Error in main loop: ${e}`);
 			Log.error(e.stack);

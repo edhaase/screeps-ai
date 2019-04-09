@@ -19,7 +19,6 @@ global.Time = require('Time');
 global.Player = require('Player');
 global.Filter = require('Filter');
 global.Route = require('Route');
-global.Command = require('Command');
 global.Market = require('Market');
 global.Intel = require('Intel');
 

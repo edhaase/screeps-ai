@@ -100,8 +100,6 @@ Room.prototype.run = function updateRoom() {
 		return;
 
 	// let a = this.structures;
-
-	this.execPendingCommands();
 	this.updateBuild();
 };
 
@@ -116,52 +114,6 @@ Room.prototype.drawVisuals = function () {
 	var { level, progress, progressTotal } = this.controller;
 	if (level < MAX_ROOM_LEVEL)
 		drawPie(this.visual, progress, progressTotal, 'RCL', 'green', 3);
-};
-
-/**
- * Inspired by the command processor, this allows
- * us to push commands to room memory to be ran
- * when the room regains visibility.
- *
- * ex: _.set(Memory.rooms, ['E58S40', 'cmd'], ['console.log("hi");'])
- */
-Room.prototype.execPendingCommands = function () {
-	if (!Memory.rooms[this.name] || !Memory.rooms[this.name].cmd)
-		return;
-	var cmds = this.memory.cmd;
-	if (!cmds || !cmds.length)
-		return;
-	try {
-		var cmd, r;
-		while ((Game.cpu.getUsed() + 10 < Game.cpu.tickLimit) && cmds.length) {
-			cmd = cmds.shift();
-			r = eval(cmd);
-			if (typeof r == 'function')
-				r = r();
-			console.log(`[RCOMMAND] Result: ${r}`);
-		}
-	} catch (e) {
-		Log.error('Broken command');
-	}
-};
-
-/**
- * Push a command to a room to be ran when we have visibility.
- *
- * @param string roomName
- * @param function|string cmd - string or function to run.
- *
- * ex: pushCommandToRoom('E58S41', 'console.log("hi")')
- * ex: pushCommandToRoom('E58S41', () => console.log('hi'))
- */
-global.pushCommandToRoom = function (roomName, cmd) {
-	if (!Memory.rooms[roomName])
-		Memory.rooms[roomName] = {};
-	if (!Memory.rooms[roomName].cmd)
-		Memory.rooms[roomName].cmd = [];
-	if (typeof cmd === 'function')
-		cmd = cmd.toString();
-	Memory.rooms[roomName].cmd.push(cmd);
 };
 
 /**
