@@ -16,25 +16,6 @@ DEFINE_CACHED_GETTER(Structure.prototype, 'storedNonEnergyResources', s => s.min
 DEFINE_CACHED_GETTER(StructureRoad.prototype, 'upkeep', r => ((Game.map.getRoomTerrain(r.pos.roomName).get(r.pos.x, r.pos.y) & TERRAIN_MASK_SWAMP)) ? ROAD_UPKEEP_SWAMP : ROAD_UPKEEP);
 DEFINE_CACHED_GETTER(StructureContainer.prototype, 'upkeep', c => c.room.my ? CONTAINER_UPKEEP : REMOTE_CONTAINER_UPKEEP);
 
-
-/* Object.defineProperty(Structure.prototype, "dismantleReturn", {
-	get: function() {
-		return (this.hits / DISMANTLE_POWER) * DISMANTLE_COST;
-	},
-	configurable: true
-})  */
-
-
-/**
- * All owned structures can be 'run'.
- */
-OwnedStructure.prototype.logic = function () {
-	if (!this.run)
-		return;
-	var name = `s-${this.structureType}`;
-	Volatile[name] = _.round((Volatile[name] || 0) + Time.measure(() => this.run()), 3);
-};
-
 /**
  * Monkey patch isActive to cache.
  * @todo: Invalidate periodically?
