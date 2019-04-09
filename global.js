@@ -320,6 +320,57 @@ global.ICONS = {
 	, testFinished: "\uD83C\uDFC1" // for when scout has finished its test run
 };
 
+// Appropriated from engineeryo
+global.RES_COLORS = {
+	[RESOURCE_HYDROGEN]: '#989898',
+	[RESOURCE_OXYGEN]: '#989898',
+	[RESOURCE_UTRIUM]: '#48C5E5',
+	[RESOURCE_LEMERGIUM]: '#24D490',
+	[RESOURCE_KEANIUM]: '#9269EC',
+	[RESOURCE_ZYNTHIUM]: '#D9B478',
+	[RESOURCE_CATALYST]: '#F26D6F',
+	[RESOURCE_ENERGY]: '#FEE476',
+	[RESOURCE_POWER]: '#F1243A',
+
+	[RESOURCE_HYDROXIDE]: '#B4B4B4',
+	[RESOURCE_ZYNTHIUM_KEANITE]: '#B4B4B4',
+	[RESOURCE_UTRIUM_LEMERGITE]: '#B4B4B4',
+	[RESOURCE_GHODIUM]: '#FFFFFF',
+
+	UH: '#50D7F9',
+	UO: '#50D7F9',
+	KH: '#A071FF',
+	KO: '#A071FF',
+	LH: '#00F4A2',
+	LO: '#00F4A2',
+	ZH: '#FDD388',
+	ZO: '#FDD388',
+	GH: '#FFFFFF',
+	GO: '#FFFFFF',
+
+	UH2O: '#50D7F9',
+	UHO2: '#50D7F9',
+	KH2O: '#A071FF',
+	KHO2: '#A071FF',
+	LH2O: '#00F4A2',
+	LHO2: '#00F4A2',
+	ZH2O: '#FDD388',
+	ZHO2: '#FDD388',
+	GH2O: '#FFFFFF',
+	GHO2: '#FFFFFF',
+
+	XUH2O: '#50D7F9',
+	XUHO2: '#50D7F9',
+	XKH2O: '#A071FF',
+	XKHO2: '#A071FF',
+	XLH2O: '#00F4A2',
+	XLHO2: '#00F4A2',
+	XZH2O: '#FDD388',
+	XZHO2: '#FDD388',
+	XGH2O: '#FFFFFF',
+	XGHO2: '#FFFFFF'
+};
+
 /**
  * Global functions
  * @todo stick in actual cache?
@@ -451,7 +502,7 @@ global.terminals = function () {
 	const headers = ['res'].concat(_.map(rooms, 'name'));
 	let rows = _.map(RESOURCES_ALL, function (res) {
 		const stored = _.map(terminals, t => _.get(t, 'store.' + res, 0));
-		return [res].concat(stored);
+		return [`<font color=${RES_COLORS[res]}>${res}</font>`].concat(stored);
 	});
 	rows = _.filter(rows, r => _.any(r, v => v > 0));
 	const totals = _.map(terminals, 'total');
