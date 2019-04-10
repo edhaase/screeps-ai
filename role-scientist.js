@@ -15,7 +15,7 @@
 // @todo fiddle with this
 const MINIMUM_TIME_TO_LOAD = 15; // 15 ticks to load
 const AMOUNT_TO_LOAD = TERMINAL_MAINTAIN_RESERVE;
-
+const MINIMUM_NEEDED_TO_LOAD = 100;
 // LAB_MINERAL_CAPACITY: 3000,
 // LAB_ENERGY_CAPACITY: 2000,
 // LAB_BOOST_ENERGY: 20,
@@ -113,12 +113,16 @@ module.exports = {
 				amt -= lab.mineralAmount;
 			if (amt <= 0)
 				continue;
+			if ((terminal.store[compound] || 0) < MINIMUM_NEEDED_TO_LOAD)
+				continue;
 			Log.warn(`${this.name}/${this.pos} Loading ${amt} ${compound} to ${lab} (${lab.mineralAmount}) on tick ${Game.time}`, 'Scientist');
 			this.pushState('Transfer', { src: terminal.id, dst: lab.id, res: compound, amt }, false);
 			if (lab.mineralType && lab.mineralType !== compound) {
 				this.pushState('Transfer', { src: lab.id, dst: terminal.id, amt: lab.mineralAmount, res: lab.mineralType }, false);
 				Log.info(`${this.name}/${this.pos} Unloading ${lab.mineralAmount} ${lab.mineralType} from ${lab} to ${terminal}`, 'Scientist');
 			}
+			return;
 		}
+		Log.info(`${this.name}/${this.pos} Nothing we can load`, 'Scientist');
 	}
 };
