@@ -69,6 +69,7 @@ class InfluenceMap {
 		const changes = {};
 		const seen = {};
 		const q = [origin];
+		const owner = _.get(Memory.intel, [origin, 'owner']);
 		for (const roomName of q) {
 			yield true;
 			const dist = seen[roomName] || 0;
@@ -80,6 +81,10 @@ class InfluenceMap {
 			changes[roomName] = inf;
 			// if (this.blocks_propegation(roomName))	// Can't move through a hostile room directly.
 			//	continue;
+			if (delta > 0 && Memory.intel[roomName] && Memory.intel[roomName].owner && Player.status(Memory.intel[roomName].owner) === PLAYER_HOSTILE)
+				continue;	// Don't push through owned rooms
+			if (delta < 0 && Memory.intel[roomName] && Memory.intel[roomName].owner !== owner)
+				continue;	// @todo check alliance map
 			const exits = _.values(Game.map.describeExits(roomName));
 			for (const exit of exits) {
 				if (!Game.map.isRoomAvailable(exit))
