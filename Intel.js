@@ -88,9 +88,9 @@ class Intel {
 		return Memory.intel[roomName] || {};
 	}
 
-	static isHostileRoom(roomName) {
+	static isHostileRoom(roomName, includeSK = true) {
 		/* global Player, PLAYER_HOSTILE */
-		if (Room.getType(roomName) === 'SourceKeeper')
+		if (includeSK && Room.getType(roomName) === 'SourceKeeper')
 			return true;
 		const intel = this.getIntelForRoom(roomName);
 		if (intel && intel.owner && Player.status(intel.owner) === PLAYER_HOSTILE)
