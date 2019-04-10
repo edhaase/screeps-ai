@@ -21,7 +21,7 @@ function proc(sortBy = ENV('commands.proc.default_sort', 'pid'), order = ['asc']
 	const head = `<th>pid/name</th><th>ppid/name</th><th>#threads</th><th>totalCpu</th><th>minCpu</th><th>avgUsrCpu</th><th>avgSysCpu</th><th>maxCpu</th><th>age</th><th>title</th>`;
 	const rows = _.map(sorted, r => `<td>${r.pid}/${r.name}</td><td>${(r.parent && r.parent.pid) || '-'}/${(r.parent && r.parent.name) || '-'}</td><td>${r.threads.size}</td><td>${_.round(r.totalCpu, 5)}</td><td>${_.round(r.minCpu, 5)}</td><td>${_.round(r.avgUsrCpu, 5)}</td><td>${_.round(r.avgSysCpu, 5)}</td><td>${_.round(r.maxCpu, 5)}</td><td>${Game.time - r.born}</td><td>${r.title || '-'}</td>`);
 	const body = _.map(rows, r => `<tr>${r}</tr>`);
-	return `<table width='1200px'><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table`;
+	return `<table style='width: 50vw'><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table`;
 }
 
 function threadReport(pid, sortBy = ENV('commands.threads.default_sort', 'pid'), order = ['asc']) {
@@ -40,7 +40,7 @@ function threadReport(pid, sortBy = ENV('commands.threads.default_sort', 'pid'),
 		return `<td>${t.pid}/${p.name}</td><td>${t.tid}</td><td>${state}</td><td>${t.priority}</td><td>${_.round(t.lastRunCpu, 5)}</td><td>${_.round(t.minCpu, 5)}</td><td>${_.round(t.avgUsrCpu, 5)}</td><td>${_.round(t.avgSysCpu, 5)}</td><td>${_.round(t.maxCpu, 5)}</td><td>${Game.time - t.born}</td><td>${t.desc || '-'}</td>`;
 	});
 	const body = _.map(rows, r => `<tr>${r}</tr>`);
-	return `<table width='1200px'><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table`;
+	return `<table style='width: 60vw'><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table`;
 }
 
 function events(sortBy = 'event', order = ['asc']) {
@@ -58,9 +58,9 @@ function events(sortBy = 'event', order = ['asc']) {
 		}
 
 	}
-	const head = `<th>Event</th><th>Object</th><th>Target</th><th>Data</th>`;
-	const rows = _.map(sorted, r => `<tr><td>${r.eventName || r.event || '-'}</td><td>${r.object}</td><td>${r.target || '-'}</td><td>${JSON.stringify(r.data)}</td></tr>`);
-	return `<table width='1200px'><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table`;
+	const head = `<th>Event</th><th>Object</th><th>Pos</t><th>Target</th><th>Data</th>`;
+	const rows = _.map(sorted, r => `<tr><td>${r.eventName || r.event || '-'}</td><td>${r.object}</td><td>${r.object.pos}</td><td>${r.target || '-'}</td><td>${JSON.stringify(r.data)}</td></tr>`);
+	return `<table style='width: 60vw'><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table`;
 }
 
 function start(name, opts) {
@@ -230,9 +230,9 @@ function spark(co) {
 		const tsbegin = Date.now();
 		const begin = Game.cpu.getUsed();
 		const result = yield* co;
-		const delta =_.round(Game.cpu.getUsed() - begin,3);
+		const delta = _.round(Game.cpu.getUsed() - begin, 3);
 		const tsdelta = Date.now() - tsbegin;
-		console.log(`<details><summary>Thread result {~used ${delta} cpu, ${tsdelta/1000} seconds)</summary>${ex(result)}</details>`);
+		console.log(`<details><summary>Thread result {~used ${delta} cpu, ${tsdelta / 1000} seconds)</summary>${ex(result)}</details>`);
 		return result;
 	};
 	const thread = new kernel.threadClass(wrap(), 0, 'Worker');
