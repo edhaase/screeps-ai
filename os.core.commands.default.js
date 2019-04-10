@@ -2,6 +2,7 @@
 'use strict';
 
 const Cmd = require('os.core.commands');
+const Process = require('os.core.process');
 
 /* global kernel, ENV */
 
@@ -224,6 +225,20 @@ function showRoom(roomName, shard = Game.shard.name) {
 	return `<script>window.location.href = '#!/room/${shard}/${roomName}'</script>`;
 }
 
+function spark(co) {
+	const wrap = function* () {
+		const tsbegin = Date.now();
+		const begin = Game.cpu.getUsed();
+		const result = yield* co;
+		const delta =_.round(Game.cpu.getUsed() - begin,3);
+		const tsdelta = Date.now() - tsbegin;
+		console.log(`<details><summary>Thread result {~used ${delta} cpu, ${tsdelta/1000} seconds)</summary>${ex(result)}</details>`);
+		return result;
+	};
+	const thread = new kernel.threadClass(wrap(), 0, 'Worker');
+	return kernel.attachThread(thread, Process.PRIORITY_IDLE, 0);
+}
+
 Cmd.register('getProcessByName', gpbn, 'Find all processes with name', ['gpbn']);
 Cmd.register('highlight', hl, 'Highlight a given object in the current room', ['hl']);
 Cmd.register('kill', kill, 'Kill a process by pid');
@@ -233,6 +248,7 @@ Cmd.register('reinitAll', reinitAll);
 Cmd.register('reinitCron', reinitCron);
 Cmd.register('startProcess', start, 'Launch a process', ['start']);
 Cmd.register('stop', stop, 'Attempt to gracefully stop a process');
+Cmd.register('spark', spark, 'Create thread for coroutine');
 
 Cmd.register('events', events, 'Show recent event log for all rooms', [], 'Reporting');
 Cmd.register('proc', proc, 'Show process table', [], 'Reporting');
