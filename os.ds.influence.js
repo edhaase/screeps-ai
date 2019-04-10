@@ -18,8 +18,8 @@ class InfluenceMap {
 		this.data = {};
 		this.influences = {};
 		this.max_dist = DEFAULT_MAX_INFLUENCE_DISTANCE;
-		// @todo If we're blocking propegation we should probably consult the ally list.
-		this.blocks_propegation = (r) => Intel.isHostileRoom(r, false);
+		// @todo If we're blocking propagation we should probably consult the ally list.
+		this.blocks_propagation = (r) => Intel.isHostileRoom(r, false);
 	}
 
 	toString() {
@@ -54,18 +54,18 @@ class InfluenceMap {
 
 	init() {
 		this.pending = this.influences;
-		return this.propegateAll();
+		return this.propagateAll();
 	}
 
-	*propegateAll() {
+	*propagateAll() {
 		const entries = Object.entries(this.pending);
 		this.pending = {};
 		for (const change of entries)
-			yield* this.propegate(change);
+			yield* this.propagate(change);
 		return this;
 	}
 
-	*propegate([origin, delta]) {
+	*propagate([origin, delta]) {
 		const changes = {};
 		const seen = {};
 		const q = [origin];
@@ -79,7 +79,7 @@ class InfluenceMap {
 			if (inf === 0)
 				continue;
 			changes[roomName] = inf;
-			// if (this.blocks_propegation(roomName))	// Can't move through a hostile room directly.
+			// if (this.blocks_propagation(roomName))	// Can't move through a hostile room directly.
 			//	continue;
 			if (delta > 0 && Memory.intel[roomName] && Memory.intel[roomName].owner && Player.status(Memory.intel[roomName].owner) === PLAYER_HOSTILE)
 				continue;	// Don't push through owned rooms
@@ -167,7 +167,7 @@ InfluenceMap.test = function (first) {
 	const c = im.clone();
 	c.set('W9N9', 0);
 	c.set('W7N2', 0);
-	c.propegateAll();
+	c.propagateAll();
 	return [im, b, c]; */
 };
 
