@@ -239,7 +239,7 @@ class Kernel {
 			const MIN_CPU_THIS_TICK = Math.min(Game.cpu.limt, Game.cpu.tickLimit);
 			this.throttle = (Game.cpu.bucket / global.BUCKET_MAX > 0.5) ? Game.cpu.tickLimit * 0.90 : MIN_CPU_THIS_TICK;
 			this.queue = this.schedule.slice(0);
-			var thread; // , i = this.queue.length - 1;
+			var thread; // , i = this.queue.length - 1;		
 			while ((thread = this.queue.pop()) != null) {
 				const AVG_USED = Math.max(thread.avgSysCpu, thread.avgUsrCpu);
 				if (Game.cpu.getUsed() + AVG_USED >= this.throttle) {
@@ -249,15 +249,28 @@ class Kernel {
 				}
 
 				try {
+					if (thread.lastRunSysTick !== Game.time)
+						thread.lastTickSysCpu = 0;
 					const start = Game.cpu.getUsed();
 					thread.lastRunSysTick = Game.time;
 					this.runThread(thread);
 					const delta = Game.cpu.getUsed() - start;
 					thread.avgSysCpu = MM_AVG(delta, thread.avgSysCpu); // May count zeroes for sleeping threads
+					thread.lastTickSysCpu += delta;
 				} catch (e) {
 					Log.error(e.stack, 'Kernel');
 					yield* Async.waitForTick(Game.time + 5);
 				}
+			}
+
+			// Wrap up stats for the tick
+			for (thread of this.schedule) {
+				if (thread.lastRunSysTick !== Game.time)
+					continue;
+				thread.avgSysTickCpu = MM_AVG(thread.lastTickSysCpu, thread.avgSysTickCpu || 0);
+				thread.avgUsrTickCpu = MM_AVG(thread.lastTickUsrCpu, thread.avgUsrTickCpu || 0);
+				thread.minTickCpu = Math.max(0, Math.min(thread.minTickCpu, thread.lastTickSysCpu || 0)); // Already initialized on attach (But why were we getting negative numbers?)
+				thread.maxTickCpu = Math.min(Game.cpu.tickLimit - 1, Math.max(thread.maxTickCpu, thread.lastTickSysCpu || 0));
 			}
 
 			// Post tick cleanup

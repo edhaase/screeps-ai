@@ -20,6 +20,8 @@ class Thread {
 		this.avgSysCpu = 0;
 		this.minCpu = Infinity;
 		this.maxCpu = -Infinity;
+		this.minTickCpu = Infinity;
+		this.maxTickCpu = -Infinity;
 		this.state = Thread.STATE_RUNNING;
 		this.desc = desc;
 		this.born = Game.time;
@@ -44,7 +46,6 @@ class Thread {
 	}
 
 	tick(k) {
-		this.lastRunUsrTick = Game.time;
 		const start = Game.cpu.getUsed();
 		try {
 			if (this.pending_error)
@@ -53,11 +54,17 @@ class Thread {
 				return this.co.next(this.pending_deliver || k);
 		} finally {
 			const delta = Game.cpu.getUsed() - start;
+			this.lastRunUsrTick = Game.time;
+			// Per tick stats
+			this.lastTickUsrCpu += delta;
+
+			// Iteration stats
 			this.lastRunCpu = delta;
 			this.minCpu = Math.max(0, Math.min(this.minCpu, delta)); // Already initialized on attach (But why were we getting negative numbers?)
 			this.maxCpu = Math.min(Game.cpu.tickLimit - 1, Math.max(this.maxCpu, delta));
 			this.avgUsrCpu = MM_AVG(delta, this.avgUsrCpu);	// Tracks only samples of when a thread actually runs	
 
+			// Reset pending deliverables
 			this.pending_deliver = undefined;
 			this.pending_error = undefined;
 			this.wait_timeout = undefined;
@@ -66,6 +73,8 @@ class Thread {
 
 	next(k) {
 		try {
+			if (this.lastRunUsrTick !== Game.time)
+				this.lastTickUsrCpu = 0;
 			if (this.wait_timeout !== undefined && Game.time > this.wait_timeout)
 				throw new TimeLimitExceeded(`IO Timeout`); // Don't allow it to be caught
 			if (this.timeout !== undefined && Game.time > this.timeout) // Even pending threads can time out
