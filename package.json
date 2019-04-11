@@ -1,0 +1,27 @@
+{
+	"name": "epsilon",
+	"author": "Edward Haase",
+	"license": "MIT",
+	"devDependencies": {
+		"grunt": "^1.0.4",
+		"grunt-screeps": "^1.4.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/edhaase/ScreepsAI.git"
+	},
+	"description": "A couroutine based screeps AI",
+	"bugs": {
+		"url": "https://github.com/edhaase/ScreepsAI/issues"
+	},
+	"version": "0.0.1",
+	"dependencies": {
+		"grunt-contrib-clean": "^2.0.0",
+		"grunt-contrib-copy": "^1.0.0",
+		"grunt-contrib-watch": "^1.1.0",
+		"grunt-file-append": "0.0.7",
+		"grunt-jsbeautifier": "^0.2.13",
+		"grunt-sync": "^0.8.0",
+		"time-grunt": "^2.0.0"
+	}
+}

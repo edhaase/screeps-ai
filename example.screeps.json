@@ -1,0 +1,7 @@
+{
+	"email": "<YOUR EMAIL HERE>",
+	"password": "<YOUR PASSWORD HERE>",
+	"branch": "default",
+	"ptr": false,
+	"private_directory": ""
+  }
