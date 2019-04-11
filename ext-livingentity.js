@@ -392,3 +392,4 @@ DEFINE_CACHED_GETTER(LivingEntity.prototype, 'isFriendly', (c) => (c.my === true
 
 Creep.prototype.__proto__ = LivingEntity.prototype;
 PowerCreep.prototype.__proto__ = LivingEntity.prototype;
+global.LivingEntity = LivingEntity;

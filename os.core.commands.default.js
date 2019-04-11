@@ -37,14 +37,14 @@ function threadReport(pid, sortBy = ENV('commands.threads.default_sort', 'pid'),
 		const p = kernel.process.get(t.pid) || {};
 		const asleep = (t.sleep && Game.time < t.sleep) || (p.sleep && Game.time < p.sleep);
 		const state = (asleep) ? 'SLEEP' : t.state;
-		return `<td>${t.pid}/${p.name}</td><td>${t.tid}</td><td>${state}</td><td>${t.priority}</td><td>${_.round(t.lastTickSysCpu, 5)} (${_.round(t.lastTickUsrCpu, 5)})</td><td>${_.round(t.minTickCpu, 5)}</td><td>${_.round(t.avgUsrTickCpu, 5)}</td><td>${_.round(t.avgSysCpu, 5)}</td><td>${_.round(t.maxTickCpu, 5)}</td><td>${Game.time - t.born}</td><td>${t.desc || '-'}</td>`;
+		return `<td>${t.pid}/${p.name}</td><td>${t.tid}</td><td>${state}</td><td>${t.priority}</td><td>${_.round(t.lastTickSysCpu, 5)} (${_.round(t.lastTickUsrCpu, 5)})</td><td>${_.round(t.minTickCpu, 5)}</td><td>${_.round(t.avgUsrTickCpu, 5)}</td><td>${_.round(t.avgSysTickCpu, 5)}</td><td>${_.round(t.maxTickCpu, 5)}</td><td>${Game.time - t.born}</td><td>${t.desc || '-'}</td>`;
 	});
 	const body = _.map(rows, r => `<tr>${r}</tr>`);
 	return `<table style='width: 60vw'><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table`;
 }
 
 function events(sortBy = 'event', order = ['asc']) {
-	const allEvents = _(Game.rooms).map(r => r.getEventLog()).flatten().value();
+	const allEvents = _(Game.rooms).map(r => r.events).flatten().value();
 	const lookup = _(global).pick((v, k) => k.startsWith('EVENT_') && !k.startsWith('EVENT_ATTACK_') && !k.startsWith('EVENT_HEAL_')).invert().value();
 	const sorted = _.sortByOrder(allEvents, sortBy, order);
 	for (const event of sorted) {

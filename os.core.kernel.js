@@ -73,7 +73,7 @@ class Kernel {
 		try {
 			yield* this.wire(); // Prototypes must be loaded first
 			this.startThread(this.watchdog, [], Process.PRIORITY_CRITICAL, 'Kernel watchdog thread');
-			this.startThread(this.init, [], Process.PRIORITY_CRITICAL, 'Init thread');
+			this.startThread(this.init, [], Process.PRIORITY_CRITICAL, 'Process initialization');
 			this.startThread(Pager.tick, [], Process.PRIORITY_IDLE, 'Pager thread');	// We want this to run last
 			this.startThread(ForeignSegment.tickAsync, [], Process.PRIORITY_IDLE, 'Foreign segment thread');
 			this.startThread(ForeignSegment.tickIdleReset, [], Process.PRIORITY_IDLE, 'Foreign segment idle reset thread');
