@@ -120,6 +120,7 @@ class Kernel {
 			}
 			require(m);
 		}
+		DEFERRED_MODULES.length = 0; // Recover the space
 	}
 
 	*init() {
