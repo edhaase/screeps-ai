@@ -9,10 +9,7 @@ global.Log = require('Log');	// Required for colorized logging
 
 global.Arr = require('Arr');
 global.Util = require('Util');
-global.Log = require('Log');
 global.CostMatrix = require('CostMatrix');
-// global.Cache = require('Cache');
-global.Empire = require('Empire');
 global.Event = require('Event');
 global.Group = require('Group');
 global.Time = require('Time');

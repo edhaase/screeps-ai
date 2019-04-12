@@ -4,6 +4,7 @@
 /* global ENV, ENVC, Market */
 
 const Process = require('os.core.process');
+const Intel = require('Intel');
 
 const DEFAULT_EMPIRE_EXPANSION_FREQ = 2056; // Let's set this to at least higher than a creep life time.
 
@@ -15,7 +16,7 @@ class EmpireProc extends Process {
 	}
 
 	/* eslint-disable require-yield */
-	*run() {		
+	*run() {
 		this.startThread(this.autoExpand, null, Process.PRIORITY_IDLE, `Automatic empire expansion`);
 		return false;
 	}
@@ -48,7 +49,7 @@ class EmpireProc extends Process {
 			return this.error(`No available spawn for expansion on tick ${Game.time}`);
 
 		// @todo check if safe to send a claimer
-		const candidates = Empire.getAllCandidateRoomsByScore().value();
+		const candidates = this.getAllCandidateRoomsByScore().value();
 		if (!candidates || !candidates.length)
 			return this.error(`No expansion candidates`, 'Empire');
 		this.warn(`Candidate rooms: ${candidates}`, 'Empire');
@@ -63,6 +64,89 @@ class EmpireProc extends Process {
 		const estCpuPerRoom = Memory.stats["cpu1000"] / this.ownedRoomCount();
 		Log.debug(`Empire estimated ${estCpuPerRoom} cpu used per room`, 'Empire');
 		return (Memory.stats["cpu1000"] + estCpuPerRoom) < Game.cpu.limit - 10;
+	}
+
+	// @todo Fuzz factor is still problematic.
+	static getAllCandidateRoomsByScore(range = 3) {
+		return this
+			.getAllCandidateRooms(range)
+			// .map(r => ({name: r, score: Intel.scoreRoomForExpansion(r) * (0.1+Math.random() * 0.1)}))
+			// .sortByOrder(r => r.score, ['desc'])
+			.sortByOrder(r => Intel.scoreRoomForExpansion(r) * (0.1 + Math.random() * 0.1), ['desc'])
+		// .sortByOrder(r => Intel.scoreRoomForExpansion(r), ['desc'])
+	}
+
+	static getAllCandidateRooms(range = 3) {
+		const start = _.map(this.ownedRooms(), 'name');
+		const seen = _.zipObject(start, Array(start.length).fill(0));
+		const q = start;
+		const candidates = [];
+		for (const roomName of q) {
+			const dist = seen[roomName] || 0;
+			// console.log(`${roomName} ${dist}`);
+			if (dist >= range)
+				continue;
+			const exits = _.values(Game.map.describeExits(roomName));
+			for (const exit of exits) {
+				if (!Game.map.isRoomAvailable(exit))
+					continue;
+				if (seen[exit] !== undefined && dist + 1 >= seen[exit])
+					continue;
+				seen[exit] = dist + 1;
+				const score = _.sortedIndex(q, exit, i => seen[i]);
+				q.splice(score, 0, exit);
+				// console.log(`exit score: ${score}`);
+			}
+			if (Room.getType(roomName) !== 'Room')
+				continue;
+			if ((Game.rooms[roomName] && Game.rooms[roomName].my) || dist <= 1)
+				continue;
+			if (!Intel.isClaimable(roomName))
+				continue;
+
+			candidates.push(roomName);
+		}
+
+		return _(candidates);
+	}
+
+	/**
+	 * Find expansion candidates.
+	 *
+	 * Ex: Empire.getCandidateRooms('W7N3')
+	 * W5N3,W8N5,W5N2,W7N5,W9N3,W7N1
+	 * W7N4,W8N4,W5N3,W5N2,W9N3,W9N2
+	 */
+	static getCandidateRooms(start, range = 2) {
+		const seen = { [start]: 0 };
+		const q = [start];
+		const candidates = [];
+		for (const roomName of q) {
+			const dist = seen[roomName];
+			if (dist >= range)
+				continue;
+			const exits = _.values(Game.map.describeExits(roomName));
+			for (const exit of exits) {
+				if (!Game.map.isRoomAvailable(exit) || seen[exit] !== undefined)
+					continue;
+				seen[exit] = dist + 1;
+				q.push(exit);
+			}
+			if (Room.getType(roomName) !== 'Room')
+				continue;
+			if (Game.rooms[roomName] && Game.rooms[roomName].my)
+				continue;
+			if (!_.inRange(Route.findRoute(start, roomName).length, 2, 5))
+				continue;
+			candidates.push(roomName);
+		}
+
+		return candidates;
+	}
+
+
+	static ownedRooms() {
+		return _.filter(Game.rooms, "my");
 	}
 }
 
