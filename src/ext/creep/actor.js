@@ -425,8 +425,8 @@ Creep.prototype.build = function (target) {
  * Heal restrictions
  */
 const { heal } = Creep.prototype;
-Creep.prototype.heal = function (target) {
-	if (target.hits >= target.hitsMax)
+Creep.prototype.heal = function (target, force = false) {
+	if (target.hits >= target.hitsMax && !force)
 		return ERR_FULL;
 	if (!target.my && Player.status(target.owner.username) !== PLAYER_ALLY)
 		return ERR_INVALID_TARGET;
