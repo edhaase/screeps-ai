@@ -24,6 +24,11 @@ exports.sum = function sum(itr, fn = _.identity) {
 	return total;
 };
 
+exports.flatten = function* (itr) {
+	for (const itm of itr)
+		yield* itm;
+};
+
 exports.explore = function* explore(start, max_range = 30, opts = {}) {
 	const seen = { [start]: 0 };
 	const q = [start];
