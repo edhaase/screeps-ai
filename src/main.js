@@ -11,7 +11,7 @@ global.Arr = require('Arr');
 global.Util = require('Util');
 global.Log = require('Log');
 global.CostMatrix = require('CostMatrix');
-global.Cache = require('Cache');
+// global.Cache = require('Cache');
 global.Empire = require('Empire');
 global.Event = require('Event');
 global.Group = require('Group');
@@ -28,6 +28,7 @@ DEFER_REQUIRE('os.core.errors');	// Required here to get the stack trace size in
 DEFER_REQUIRE('os.core.ins.inspector');
 DEFER_REQUIRE('os.core.commands.default');
 DEFER_REQUIRE('os.ext.spawn');
+DEFER_REQUIRE('ext.cache');
 DEFER_REQUIRE('ext.constructionsite');
 DEFER_REQUIRE('ext.roomobject');
 DEFER_REQUIRE('ext.livingentity');
