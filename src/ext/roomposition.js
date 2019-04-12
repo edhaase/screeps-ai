@@ -191,10 +191,6 @@ RoomPosition.prototype.hasRampart = function (fn) {
 	return this.hasStructure(STRUCTURE_RAMPART, 0, fn);
 };
 
-RoomPosition.prototype.hasRoad = function () {
-	return this.hasStructure(STRUCTURE_ROAD);
-};
-
 RoomPosition.prototype.getConstructionSite = function (structureType = null, range = 0, validator = () => true) {
 	if (range === 0) {
 		return _.find(this.lookFor(LOOK_CONSTRUCTION_SITES), c => (structureType == null || c.structureType === structureType) && validator(c));

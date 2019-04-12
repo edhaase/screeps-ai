@@ -43,7 +43,7 @@ class Path extends BaseArray {
 	 * Check if any portion of the path has road
 	 */
 	hasRoad() {
-		return _.any(this, rp => rp.hasRoad());
+		return _.any(this, rp => rp.hasStructure(STRUCTURE_ROAD));
 	}
 
 	// Return path array without roads
