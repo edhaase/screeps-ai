@@ -101,78 +101,6 @@ class TowerThreatMatrix extends CostMatrix {
 	}
 }
 
-/** Lazy factory */
-class LazyPropertyFactory {
-	constructor(fn = () => 3) {
-		this.fn = fn;
-	}
-
-	get(target, key, proxy) {
-		if (target[key] === undefined)
-			target[key] = this.fn(key);
-		return target[key];
-	}
-
-	set(target, key, value, proxy) {
-		return target[key] = value;
-	}
-}
-
-/* eslint-disable class-methods-use-this */
-/* const MAX_CACHE_COSTMATRIX_AGE = 5;
-class LazyMatrixStore {
-	constructor(clazz, maxAge = MAX_CACHE_COSTMATRIX_AGE) {
-		this.clazz = clazz;
-		this.maxAge = maxAge;
-	}
-
-	get(target, key, proxy) {
-		Log.debug(`Requesting ${this.clazz.name} cost matrix for ${key}`, 'Matrix');
-		var ck = `${this.clazz.name}_${key}`;
-		var cm = target.get(ck);
-		if(!cm) {
-			if (Game.rooms[key]) {
-				Log.info(`Creating cost matrix for ${ck} (Tick ${Game.time})`, 'Matrix');
-				proxy[key] = new this.clazz(key);
-			} else {
-				// console.log('Loading obstacle matrix for ' + key);
-				// Log.debug(`Loading cost matrix for ${key} from memory`, 'Matrix');
-				// let om = _.get(Memory.rooms, key + '.cm.obstacle');
-				// target[key] = (om) ? CostMatrix.deserialize(om) : new PathFinder.CostMatrix;
-				Log.debug(`Creating empty cost matrix for ${ck}`, 'Matrix');
-				proxy[key] = new PathFinder.CostMatrix;
-			}
-		}
-		return target.get(ck).matrix;
-		// if (target[key] == null || Game.time - target[key].tick > this.maxAge) {
-			// let start = Game.cpu.getUsed();
-			
-			// Log.debug(`Creating cost matrix for ${key}: ${target[key].serialize()}`);
-			// console.log('Matrix used: ' + _.round(Game.cpu.getUsed() - start, 3));
-		// }
-		// return target[key].matrix;
-	}
-
-	set(target, key, value, proxy) {
-		// console.log('Saving logistics matrix: ' + key);
-		var ck = `${this.clazz.name}_${key}`;
-		Log.debug(`Saving cost matrix for ${ck}`, 'Matrix');
-		return target.set(ck, { matrix: value, tick: Game.time });
-	}
-} */
-// @todo kill proxies
-// @todo handle volatile data
-/* eslint-enable class-methods-use-this */
-// global.LOGISTICS_MATRIX = new Proxy(CostMatrix.cache, new LazyMatrixStore(LogisticsMatrix));
-// global.FIXED_OBSTACLE_MATRIX = new Proxy(CostMatrix.cache, new LazyMatrixStore(FixedObstacleMatrix, 30));
-
-global.LOGISTICS_MATRIX = new DelegatingLazyMap(
-	(roomName) => (Game.rooms[roomName] && new LogisticsMatrix(roomName)) || new CostMatrix,
-	new LRU({ ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE })
-);
-
-// map.get(roomname) has no idea about whether the item exists or if there will be an error.
-// we can't throw an error this way.
 global.LOGISTICS_MATRIX = new DelegatingLazyMap(
 	(roomName) => {
 		try {
@@ -184,11 +112,6 @@ global.LOGISTICS_MATRIX = new DelegatingLazyMap(
 	},
 	new LRU({ ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE })
 );
-
-/* global.FIXED_OBSTACLE_MATRIX = new LazyMap(
-	(roomName) => (Game.rooms[roomName] && new CostMatrix).setFixedObstacles(Game.rooms[roomName]) || new CostMatrix,
-	new LRU({ ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE })
-); */
 
 global.FIXED_OBSTACLE_MATRIX = new DelegatingLazyMap(
 	(roomName) => {

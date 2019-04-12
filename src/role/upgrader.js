@@ -25,8 +25,6 @@ module.exports = {
 		const { controller } = census;
 		if (controller.upgradeBlocked && controller.upgradeBlocked > CREEP_SPAWN_TIME * 6)
 			return 0;
-		if (controller.level === MAX_ROOM_LEVEL) // Empire at expansion goal?
-			return Empire.isAtExpansionGoal() ? CONTROLLER_MAX_UPGRADE_PER_TICK : 0;
 		return Math.min(MAX_UPGRADE_PARTS_PER_ROOM, Infinity);
 		// let workDesired = 10 * (numSources / 2);
 		/* let workDesired = allotedUpgrade;

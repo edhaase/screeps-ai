@@ -1,5 +1,5 @@
 /**
- * extension-roomobject
+ * ext.roomobject
  *
  * This file is for any features that help multiple types of room objects.
  */

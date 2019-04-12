@@ -54,7 +54,8 @@ function sho(num) {
 /**
  * @author mtib
  */
-global.drawPie = function drawPie(visual, val, max, title, color, num, inner = null) {
+RoomVisual.prototype.pie = function drawPie(val, max, title, color, num, inner = null) {
+	const visual = this;
 	if (!inner) {
 		inner = val;
 	}
@@ -108,19 +109,6 @@ global.drawPie = function drawPie(visual, val, max, title, color, num, inner = n
 		align: 'center'
 	});
 };
-
-
-/* const dirs = [
-	[],
-	[0, -1],
-	[1, -1],
-	[1, 0],
-	[1, 1],
-	[0, 1],
-	[-1, 1],
-	[-1, 0],
-	[-1, -1]
-]; */
 
 function relPoly(x, y, poly) {
 	return poly.map(p => {

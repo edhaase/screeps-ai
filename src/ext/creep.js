@@ -1,5 +1,5 @@
 /**
- * extension-creep.js
+ * ext.creep.js
  * 
  * Prototype extensions for creeps
  */

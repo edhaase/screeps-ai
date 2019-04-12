@@ -1,5 +1,5 @@
 /**
- * extension-source.js
+ * ext.source.js
  *
  * All prototype extensions for Source
  */

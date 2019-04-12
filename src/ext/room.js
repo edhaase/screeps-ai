@@ -8,9 +8,7 @@
 
 /* global DEFINE_CACHED_GETTER, Event, Player, Filter, CRITICAL_INFRASTRUCTURE, Log, FIND_TOMBSTONES */
 
-global.BIT_LOW_POWER = (1 << 1);
-global.BIT_DISABLE_CONSTRUCTION = (1 << 2);
-global.BIT_DISABLE_REPAIR = (1 << 3);
+Room.deserializePath = _.memoize(Room.deserializePath);
 
 if (!Memory.rooms) {
 	Log.warn('Initializing room memory', 'Memory');
@@ -90,31 +88,11 @@ DEFINE_CACHED_GETTER(Room.prototype, 'hostiles', function (room) {
  * Each room has a 'state' we want to maintain.
  */
 Room.prototype.run = function updateRoom() {
-	if (!(Game.time & 3))
-		this.updateThreats();
-
-	/** Only check if we have something listening */
-	for (const e of this.events)
-		Event.fire(e);
-
 	if (!Memory.rooms[this.name])
 		return;
 
 	// let a = this.structures;
 	this.updateBuild();
-};
-
-/**
- * Draw room-specific visuals. RoomObjects may draw their own.
- *
- */
-Room.prototype.drawVisuals = function () {
-	var { energyAvailable, energyCapacityAvailable } = this;
-	drawPie(this.visual, energyAvailable, energyCapacityAvailable, "Energy", "#FFDF2E", 2);
-
-	var { level, progress, progressTotal } = this.controller;
-	if (level < MAX_ROOM_LEVEL)
-		drawPie(this.visual, progress, progressTotal, 'RCL', 'green', 3);
 };
 
 /**
@@ -246,38 +224,6 @@ Room.prototype.updateBuild = function () {
 	return OK;
 };
 
-Room.deserializePath = _.memoize(Room.deserializePath);
-/* Room.deserializePath = _.memoize(function(s) {
-	Log.warn(`Desearizling path`);
-	return Room.deserializePath(s);
-}); */
-
-/**
- * Bitwise operators for room.
- */
-Room.prototype.enableBit = function (bit) {
-	if (this.memory !== undefined)
-		return (this.memory.bits |= bit);
-	return 0;
-};
-
-Room.prototype.disableBit = function (bit) {
-	if (this.memory !== undefined)
-		return (this.memory.bits &= ~bit);
-	return 0;
-};
-
-Room.prototype.checkBit = function (bit) {
-	if (this.memory !== undefined)
-		return ((this.memory.bits || 0) & bit) !== 0;
-	return false;
-};
-
-Room.prototype.clearBits = function () {
-	if (this.memory !== undefined)
-		delete this.memory.bits;
-};
-
 /**
  * Get type of room from it's name.
  *
@@ -377,31 +323,6 @@ DEFINE_CACHED_GETTER(Room.prototype, 'stored', function () {
 	return stored;
 });
 
-Room.prototype.updateThreats = function () {
-	if (this.controller && this.controller.safeMode) // Safe mode active, we don't need to sweat threats.
-		return;
-	var threats = this.hostiles;
-	this.cache.estActiveThreats = threats.length; // Math.max(this.hostiles.length, (this.memory.estActiveThreats || 0));
-
-	if (threats && threats.length) {
-		const leadership = _.countBy(threats, 'owner.username');
-
-		if (_.isEmpty(_.omit(leadership, 'Source Keeper')))
-			return;
-		// Something other than source keepers here!
-		if (!(Game.time % 3))
-			Log.error(`${this.name}: Max ${threats.length}, Current ${JSON.stringify(leadership)}`, "Threats");
-
-		if (!this.cache.threatDecay) { // && threats.length > 1) {
-			this.onHighAlertEnter(leadership);
-		}
-
-		this.cache.threatDecay = Game.time + _.max(threats, 'ticksToLive').ticksToLive;
-	} else if (this.cache.threatDecay && (Game.time >= this.cache.threatDecay)) {
-		this.onHighAlertExit();
-	}
-};
-
 // _.map(Game.rooms, r => r.isOnHighAlert() )
 Room.prototype.isOnHighAlert = function () {
 	// return (this.memory.threatDecay || Game.time) > Game.time;
@@ -410,19 +331,6 @@ Room.prototype.isOnHighAlert = function () {
 
 Room.prototype.onHighAlertEnter = function (threatsByOwner) {
 	Log.warn(`Room ${this.name} entering high alert at ${Game.time}`);
-	// _.invoke(Game.creeps, 'say', 'HOO-WAH', true);
-
-	// Leaks memory when coupled with observers. 
-	// Isn't strictly needed, anyways.
-	/* if(threatsByOwner['Invader']) {
-		if(this.memory.lastMined) {
-			let diff = this.memory.mined - this.memory.lastMined;
-			if(diff > 10000)
-				Log.notify(`Invader attack in ${this.name}. Mined: ${this.memory.mined}, since last: ${diff}`, 360); // 60 * 6 hours
-		}
-		this.memory.lastRaid = Game.time;
-		this.memory.lastMined = this.memory.mined;
-	} */
 };
 
 Room.prototype.getTicksSinceLastRaid = function () {
@@ -435,13 +343,6 @@ Room.prototype.onHighAlertExit = function () {
 	delete this.cache.threatDecay;
 	delete this.cache.estActiveThreats;
 	// Log.notify("Room " + this.name + " back to normal");
-};
-
-/**
- * @return [String] - array of room names
- */
-Room.prototype.getAdjacentRooms = function () {
-	return _.values(Game.map.describeExits(this.name));
 };
 
 Room.prototype.getUpkeep = function () {
