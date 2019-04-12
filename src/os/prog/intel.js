@@ -7,8 +7,6 @@ const ForeignSegment = require('os.core.network.foreign');
 const Pager = require('os.core.pager.thp');
 const Process = require('os.core.process');
 
-const RECON_SEGMENT_MAX = ENVC('intel.recon_segment_max', 99, 0, 99);
-const RECON_SEGMENT_MIN = ENVC('intel.recon_segment_min', 0, 0, 99);
 const ALLIANCE_UNKNOWN = '?';
 
 class IntelProc extends Process {
@@ -30,7 +28,6 @@ class IntelProc extends Process {
 		}
 
 		this.updateKnownPlayers();
-		this.startThread(this.fsSegmentRecon, null, undefined, `Foreign segment recon`);
 		this.startThread(this.writeThread, null, undefined, `Intel write thread`);
 		this.startThread(this.eventLogTracking, null, Process.PRIORITY_IDLE, `Event log tracking`);
 
@@ -123,38 +120,6 @@ class IntelProc extends Process {
 			this.intel.bots = _.attempt(JSON.parse, bots);
 	}
 
-	/** Scans foreign segments for interesting stuff */
-	*fsSegmentRecon() {
-		const thread = global.kernel.getCurrentThread();
-		while (true) {
-			const names = _.unique([...this.getfsSegmentReconNames()]);
-			if (!names || !names.length)
-				this.info(`No segments to scan, going to sleep`);
-			for (const user of names) {
-				for (var id = RECON_SEGMENT_MAX; id >= RECON_SEGMENT_MIN; id--) {
-					thread.desc = `Scanning foreign segment ${user} ${id}`;
-					const segment = yield ForeignSegment.fetchAsync([user, id, 0.5, false]);
-					if (!segment)
-						continue;
-					this.warn(`Found segment at ${user} ${id} ${segment}`);
-					if (ENV('intel.recon_segment_notify', false))
-						Log.notify(`Segment scanner found segment at ${user} ${id} ${segment}`);
-					if (!this.intel.segments)
-						this.intel.segments = {};
-					const key = `${user}_${id}`;
-					this.intel.segments[key] = segment;
-				}
-			}
-			yield this.sleepThread(1000);
-		}
-	}
-
-	*getfsSegmentReconNames() {
-		if (Memory.players)
-			yield* Object.keys(Memory.players);
-		if (this.intel.players)
-			yield* Object.keys(this.intel.players);
-	}
 }
 
 module.exports = IntelProc;
