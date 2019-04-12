@@ -124,5 +124,6 @@ module.exports = {
 			return;
 		}
 		Log.info(`${this.name}/${this.pos} Nothing we can load`, 'Scientist');
+		this.defer(5);
 	}
 };
