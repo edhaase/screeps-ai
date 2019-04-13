@@ -13,6 +13,10 @@ module.exports = {
 				return this.pushState("UnboostSelf");
 		}
 
+		const res = _.findKey(this.carry, (v, k) => v > 0 && k !== RESOURCE_ENERGY);
+		if (res)
+			return this.pushState('Unload', null);
+
 		if ((Game.time & 3) === 0
 			&& this.carryTotal <= 0
 			&& !this.isBoosted()
