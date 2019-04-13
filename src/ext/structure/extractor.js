@@ -10,10 +10,11 @@
 /* global DEFINE_CACHED_GETTER, Log, MAX_CREEP_SPAWN_TIME, TERMINAL_RESOURCE_LIMIT */
 
 const EXTRACTOR_CONTAINER_FULL = 0.80; // 80%
-const EXTRACTOR_DELAY = 50;
+const EXTRACTOR_DELAY = 25;
 const MINIMUM_LEVEL_FOR_EXTRACTOR = _.findKey(CONTROLLER_STRUCTURES[STRUCTURE_EXTRACTOR]);
 
 DEFINE_CACHED_GETTER(StructureExtractor.prototype, 'mineral', s => _.first(s.pos.lookFor(LOOK_MINERALS)));
+DEFINE_CACHED_GETTER(StructureExtractor.prototype, 'slots', s => _.filter(s.pos.getAdjacentPoints(), p => p.isOpen() || p.hasStructure(STRUCTURE_ROAD)));
 
 StructureExtractor.prototype.onWake = function () {
 	var { mineral } = this;
@@ -57,9 +58,9 @@ StructureExtractor.prototype.run = function () {
 
 	// Do we have a miner?
 	var [spawn, cost = 0] = this.getClosestSpawn();
-	var miner = _.find(Game.creeps, c => c.memory.role === 'harvester' && c.memory.site === this.mineral.id && (c.spawning || c.ticksToLive > UNIT_BUILD_TIME(c.body) + cost));
-	if (miner) {
-		this.defer(Math.min(miner.ticksToLive, EXTRACTOR_DELAY));
+	var miner = _.filter(Game.creeps, c => c.memory.role === 'harvester' && c.memory.site === this.mineral.id && (c.spawning || c.ticksToLive > UNIT_BUILD_TIME(c.body) + cost));
+	if (miner && miner.length >= this.slots.length) {
+		this.defer(EXTRACTOR_DELAY);
 		return;
 	}
 

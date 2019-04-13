@@ -279,7 +279,7 @@ module.exports = {
 	},
 
 	requestMineralHarvester(spawn, site, cid) {
-		const body = Arr.repeat([WORK, WORK, MOVE], spawn.room.energyCapacityAvailable);
+		const body = [CARRY, CARRY].concat(Arr.repeat([WORK, WORK, MOVE], spawn.room.energyCapacityAvailable - BODYPART_COST[CARRY] * 2));
 		const memory = { role: 'harvester', site, cid };
 		return spawn.submit({ body, memory, priority: PRIORITY_LOW });
 	},
