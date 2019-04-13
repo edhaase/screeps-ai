@@ -93,7 +93,7 @@ module.exports = {
 				// +1 to range for providers, in case we opt to park them in less obtrusive spots.
 				() => _.map(controller.lookForNear(LOOK_STRUCTURES, true, CREEP_UPGRADE_RANGE + 1), LOOK_STRUCTURES),
 				(c) => Filter.canProvideEnergy(c),
-				(c) => _.find(c, 'structureType', STRUCTURE_CONTAINER) || _.find(c, 'structureType', STRUCTURE_LINK) || _.first(c)
+				(c) => _.find(c, 'structureType', STRUCTURE_LINK) || _.find(c, 'structureType', STRUCTURE_CONTAINER) || _.first(c)
 			);
 			if (!provider) {
 				const status = this.moveTo(controller, { range: CREEP_UPGRADE_RANGE });
