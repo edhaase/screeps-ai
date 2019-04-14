@@ -4,6 +4,7 @@
 /* global ENV, ENVC, MM_AVG, Log */
 
 const { TimeLimitExceeded } = require('os.core.errors');
+const { Future } = require('os.core.future');
 
 const THREAD_CONTINUE = { done: false, value: undefined };
 const DEFAULT_WAIT_TIMEOUT = 100;
@@ -11,7 +12,7 @@ const DEFAULT_WAIT_TIMEOUT = 100;
 class Thread {
 	constructor(co, pid, desc) {
 		this.co = co;
-		this.promise = new Promise((res, rej) => {
+		this.future = new Future((res, rej) => {
 			this.res = res;
 			this.rej = rej;
 		});
@@ -27,13 +28,8 @@ class Thread {
 		this.born = Game.time;
 	}
 
-	/** Pretend to be a promise */
-	then() {
-		return this.promise.then.apply(this.promise, arguments);
-	}
-
-	catch() {
-		return this.promise.catch.apply(this.promise, arguments);
+	complete(fn) {
+		return this.future.complete(fn);
 	}
 
 	/** Pretend to be a generator */
@@ -88,19 +84,33 @@ class Thread {
 			const { done, value } = result;
 			if (done)
 				this.res(result.value);
-			else if (value instanceof Promise || value instanceof Thread) {
-				Log.debug(`Thread ${this.tid}/${this.desc} yielded promise on tick ${Game.time}`, 'Kernel');
+			else if (value instanceof Promise || value instanceof Thread || value instanceof Future) {
 				this.state = Thread.STATE_PENDING;
-				value // Keep this short, promise resolution is janky.
-					.then((res) => this.pending_deliver = res)
-					.catch((err) => this.pending_error = err)
-					.then(() => this.state = Thread.STATE_RUNNING)
-					;
 				const WAIT_TIMEOUT = ENVC('threads.wait_timeout', DEFAULT_WAIT_TIMEOUT, 0);
 				if (value.timeout)
 					this.wait_timeout = Game.time + value.timeout;
 				else if (WAIT_TIMEOUT > 0)
 					this.wait_timeout = Game.time + WAIT_TIMEOUT;
+
+				// Do this last, because we might fire before this iteration is done
+				if (value instanceof Future || value instanceof Thread) {
+					Log.debug(`Thread ${this.tid}/${this.desc} yielded future on tick ${Game.time}`, 'Kernel');
+					value.complete((v, err) => {
+						Log.debug(`Thread ${this.tid} future resolved on tick ${Game.time}`, 'Kernel');
+						this.state = Thread.STATE_RUNNING;
+						this.pending_deliver = v;
+						this.pending_error = err;
+						if (this.lastRunSysTick === Game.time)	// We've already been skipped, queue us up to run again.
+							global.kernel.queue.unshift(this);
+					});
+				} else {
+					Log.debug(`Thread ${this.tid}/${this.desc} yielded promise on tick ${Game.time}`, 'Kernel');
+					value // Keep this short, promise resolution is janky.
+						.then((res) => this.pending_deliver = res)
+						.catch((err) => this.pending_error = err)
+						.then(() => this.state = Thread.STATE_RUNNING)
+						;
+				}
 				return THREAD_CONTINUE; // Lie, we're handling this matter internally.
 			}
 			return result;
