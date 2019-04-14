@@ -59,7 +59,7 @@ function events(sortBy = 'event', order = ['asc']) {
 
 	}
 	const head = `<th>Event</th><th>Object</th><th>Pos</t><th>Target</th><th>Data</th>`;
-	const rows = _.map(sorted, r => `<tr><td>${r.eventName || r.event || '-'}</td><td>${r.object}</td><td>${r.object.pos}</td><td>${r.target || '-'}</td><td>${JSON.stringify(r.data)}</td></tr>`);
+	const rows = _.map(sorted, r => `<tr><td>${r.eventName || r.event || '-'}</td><td>${r.object || '-'}</td><td>${(r.object && r.object.pos) || '-'}</td><td>${r.target || '-'}</td><td>${JSON.stringify(r.data)}</td></tr>`);
 	return `<table style='width: 60vw'><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table`;
 }
 
@@ -135,7 +135,14 @@ function stats() {
 	console.log(`Structures: ${_.size(Game.structures)}`);
 	console.log(`Flags: ${_.size(Game.flags)}`);
 	console.log(`Construction sites: ${_.size(Game.constructionSites)}`);
-	console.log(ex(_.countBy(Game.creeps, 'memory.role')));
+	
+	const cbr = _.groupBy(Game.creeps, 'memory.role');
+	for(const [role,creeps] of Object.entries(cbr)) {
+		const sorted = _.sortByOrder(creeps, 'pos.roomName', ['asc']);
+		const rows = _.map(sorted, c => `<li>${c} <a href='#!/room/${Game.shard.name}/${c.pos.roomName}'>${c.pos}</a></li>`);
+		console.log(`<details><summary>${role} (${creeps.length})</summary><ul>${rows.join('')}</ul></details>`);
+	}
+	// console.log(ex(_.countBy(Game.creeps, 'memory.role')));
 }
 
 function hl(x, radius = 5) {
