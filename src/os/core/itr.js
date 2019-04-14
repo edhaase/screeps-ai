@@ -29,6 +29,16 @@ exports.flatten = function* (itr) {
 		yield* itm;
 };
 
+exports.avg = function (itr, iter = _.identity) {
+	var total = 0;
+	var count = 0;
+	for (const i of itr) {
+		total += iter(i);
+		count++;
+	}
+	return total / count;
+};
+
 exports.explore = function* explore(start, max_range = 30, opts = {}) {
 	const seen = { [start]: 0 };
 	const q = [start];

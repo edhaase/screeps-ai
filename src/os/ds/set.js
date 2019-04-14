@@ -1,7 +1,7 @@
 /** os.ds.set - Set extensions */
 'use strict';
 
-const Itr = require('os.itr');
+const Itr = require('os.core.itr');
 
 class BaseSet extends Set {
 	/** Take up to N items out and return them as an array */
