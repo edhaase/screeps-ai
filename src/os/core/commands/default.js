@@ -245,14 +245,14 @@ Cmd.register('highlight', hl, 'Highlight a given object in the current room', ['
 Cmd.register('kill', kill, 'Kill a process by pid');
 Cmd.register('killAll', killAll, 'Terminate all running processes');
 Cmd.register('killThread', killThread, 'Terminate a running thread by id');
-Cmd.register('reinitAll', reinitAll);
+Cmd.register('reinitAll', reinitAll, 'Reinitialize process table', ['init']);
 Cmd.register('reinitCron', reinitCron);
 Cmd.register('startProcess', start, 'Launch a process', ['start']);
 Cmd.register('stop', stop, 'Attempt to gracefully stop a process');
 Cmd.register('spark', spark, 'Create thread for coroutine');
 
 Cmd.register('events', events, 'Show recent event log for all rooms', [], 'Reporting');
-Cmd.register('proc', proc, 'Show process table', [], 'Reporting');
+Cmd.register('proc', proc, 'Show process table', ['ps'], 'Reporting');
 Cmd.register('progress', progress, 'Show room and GCL progress', [], 'Reporting');
 Cmd.register('stats', stats, 'Show empire stats for this shard', [], 'Reporting');
 Cmd.register('storage', storage, 'Show storage report', [], 'Reporting');
