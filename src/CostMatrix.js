@@ -5,7 +5,7 @@
  */
 'use strict';
 
-/* global Log, Player */
+/* global ENV, Log, Player */
 /* eslint-disable no-magic-numbers */
 
 const Intel = require('Intel');
@@ -13,8 +13,8 @@ const DelegatingLazyMap = require('os.ds.dele.lazymap');
 const LRU = require('os.ds.lru');
 const { VisibilityError } = require('os.core.errors');
 
-const COST_MATRIX_EXPIRATION = 5;
-const COST_MATRIX_CACHE_SIZE = 150;
+const COST_MATRIX_EXPIRATION = ENV('cm.cache_expire', 5);
+const COST_MATRIX_CACHE_SIZE = ENV('cm.cache_size', 300);
 
 const CostMatrix = require('os.ds.costmatrix.room');
 const TILE_UNWALKABLE = 255;
