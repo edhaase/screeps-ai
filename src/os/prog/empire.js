@@ -6,7 +6,7 @@
 const Process = require('os.core.process');
 const Intel = require('Intel');
 
-const DEFAULT_EMPIRE_EXPANSION_FREQ = 2056; // Let's set this to at least higher than a creep life time.
+const DEFAULT_EMPIRE_EXPANSION_FREQ = CREEP_CLAIM_LIFE_TIME; // Let's set this to at least higher than a creep life time.
 
 class EmpireProc extends Process {
 	constructor(opts) {
@@ -24,7 +24,11 @@ class EmpireProc extends Process {
 	/** Periodically attempts to expand to a new room */
 	*autoExpand() {
 		while (true) {
-			yield this.sleepThread(ENV('empire.expansion_freq', DEFAULT_EMPIRE_EXPANSION_FREQ));
+			if (!this.memory.nextCheck)
+				this.memory.nextCheck = Game.time - 1;
+			if (Game.time < this.memory.nextCheck)
+				yield this.sleepThread(this.memory.nextCheck - Game.time); // When we unpause, we'll be right on schedule
+			this.memory.nextCheck = Game.time + ENV('empire.expansion_freq', DEFAULT_EMPIRE_EXPANSION_FREQ);
 			if (ENV('empire.auto_expand', true) === false)
 				continue; // Don't exit, we might change our minds.
 			if (_.sum(Game.rooms, "my") >= Game.gcl.level)
@@ -67,7 +71,7 @@ class EmpireProc extends Process {
 	}
 
 	// @todo Fuzz factor is still problematic.
-	static getAllCandidateRoomsByScore(range = 3) {
+	getAllCandidateRoomsByScore(range = 3) {
 		return this
 			.getAllCandidateRooms(range)
 			// .map(r => ({name: r, score: Intel.scoreRoomForExpansion(r) * (0.1+Math.random() * 0.1)}))
@@ -76,7 +80,7 @@ class EmpireProc extends Process {
 		// .sortByOrder(r => Intel.scoreRoomForExpansion(r), ['desc'])
 	}
 
-	static getAllCandidateRooms(range = 3) {
+	getAllCandidateRooms(range = 3) {
 		const start = _.map(this.ownedRooms(), 'name');
 		const seen = _.zipObject(start, Array(start.length).fill(0));
 		const q = start;
@@ -117,7 +121,7 @@ class EmpireProc extends Process {
 	 * W5N3,W8N5,W5N2,W7N5,W9N3,W7N1
 	 * W7N4,W8N4,W5N3,W5N2,W9N3,W9N2
 	 */
-	static getCandidateRooms(start, range = 2) {
+	getCandidateRooms(start, range = 2) {
 		const seen = { [start]: 0 };
 		const q = [start];
 		const candidates = [];
@@ -145,7 +149,7 @@ class EmpireProc extends Process {
 	}
 
 
-	static ownedRooms() {
+	ownedRooms() {
 		return _.filter(Game.rooms, "my");
 	}
 }
