@@ -7,6 +7,8 @@ const Intel = require('Intel');
 
 /* eslint-disable no-magic-numbers */
 global.MARKET_ORDER_LIMIT = 50;
+if (Memory.empire == null)
+	Memory.empire = { credits: 0 };
 /* eslint-enable no-magic-numbers */
 
 module.exports = {
