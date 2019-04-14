@@ -45,6 +45,10 @@ class Process {
 		return `${prefix}${Game.time.toString(36)}.${Game.vpid.toString(36)}`.toUpperCase();
 	}
 
+	get children() {
+		return global.kernel.childrenLookupTable.get(this);
+	}
+
 	get parent() {
 		return global.kernel.process.get(this.ppid) || null;
 	}

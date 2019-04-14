@@ -53,6 +53,8 @@ class Kernel {
 		MAKE_CONSTANT(this, 'threads', new BaseMap());
 		MAKE_CONSTANT(this, 'threadsByProcess', new LazyWeakMap(() => new Map()));
 		MAKE_CONSTANT(this, 'schedule', new PriorityQueue(null, (itm) => itm.priority));
+		MAKE_CONSTANT(this, 'childrenLookupTable', new LazyWeakMap(() => new Map()));
+
 		this.nextThreadId = 0;  // Threads are transient, so we don't need anything fancy here.
 		this.threadClass = Thread;
 		this.queue = [];
@@ -159,6 +161,10 @@ class Kernel {
 					Log.error(e.stack, 'Kernel');
 				}
 			}
+
+			for (const p of this.process.values())
+				this.childrenLookupTable.get(p).set(p.pid, p);
+
 			// Call reload methods _after_ all process deserialized in case one of them needs to find another
 			for (const [, p] of this.process) {
 				if (Game.cpu.getUsed() / Game.cpu.tickLimit > 0.90)
@@ -190,6 +196,8 @@ class Kernel {
 		const p = Process.deserializeByProcessName(entry);
 		this.threadsByProcess.set(p, new Map());
 		this.processByName.get(p.name).push(p);
+		if (parent)
+			this.childrenLookupTable.get(parent).set(p.pid, p);
 		const prevTid = this.ctid;
 		const prevPid = this.cpid;
 		this.cpid = entry.pid;
@@ -220,6 +228,8 @@ class Kernel {
 			this.processByName.get(process.name).remove(process);	// Remove process from name index
 			if (process && process.onExit)
 				process.onExit();
+			if (parent)
+				this.childrenLookupTable.get(parent).delete(process.pid);
 			if (parent && parent.onChildExit)
 				parent.onChildExit(pid, process);
 			delete Memory.process[pid];
