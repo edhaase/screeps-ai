@@ -66,6 +66,16 @@ class Kernel {
 		Log.debug(`New kernel on tick ${Game.time}`, 'Kernel');
 	}
 
+
+	/**
+	 * Stress test of the cpu management.
+	 */
+	*stress() {
+		const start = Game.time;
+		while(Game.cpu.bucket > 2000 && (Game.time - start) < 100)
+			yield true;
+	}
+
 	/**
 	 *
 	 */
@@ -241,15 +251,15 @@ class Kernel {
 
 	*loop() {
 		while (!this.halt) {
-			const MIN_CPU_THIS_TICK = Math.min(Game.cpu.limt, Game.cpu.tickLimit);
-			this.throttle = (Game.cpu.bucket / global.BUCKET_MAX > 0.5) ? Game.cpu.tickLimit * 0.90 : MIN_CPU_THIS_TICK;
+			const MIN_CPU_THIS_TICK = Math.min(Game.cpu.limit, Game.cpu.tickLimit);
+			this.throttle = 0.90 * ((Game.cpu.bucket / global.BUCKET_MAX > 0.5) ? Game.cpu.tickLimit : MIN_CPU_THIS_TICK);
 			this.queue = this.schedule.slice(0);
 			var thread; // , i = this.queue.length - 1;		
 			while ((thread = this.queue.pop()) != null) {
 				const AVG_USED = Math.max(thread.avgSysCpu, thread.avgUsrCpu);
 				if (Game.cpu.getUsed() + AVG_USED >= this.throttle) {
 					this.lastRunCpu = Game.cpu.getUsed();
-					Log.warn(`Kernel paused at ${this.lastRunCpu} / ${this.throttle} cpu usage on tick ${Game.time} (${this.queue.length} threads pending)`, 'Kernel');  // continue running next tick to prevent starvation
+					Log.warn(`Kernel paused at ${Math.ceil(this.lastRunCpu)} / ${this.throttle} cpu usage on tick ${Game.time} (${this.queue.length} threads pending)`, 'Kernel');  // continue running next tick to prevent starvation
 					break;
 				}
 
