@@ -6,6 +6,7 @@
 require('os.core.macros');				// Required because we want to be lazy
 require('os.core.constants');			// Required for RUNTIME_ID
 global.Log = require('os.core.log');
+global.Future = require('os.core.future').Future;
 
 global.Arr = require('Arr');
 global.Util = require('Util');
