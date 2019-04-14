@@ -158,3 +158,61 @@ Creep.prototype.moveTo = function (goal, opts = {}) {
 	else
 		return this.walkTo({ pos: goal.pos, range: opts.range }, opts);
 };
+
+/**
+ * 
+ */
+Creep.prototype.runPullee = function (opts = {}) {
+	if (this.fatigue)
+		return; // Wait
+	const { dest, engine, range = 1 } = opts;
+	const pos = new RoomPosition(dest.x, dest.y, dest.roomName);
+	if (this.pos.inRangeTo(pos, range)) {
+		this.popState();
+		return;
+	}
+	const creep = Game.creeps[engine];
+	if (!creep || creep.getState() !== 'Puller')
+		this.popState();
+	if (!this.pos.isNearTo(creep))
+		return;
+	const status = this.move(this.pos.getDirectionTo(creep));
+};
+
+Creep.prototype.runPuller = function (opts = {}) {
+	if (this.fatigue)
+		return; // Wait
+	const { dest, cargo, range = 1 } = opts;
+	const pos = new RoomPosition(dest.x, dest.y, dest.roomName);
+	const creep = Game.creeps[cargo];
+	if (!creep) {
+		this.popState();
+		return;
+	}
+
+	this.pull(creep);
+	var status = OK;
+	if (this.pos.inRangeTo(pos, range)) {
+		this.move(this.pos.getDirectionTo(creep)); // Swap with the creep and exit state	
+		this.popState(false);
+		return;
+	} else if (this.pos.isOnRoomBorder()) {
+		if (this.pos.isNearTo(creep))
+			this.move(this.pos.getDirectionTo(creep));
+		else
+			status = this.moveTo(pos, { range });
+	} else if (!this.pos.isNearTo(creep)) { // If we're not near the creep, move to the creep
+		status = this.moveTo(creep, { range: 1 });
+	} else {
+		status = this.moveTo(pos, { range });
+	}
+
+	if (status === ERR_NO_PATH) {
+		if (opts.failed == null)
+			opts.failed = 0;
+		if (opts.failed++ < 5)
+			return;
+		Log.warn(`${this.name}/${this.pos} failed pulling ${creep} (ttl: ${this.ticksToLive})`, 'LivingEntity');			
+		this.popState(false);
+	}
+};
