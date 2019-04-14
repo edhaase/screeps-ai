@@ -40,21 +40,6 @@ class Util {
 		return [(integer >> 16), (integer & 0x0000FFFF)];
 	}
 
-
-	/**
-	 *
-	 */
-	static format(number) {
-		return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-	}
-
-	/**
-	 * Object.getOwnPropertyDescriptor(Creep.prototype, "memory").get.toString()
-	 */
-	static inspectGetter(prot, prop) {
-		return Object.getOwnPropertyDescriptor(prot, prop).get.toString();
-	}
-
 	static hasGetter(prot, prop) {
 		return Object.getOwnPropertyDescriptor(prot, prop).get !== undefined;
 	}
@@ -68,19 +53,6 @@ class Util {
 			if (secondArray.indexOf(array[i]) === -1) { result = array[i]; break; }
 		}
 		return result;
-	}
-
-	/**
-	 * Average of collection
-	 */
-	static avg(collection, iter = _.identity) {
-		var total = 0;
-		var count = 0;
-		_.each(collection, function (item) {
-			total += iter(item);
-			count++;
-		});
-		return total / count;
 	}
 
 	/**
