@@ -224,49 +224,6 @@ function dfs(node) {
 }
 
 /**
- * Distance transform - An image procesing technique.
- * Rosenfeld and Pfaltz 1968 algorithm
- * @author bames
- *
- * See: http://homepages.inf.ed.ac.uk/rbf/HIPR2/distance.htm
- * Roughly 20-40 cpu without visuals
- *
- * Scores are largest at center of clearance.
- * example: Time.measure( () => Planner.distanceTransform('W5N2', (x,y,r) =>  Game.map.getTerrainAt(x, y,r) == 'wall' || new RoomPosition(x,y,r).hasObstacle() ))
- */
-function distanceTransform(roomName, rejector = (x, y, roomName) => Game.map.getTerrainAt(x, y, roomName) == 'wall') {
-	var vis = new RoomVisual(roomName);
-	var topDownPass = new PathFinder.CostMatrix();
-	var x, y;
-
-	for (y = 0; y < 50; ++y) {
-		for (x = 0; x < 50; ++x) {
-			if (rejector(x, y, roomName)) {
-				topDownPass.set(x, y, 0);
-			}
-			else {
-				topDownPass.set(x, y,
-					Math.min(topDownPass.get(x - 1, y - 1), topDownPass.get(x, y - 1),
-						topDownPass.get(x + 1, y - 1), topDownPass.get(x - 1, y)) + 1);
-			}
-		}
-	}
-
-	var value;
-	for (y = 49; y >= 0; --y) {
-		for (x = 49; x >= 0; --x) {
-			value = Math.min(topDownPass.get(x, y),
-				topDownPass.get(x + 1, y + 1) + 1, topDownPass.get(x, y + 1) + 1,
-				topDownPass.get(x - 1, y + 1) + 1, topDownPass.get(x + 1, y) + 1);
-			topDownPass.set(x, y, value);
-			vis.circle(x, y, { radius: value / 25 });
-		}
-	}
-
-	return topDownPass;
-}
-
-/**
  * Flood fill
  *
  * Expands outwards until limit or all reachable locations are visited.
@@ -557,7 +514,8 @@ class KruskalMST {
 		for (const node of this.nodes) {
 			const [y, x] = [Math.floor(node / 50), node % 50];
 			const pos = new RoomPosition(x, y, this.roomName);
-			const adj = _.shuffle(pos.getAdjacentPoints());
+			// const adj = _.shuffle(pos.getAdjacentPoints());
+			const adj = pos.getAdjacentPoints();
 			for (const a of adj) {
 				const weight = this.getWeight(a.x, a.y);
 				if (weight === 255)
@@ -630,8 +588,6 @@ module.exports = {
 	MapGraph,
 	RoomGraph,
 	WorldGraph,
-
-	distanceTransform,
 
 	floodFill,
 	gFF,

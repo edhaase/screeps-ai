@@ -1,7 +1,7 @@
 /** os.core.crypto */
 'use strict';
 
-const xorcrypt = require('os.algo.xorcrypt');
+const { xorcrypt } = require('os.algo.xorcrypt');
 
 /* global ENV, Log */
 

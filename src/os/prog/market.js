@@ -3,7 +3,7 @@
 
 /* global ENVC, Market */
 
-const Async = require('os.core.async');
+const Co = require('os.core.co');
 const Process = require('os.core.process');
 
 const DEFAULT_MARKET_ORDER_CLEANUP_FREQ = 100;

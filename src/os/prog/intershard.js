@@ -3,6 +3,7 @@
 
 /* global InterShardMemory, ENV, ENVC */
 
+const { Future } = require('os.core.future');
 const Process = require('os.core.process');
 const { Message } = require('os.core.network.intershard');
 
@@ -149,7 +150,7 @@ class Intershard extends Process {
 	send(msg) {
 		_.set(this.data, ['messages', msg.dest, msg.id], msg);
 		this.dirty = true; // Trigger write.
-		return new Promise((res, rej) => this.ack_cb.set(msg.id, [res, rej]));
+		return new Future((res, rej) => this.ack_cb.set(msg.id, [res, rej]));
 	}
 
 }

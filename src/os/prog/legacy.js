@@ -3,7 +3,7 @@
 
 const { ActorHasCeased } = require('os.core.errors');
 
-const Async = require('os.core.async');
+const Co = require('os.core.co');
 const ITO = require('os.core.ito');
 const Process = require('os.core.process');
 

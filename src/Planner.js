@@ -29,7 +29,7 @@
 
 const FleePlanner = require('os.algo.fleeplanner');
 const { VisibilityError } = require('os.core.errors');
-
+const dt = require('os.algo.dt').distanceTransform;
 
 // @todo Find way to preserve road plan from expiring.
 // @todo Put terminal within range 2 of controller.
@@ -191,50 +191,6 @@ class BuildPlanner {
 	}
 
 	/**
-	 * Distance transform - An image procesing technique.
-	 * Rosenfeld and Pfaltz 1968 algorithm
-	 * @author bames
-	 * See: http://homepages.inf.ed.ac.uk/rbf/HIPR2/distance.htm
-	 * Roughly 20-40 cpu without visuals
-	 *
-	 * Scores are largest at center of clearance.
-	 * example: Time.measure( () => Planner.distanceTransform('W5N2', (x,y,r) =>  Game.map.getTerrainAt(x, y,r) == 'wall' || new RoomPosition(x,y,r).hasObstacle() ))
-	 */
-	static distanceTransform(roomName, rejector = (x, y, roomName) => (Game.map.getRoomTerrain(roomName).get(x, y) & TERRAIN_MASK_WALL)) {
-		var vis = new RoomVisual(roomName);
-		var topDownPass = new PathFinder.CostMatrix();
-		var x, y;
-
-		for (y = 0; y < 50; ++y) {
-			for (x = 0; x < 50; ++x) {
-				if (rejector(x, y, roomName)) {
-					topDownPass.set(x, y, 0);
-				}
-				else {
-					topDownPass.set(x, y,
-						Math.min(topDownPass.get(x - 1, y - 1), topDownPass.get(x, y - 1),
-							topDownPass.get(x + 1, y - 1), topDownPass.get(x - 1, y)) + 1);
-				}
-			}
-		}
-
-		var value;
-		for (y = 49; y >= 0; --y) {
-			for (x = 49; x >= 0; --x) {
-				value = Math.min(topDownPass.get(x, y),
-					topDownPass.get(x + 1, y + 1) + 1, topDownPass.get(x, y + 1) + 1,
-					topDownPass.get(x - 1, y + 1) + 1, topDownPass.get(x + 1, y) + 1);
-				topDownPass.set(x, y, value);
-				// vis.circle(x, y, {radius:value/25});
-				if (value > 0)
-					vis.text(value, x, y);
-			}
-		}
-
-		return topDownPass;
-	}
-
-	/**
 	 * 
 	 * @param {*} room 
 	 */
@@ -271,7 +227,7 @@ class BuildPlanner {
 	static distanceTransformWithController(room, maxClearance = 5) {
 		const MINIMUM_CLEARANCE = 3;
 		var roomName = room.name;
-		var cm = this.distanceTransform(roomName);
+		var cm = dt(roomName);
 		var vis = new RoomVisual(roomName);
 		var x, y, value, pos, dist, clear;
 		var c = room.controller;
@@ -306,10 +262,14 @@ class BuildPlanner {
 		if (origin == null)
 			throw new Error("Origin position required");
 		const sources = room.find(FIND_SOURCES);
-		_.each(sources, source => this.planRoad(origin, { pos: source.pos, range: 1 }, { rest: 1, initial: 1, container, tunnel: true }));
+		_.each(sources, source => this.planRoad(origin, { pos: source.pos, range: 1 }, { swampCost: 3, rest: 1, initial: 1, container, tunnel: true }));
 		if (room.controller && room.controller.level >= 6 && sources.length > 1) {
 			var [s1, s2] = sources;
-			this.planRoad(s1, { pos: s2.pos, range: 1 }, { rest: 1, initial: 1, tunnel: true });
+			const [c1, c2] =  [s1.container, s2.container];
+			if(c1 && c2)
+				this.planRoad(c1, { pos: c2.pos, range: 1 }, { tunnel: 20, heuristicWeight: 0, swampCost: 3 });
+			else
+				this.planRoad(s1, { pos: s2.pos, range: 1 }, { rest: 1, initial: 1, tunnel: false, swampCost: 3 }); // could end up with unusable tunnel
 		}
 	}
 
@@ -318,7 +278,7 @@ class BuildPlanner {
 	 * @todo add existing road to plan
 	 */
 	static planRoad(fromPos, toPos, opts = {}) {
-		const BASE_TUNNEL_WEIGHT = 50;
+		const BASE_TUNNEL_WEIGHT = 25;
 		// const {dry=false,cmFm,container=false,rest,initial} = opts;
 		if (fromPos.pos)
 			fromPos = fromPos.pos;
@@ -341,10 +301,11 @@ class BuildPlanner {
 		try {
 			var result = PathFinder.search(fromPos, toPos, {
 				plainCost: 2, // prefer existing roads
-				swampCost: 2,
-				maxOps: 16000,
+				swampCost: opts.swampCost || 2,
+				maxOps: 64000,
 				maxRooms: (fromPos.roomName === (toPos.roomName || toPos.pos.roomName)) ? 1 : PATHFINDER_MAX_ROOMS,
-				roomCallback: opts.cmFn
+				roomCallback: opts.cmFn,
+				heuristicWeight: opts.heuristicWeight
 			});
 			var { path = [], incomplete, cost, ops } = result;
 			if (incomplete || !path.length) {

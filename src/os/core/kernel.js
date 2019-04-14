@@ -3,13 +3,13 @@
 
 /* global ENV, ENVC, SEGMENT_PROC, MM_AVG, DEFERRED_MODULES, MAKE_CONSTANT, Log */
 
-const Async = require('os.core.async');
+const Co = require('os.core.co');
 const BaseArray = require('os.ds.array');
 const BaseMap = require('os.ds.map');
-const ForeignSegment = require('os.core.network.foreign');
+const { ForeignSegment } = require('os.core.network.foreign');
 const LazyMap = require('os.ds.lazymap');
 const LazyWeakMap = require('os.ds.lazyweakmap');
-const Pager = require('os.core.pager');
+const { Pager } = require('os.core.pager');
 const PriorityQueue = require('os.ds.pq');
 const Process = require('os.core.process');
 const Thread = require('os.core.thread');
@@ -74,7 +74,7 @@ class Kernel {
 	 */
 	*stress() {
 		const start = Game.time;
-		while(Game.cpu.bucket > 2000 && (Game.time - start) < 100)
+		while (Game.cpu.bucket > 2000 && (Game.time - start) < 100)
 			yield true;
 	}
 
@@ -284,7 +284,7 @@ class Kernel {
 					thread.lastTickSysCpu += delta;
 				} catch (e) {
 					Log.error(e.stack, 'Kernel');
-					yield* Async.waitForTick(Game.time + 5);
+					yield* Co.waitForTick(Game.time + 5);
 				}
 			}
 
@@ -405,7 +405,7 @@ class Kernel {
 			throw new Error(`Thread ${thread.tid} already attached to process ${thread.pid}`);
 		const pprio = (process.priority !== undefined) ? process.priority : ENV('process.default_priority', Process.PRIORITY_DEFAULT);
 		thread.priority = tprio * pprio;
-		Log.debug(`${thread.pid}/${thread.tid} Attaching thread at priority ${thread.priority} total on tick ${Game.time} [${thread.desc}]`, 'Kernel');
+		// Log.debug(`${thread.pid}/${thread.tid} Attaching thread at priority ${thread.priority} total on tick ${Game.time} [${thread.desc}]`, 'Kernel');
 		this.threads.set(thread.tid, thread);
 		this.schedule.insert(thread);
 		this.queue.unshift(thread);

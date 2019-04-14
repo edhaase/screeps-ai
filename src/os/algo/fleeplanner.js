@@ -63,6 +63,7 @@ class FleePlanner {
 		this.cpu = 0;
 		this.drawRoad = false;
 		this.visual = new RoomVisual(this.origin.roomName);
+		this.terrain = Game.map.getRoomTerrain(this.origin.roomName);
 		_.merge(this, opts);
 	}
 
@@ -132,8 +133,7 @@ class FleePlanner {
 	 * Register an update to the state of the planner.
 	 */
 	set(pos, structureType, plan = true) {
-		const terrain = Game.map.getRoomTerrain(pos.roomName);
-		if (this.cm.get(pos.x, pos.y) === 255 || (terrain.get(pos.x, pos.y) & TERRAIN_MASK_WALL))
+		if (this.cm.get(pos.x, pos.y) === 255 || (this.terrain.get(pos.x, pos.y) & TERRAIN_MASK_WALL))
 			return;
 		if (structureType === STRUCTURE_ROAD)
 			this.cm.set(pos.x, pos.y, 1);

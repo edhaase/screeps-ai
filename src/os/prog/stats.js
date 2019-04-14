@@ -3,7 +3,7 @@
 
 /* global CM_AVG, ENVC, SEGMENT_STATS */
 
-const Pager = require('os.core.pager');
+const { Pager } = require('os.core.pager');
 const Process = require('os.core.process');
 
 const DEFAULT_STATS_COMMIT_FREQ = 10; // In seconds

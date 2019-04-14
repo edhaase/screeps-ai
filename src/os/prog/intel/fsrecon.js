@@ -3,8 +3,8 @@
 
 /* global ENV, ENVC, IS_MMO, Log, THP_SEGMENT_INTEL */
 
-const ForeignSegment = require('os.core.network.foreign');
-const Pager = require('os.core.pager.thp');
+const { ForeignSegment } = require('os.core.network.foreign');
+const { Pager } = require('os.core.pager.thp');
 const Process = require('os.core.process');
 
 const RECON_SEGMENT_MAX = ENVC('intel.recon_segment_max', 99, 0, 99);

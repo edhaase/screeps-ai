@@ -3,8 +3,8 @@
 
 /* global ENV, ENVC, IS_MMO, Log, THP_SEGMENT_INTEL */
 
-const ForeignSegment = require('os.core.network.foreign');
-const Pager = require('os.core.pager.thp');
+const { ForeignSegment } = require('os.core.network.foreign');
+const { Pager } = require('os.core.pager.thp');
 const Process = require('os.core.process');
 
 const ALLIANCE_UNKNOWN = '?';
@@ -56,16 +56,34 @@ class IntelProc extends Process {
 						// Containers can't withdraw from creeps, must be a 
 					}
 					// if (target)
+				} else if (entry.event === EVENT_ATTACK_CONTROLLER) {
+					// Boost score, and do a better job defending that controller..
+					this.modifyDamage(obj.owner.username, entry.data.damage);
+					this.info(`${obj.name}/${obj.pos}/${obj.owner.username} attacking controller ${target}/${target.pos} on ${Game.time} (amount ${entry.data.amount})`);
+				} else if (!target) {
+					continue;
+				} if (!target.my && !target.room.my && !target.room.rented) {
+					continue;
+				} else if (entry.event === EVENT_HEAL) {
+					this.modifyDamage(obj.owner.username, -1 * entry.data.amount);
+					this.info(`${obj.name}/${obj.pos}/${obj.owner.username} healing ${target}/${target.pos} on ${Game.time} (amount ${entry.data.amount})`);
 				} else if (entry.event === EVENT_ATTACK) {
 					if (obj instanceof StructureTower)
 						continue;	// Defending players don't boost aggression.
-
-				} else if (entry.event === EVENT_ATTACK_CONTROLLER) {
-					// Boost score, and do a better job defending that controller..
+					this.modifyDamage(obj.owner.username, entry.data.damage);
+					this.info(`${obj.name}/${obj.pos}/${obj.owner.username} attacking ${target}/${target.pos} on ${Game.time} (amount ${entry.data.damage})`);
 				}
 			}
 			yield;
 		}
+	}
+
+	modifyDamage(player, amount) {
+		if (!this.intel.threats)
+			this.intel.threats = {};
+		if (!this.intel.threats[player])
+			this.intel.threats[player] = {};
+		this.intel.threats[player].damage = (this.intel.threats[player].damage || 0) + (amount || 0);
 	}
 
 	*writeThread() {

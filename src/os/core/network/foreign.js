@@ -3,6 +3,7 @@
 
 /* global Log, ENV, ENVC */
 
+const { Future } = require('os.core.future');
 const PriorityQueue = require('os.ds.pq');
 
 const DEFAULT_FS_IDLE_RESET = 5;
@@ -19,7 +20,7 @@ let last_change = Game.time;
  * Low level access to memory segments as "pages". These are handled purely as strings.
  * Translation occurs elsewhere.
  */
-class ForeignSegment {
+exports.ForeignSegment = class ForeignSegment {
 	static *tickIdleReset() {
 		while (true) {
 			while (Game.time - last_change < FS_IDLE_RESET)
@@ -59,14 +60,12 @@ class ForeignSegment {
 	static fetchAsync([user, sid, priority = 0.5, throwOnFail = true]) {
 		if (sid == null || isNaN(sid) || !Number.isInteger(sid))
 			throw new TypeError(`Requested segment id ${sid} is not valid`);
-		return new Promise((res, rej) => SEGMENT_REQUESTS.insert({ user, id: sid, priority, res, rej, throwOnFail }));
+		return new Future((res, rej) => SEGMENT_REQUESTS.insert({ user, id: sid, priority, res, rej, throwOnFail }));
 	}
 
 	static fetchMultiAsync(requests) {
 		if (!Array.isArray(requests))
 			throw new TypeError(`Expected array, got ${typeof requests}`);
-		return Promise.all(requests.map(r => this.fetchAsync(r)));
+		return Future.all(requests.map(r => this.fetchAsync(r)));
 	}
-}
-
-module.exports = ForeignSegment;
+};

@@ -1,7 +1,7 @@
 /** prog-cron.js */
 'use strict';
 
-const Pager = require('os.core.pager');
+const { Pager } = require('os.core.pager');
 const PriorityQueue = require('os.ds.pq');
 const Process = require('os.core.process');
 

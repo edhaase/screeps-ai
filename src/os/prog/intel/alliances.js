@@ -3,8 +3,8 @@
 
 /* global ENV, ENVC, IS_MMO, Log */
 
-const ForeignSegment = require('os.core.network.foreign');
-const Pager = require('os.core.pager');
+const { ForeignSegment } = require('os.core.network.foreign');
+const { Pager } = require('os.core.pager');
 const Process = require('os.core.process');
 
 class IntelProc extends Process {

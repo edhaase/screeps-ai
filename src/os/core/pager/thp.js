@@ -3,8 +3,8 @@
 
 /* global MAKE_CONSTANT, ENV */
 
-const Async = require('os.core.async');
-const Pager = require('os.core.pager');
+const Co = require('os.core.co');
+const { Pager } = require('os.core.pager');
 
 const DEFAULT_THP_PAGE_SPAN = 3;
 
@@ -14,11 +14,11 @@ MAKE_CONSTANT(global, 'THP_MIN_PAGE_ID', THP_PAGE_SPAN * 2); // Leave 6 pages fr
 MAKE_CONSTANT(global, 'THP_MAX_PAGE_SIZE', MAX_PAGE_SIZE * THP_PAGE_SPAN);
 // MAKE_CONSTANT(global, 'THP_MAX_PAGE_ID', THP_MAX_PAGE_COUNT - 1);
 
-class THP {
+exports.Pager = class THP {
 	static *read(pageIds) {
 		if (!Array.isArray(pageIds))
 			throw new TypeError(`Expected array, got ${typeof pageIds}`);
-		return yield* Async.mapPar(pageIds, this.fetch);
+		return yield* Co.mapPar(pageIds, this.fetch);
 	}
 
 	static *fetch(id) {
@@ -45,6 +45,4 @@ class THP {
 			pages.push(offset + i);
 		return pages;
 	}
-}
-
-module.exports = THP;
+};

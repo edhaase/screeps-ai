@@ -1,8 +1,9 @@
 /** os.prog.planner.js - Room planner */
 'use strict';
 
-const Async = require('os.core.async');
+const Co = require('os.core.co');
 const Process = require('os.core.process');
+const { Future } = require('os.core.future');
 
 class PlannerProc extends Process {
 	constructor(opts) {
@@ -25,11 +26,11 @@ class PlannerProc extends Process {
 			this.startThread(this.plan, [room], undefined, `Room planner ${room.name}`);
 			yield true;
 		}
-		yield Promise.all(this.threads); // Proof of concept. Works because map is an iterable
+		yield Future.all(this.threads.values());
 	}
 
 	*plan(room) {
-		yield* Async.waitForCpu();
+		yield* Co.waitForCpu();
 		this.debug(`Planning ${room.name} on tick ${Game.time}`);
 		require('Planner').buildRoom(room);
 	}

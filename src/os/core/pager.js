@@ -4,7 +4,7 @@
 /* global CLAMP, ENV, ENVC, MAKE_CONSTANT, Log, SEGMENT_PROC, SEGMENT_CRON, SEGMENT_STATS */
 /* global MAX_ACTIVE_PAGES, MAX_PAGE_COUNT, PAGE_CACHE, PAGE_REQUESTS, PAGE_WRITES, PAGE_HIT, PAGE_MISS */
 
-const Async = require('os.core.async');
+const Co = require('os.core.co');
 const LazyMap = require('os.ds.lazymap');
 const LRU = require('os.ds.lru');
 
@@ -37,7 +37,7 @@ RawMemory.setActiveSegments(ENV('pager.default_pages', DEFAULT_PAGES));
  * Low level access to memory segments as "pages". These are handled purely as strings.
  * Translation occurs elsewhere.
  */
-class Pager {
+exports.Pager = class Pager {
 	static resetAll() {
 		for (var i = 0; i <= MAX_PAGE_COUNT; i++) {
 			Pager.write(i, '');
@@ -47,7 +47,7 @@ class Pager {
 	static *read(pageIds) {
 		if (!Array.isArray(pageIds))
 			throw new TypeError(`Expected array, got ${typeof pageIds}`);
-		return yield* Async.mapPar(pageIds, this.fetch);
+		return yield* Co.mapPar(pageIds, this.fetch);
 	}
 
 	static *fetch(pageId) {
@@ -127,6 +127,4 @@ class Pager {
 		}
 	}
 
-}
-
-module.exports = Pager;
+};
