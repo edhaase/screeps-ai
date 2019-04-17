@@ -260,8 +260,6 @@ Creep.prototype.getCostMatrix = function (roomName) {
  * 2016-12-11: Only flee from creeps that are actually a threat to us.
  * 2016-11-02: Reintroduced the arena matrix in a way that makes sense. 
  */
-global.ARENA_MATRIX = (new CostMatrix.CostMatrix).setBorder();
-
 const DEFAULT_FLEE_PLAN_AHEAD = 5;
 const DEFAULT_FLEE_OPTS = { maxRooms: 3, maxOps: 2500, flee: true, planAhead: DEFAULT_FLEE_PLAN_AHEAD, heuristicWeight: 0.8 };
 Creep.prototype.flee = function (min = MINIMUM_SAFE_FLEE_DISTANCE, all = false, opts = {}) {
