@@ -29,6 +29,7 @@ global.ENVC = (path, defaultValue, min = 0, max = Infinity) => global.CLAMP(min,
 global.DEFERRED_MODULES = [];
 global.DEFER_REQUIRE = (name) => global.DEFERRED_MODULES.push(name);
 
+global.ROOM_LINK = (roomName, shard = Game.shard.name, tag = roomName) => `<a href='#!/room/${shard}/${roomName}'>${tag}</a>`;
 
 global.DEFINE_CACHED_GETTER = function (proto, propertyName, fn, enumerable = false) {
 	Object.defineProperty(proto, propertyName, {
