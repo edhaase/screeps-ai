@@ -88,11 +88,9 @@ exports.Future = class Future {
 		const future = new this();
 		for (const f of futures) {
 			f.complete((val, err) => {
-				console.log(`complete`);
 				if (err)
 					future.throw(err);
 				else if (--count <= 0 && !future.resolved) {
-					console.log(`value ${count} / ${futures.length}`);
 					future.put(_.map(futures, 'value'));
 				}
 			});
