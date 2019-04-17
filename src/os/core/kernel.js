@@ -38,7 +38,7 @@ class Kernel {
 
 	constructor() {
 		/** We're a process! Sort of. */
-		MAKE_CONSTANT(this, 'pid', 0);
+		MAKE_CONSTANT(this, 'pid', "0");
 		MAKE_CONSTANT(this, 'name', 'kernel');
 		MAKE_CONSTANT(this, 'friendlyName', 'Kernel');
 		MAKE_CONSTANT(this, 'born', Game.time);
@@ -59,7 +59,7 @@ class Kernel {
 		this.threadClass = Thread;
 		this.queue = [];
 		this.proc = [];				// Safety, must exist during bootstrap
-		this.process.set(0, this);
+		this.process.set(this.pid, this);
 		this.processByName.set('kernel', [this]);
 
 		this.postTickFn = {};	// Clear the post-tick actions list
@@ -217,7 +217,7 @@ class Kernel {
 	}
 
 	killProcess(pid) {
-		if (pid === 0)
+		if (pid === this.pid)
 			throw new OperationNotPermitted(`Unable to kill kernel`);
 		const process = this.process.get(pid);
 		const parent = (process && process.parent);
@@ -240,7 +240,7 @@ class Kernel {
 	}
 
 	stopProcess(pid, timeout = ENV('kernel.shutdown_grace_period', DEFAULT_SHUTDOWN_GRACE_PERIOD)) {
-		if (pid === 0)
+		if (pid === this.pid)
 			throw new OperationNotPermitted(`Unable to stop kernel`);
 		const process = this.process.get(pid);
 		process.timeout = Game.time + timeout;
@@ -367,13 +367,13 @@ class Kernel {
 			const process = this.process.get(thread.pid);
 			if (!process) {
 				Log.debug(`No process found for ${thread.pid}, no further cleanup needed`, 'Kernel');
-				return;
+				return true;
 			}
 			const threadGroup = this.threadsByProcess.get(process);
 			threadGroup.delete(thread.tid);
 			if (process.onThreadExit)
 				process.onThreadExit(thread.tid, thread);
-			if (threadGroup.size <= 0 && thread.pid !== 0) {
+			if (threadGroup.size <= 0 && thread.pid !== global.kernel.pid) {
 				Log.warn(`${thread.pid}/${thread.tid}/${process.name} Last thread exiting, terminating process on tick ${Game.time} (age ${Game.time - process.born} ticks)`, 'Kernel');
 				this.killProcess(thread.pid);
 			}
@@ -383,9 +383,10 @@ class Kernel {
 		} finally {
 			this.postTick(() => _.remove(this.schedule, t => !this.threads.has(t.tid)), 'PurgeKilledThreads');
 		}
+		return true;
 	}
 
-	startThread(co, args = [], prio, desc, pid = this.cpid || 0, thisArg = this) {
+	startThread(co, args = [], prio, desc, pid = this.cpid || global.kernel.pid, thisArg = this) {
 		const coro = co.apply(thisArg, args);
 		const thread = new this.threadClass(coro, pid, desc);
 		return this.attachThread(thread, prio, pid);
