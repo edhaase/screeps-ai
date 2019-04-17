@@ -24,3 +24,4 @@ global.INVADER_USERNAME = 'Invader';
 global.SOURCE_KEEPER_USERNAME = 'Source Keeper';
 
 MAKE_CONSTANT(global, 'PROCESS_NAMESPACE', 'os.prog.');
+MAKE_CONSTANT(global, 'SHARD_TOKEN', (Game.shard && Game.shard.name && Game.shard.name.slice(-1)) || '');
