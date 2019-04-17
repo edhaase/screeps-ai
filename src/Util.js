@@ -26,11 +26,6 @@ class Util {
 		return [(integer >> 8) - 127, (integer & 255) - 127];
 	}
 
-
-	static formatNumber(number) {
-		return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-	}
-
 	// combine two 16 bit values into a single 32 bit
 	static combine(a, b) {
 		return (a << 16) + b;
