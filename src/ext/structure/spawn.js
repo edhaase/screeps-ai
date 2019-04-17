@@ -13,7 +13,7 @@
 'use strict';
 
 /* global Log, DEFAULT_SPAWN_JOB_EXPIRE, DEFAULT_SPAWN_JOB_PRIORITY */
-/* global RENEW_COST, RENEW_TICKS, UNIT_BUILD_TIME */
+/* global RENEW_COST, RENEW_TICKS, UNIT_BUILD_TIME, SHARD_TOKEN */
 
 /* eslint-disable no-magic-numbers */
 
@@ -31,7 +31,6 @@ global.PRIORITY_MAX = 0;
 
 // Notes on spawn utilization and renew:
 // _.map(Game.spawns, s => _.round(s.memory.u,3))
-//  Util.avg(Game.spawns, s => _.round(s.memory.u,3))
 // With oppoturnistic renewels: (0.3785 avg) 0.18,0.671,0.268,0.161,0.702,0.151,0.444,0.468,0.6,0.236
 // Without (but half broken) (0.2694) 0.017,0.644,0.069,0.574,0.614,0.372,0.169,0.212,0.017,0.011
 // Without opp renewels: (.312 avg) 0.53,0.183,0.527,0.259,0.328,0.333,0.094,0.247,0.29,0.383
@@ -147,12 +146,11 @@ StructureSpawn.prototype.initCreep = function (name, roleName, job) {
  * initial role to further increase potential number of names.
  */
 const CREEP_ID_ROLLOVER = 1000;
-const CREEP_ID_SHARD = (Game.shard && Game.shard.name && Game.shard.name.slice(-1)) || '';
 StructureSpawn.prototype.getNextId = function () {
 	if (Memory.creepnum == null)
 		Memory.creepnum = 0;
 	const creepNum = Memory.creepnum++ % CREEP_ID_ROLLOVER;
-	return `${CREEP_ID_SHARD}${creepNum}`;
+	return `${SHARD_TOKEN}${creepNum}`;
 };
 
 StructureSpawn.prototype.resetEnergyClock = function () {
