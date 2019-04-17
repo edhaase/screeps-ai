@@ -45,6 +45,13 @@ class FixedObstacleMatrix extends CostMatrix {
 
 global.FixedObstacleMatrix = FixedObstacleMatrix;
 
+class ConstructionSiteMatrix extends FixedObstacleMatrix {
+	constructor(roomName) {
+		super(roomName);
+		this.addConstructionPlan();
+	}
+}
+
 /**
  * Logistics matrix roughly combines obstacle matrix with road matrix
  * to find optimal shipping lane.
@@ -125,6 +132,8 @@ global.FIXED_OBSTACLE_MATRIX = new DelegatingLazyMap(
 	},
 	new LRU({ ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE })
 );
+
+global.CONSTRUCTION_MATRIX = new DelegatingLazyMap((roomName) => new ConstructionSiteMatrix(roomName), new LRU({ ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE }));
 
 module.exports = {
 	CostMatrix: CostMatrix,			// base class
