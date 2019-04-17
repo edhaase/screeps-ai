@@ -649,6 +649,7 @@ StructureController.prototype.onBootup = function () {
 	Log.success(`Room ${this.pos.roomName} claimed`, 'Controller');
 	this.memory.maxlevel = this.level;
 	this.memory.claimedAt = Game.time;
+	this.memory.claimedAtTS = Date.now();
 	this.room.find(FIND_HOSTILE_STRUCTURES).forEach(s => s.destroy());
 };
 
