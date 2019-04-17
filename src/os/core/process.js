@@ -37,14 +37,6 @@ class Process {
 		return module.deserialize(opts);
 	}
 
-	/**
-	 * Inspired by ags131, we're using UIDs for pids
-	 */
-	static getNextId(prefix = '') {
-		Game.vpid = ((Game.vpid == null) ? -1 : Game.vpid) + 1;
-		return `${prefix}${Game.time.toString(36)}.${Game.vpid.toString(36)}`.toUpperCase();
-	}
-
 	get children() {
 		return global.kernel.childrenLookupTable.get(this);
 	}

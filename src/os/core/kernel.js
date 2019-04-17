@@ -14,6 +14,7 @@ const PriorityQueue = require('os.ds.pq');
 const Process = require('os.core.process');
 const Thread = require('os.core.thread');
 const GCP = require('os.gc');
+const { createShardLocalUUID } = require('os.core.uuid');
 
 const { OperationNotPermitted } = require('os.core.errors');
 
@@ -43,6 +44,7 @@ class Kernel {
 		MAKE_CONSTANT(this, 'friendlyName', 'Kernel');
 		MAKE_CONSTANT(this, 'born', Game.time);
 		MAKE_CONSTANT(this, 'instantiated', Game.time);
+		MAKE_CONSTANT(this, 'ts', Date.now());
 		MAKE_CONSTANT(this, 'priority', Process.PRIORITY_IDLE);
 		// this.minCpu = Infinity;
 		// this.maxCpu = -Infinity;
@@ -189,7 +191,7 @@ class Kernel {
 
 	startProcess(name, opts = {}, ppid) {
 		const entry = _.clone(opts);
-		entry.pid = Process.getNextId();
+		entry.pid = createShardLocalUUID(); /** Inspired by ags131, we're using UIDs for pids */
 		entry.ppid = ppid;
 		entry.name = name;
 		const parent = this.process.get(ppid);
