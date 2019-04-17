@@ -22,7 +22,7 @@
 /* global Log, Util */
 /* global DEFAULT_BUILD_JOB_EXPIRE, STRUCTURE_BUILD_PRIORITY */
 /* global CREEP_UPGRADE_RANGE */
-/* global CRITICAL_INFRASTRUCTURE, CONTROLLER_STRUCTURES_LEVEL_FIRST */
+/* global CRITICAL_INFRASTRUCTURE, CONTROLLER_STRUCTURES_LEVEL_FIRST, CONSTRUCTION_MATRIX */
 
 
 /* eslint-disable consistent-return */
@@ -283,9 +283,9 @@ class BuildPlanner {
 		if (fromPos.pos)
 			fromPos = fromPos.pos;
 		if (opts.cmFn === undefined)
-			opts.cmFn = (rN) => FIXED_OBSTACLE_MATRIX.get(rN);
+			opts.cmFn = (rN) => CONSTRUCTION_MATRIX.get(rN);
 		if (opts.tunnel) {
-			const cmFn = opts.cmFn;
+			const { cmFn } = opts;
 			opts.cmFn = function (rN) {
 				let cm = cmFn(rN);
 				if (cm) {

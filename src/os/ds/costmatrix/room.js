@@ -24,6 +24,18 @@ class RoomCostMatrix extends CostMatrix {
 		return Game.rooms[this.roomName];
 	}
 
+	addConstructionPlan() {
+		const { bq } = Memory.rooms[this.roomName] || {};
+		if (!bq || !bq.length)
+			return;
+		for (const itm of bq) {
+			if (OBSTACLE_OBJECT_TYPES.includes(itm.structureType))
+				this.set(itm.x, itm.y, TILE_UNWALKABLE);
+			else if (itm.structureType === STRUCTURE_ROAD)
+				this.set(itm.x, itm.y, 1);
+		}
+	}
+
 	setFixedObstacles(room = this.room, score = TILE_UNWALKABLE) {
 		for (const { pos } of room.structuresObstacles) {
 			this.set(pos.x, pos.y, score);
