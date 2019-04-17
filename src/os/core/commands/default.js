@@ -4,7 +4,7 @@
 const Cmd = require('os.core.commands');
 const Process = require('os.core.process');
 
-/* global kernel, ENV */
+/* global kernel, ENV, ROOM_LINK */
 
 function proc(sortBy = ENV('commands.proc.default_sort', 'pid'), order = ['asc']) {
 	const sorted = _.sortByOrder([...kernel.process.values()], sortBy, order);
@@ -20,7 +20,7 @@ function threadReport(pid, sortBy = ENV('commands.threads.default_sort', 'pid'),
 	// @todo show threads for process
 	// [...kernel.threads.values()]
 	const allThreads = [...kernel.threads.values()];
-	const threads = (pid !== undefined) ? _.filter(allThreads, 'pid', pid) : allThreads;
+	const threads = (pid !== undefined) ? _.filter(allThreads, 'pid', pid.toString()) : allThreads;
 	const sorted = _.sortByOrder(threads, sortBy, order);
 	if (!sorted || !sorted.length)
 		return "No processes";
@@ -35,11 +35,44 @@ function threadReport(pid, sortBy = ENV('commands.threads.default_sort', 'pid'),
 	return `<table style='width: 60vw'><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table`;
 }
 
+function thr(pid, sortBy = ENV('commands.threads.default_sort', 'pid'), order = ['asc']) {
+	const allThreads = [...kernel.threads.values()];
+	const threads = (pid !== undefined) ? _.filter(allThreads, 'pid', pid) : allThreads;
+	const sorted = _.sortByOrder(threads, sortBy, order);
+	if (!sorted || !sorted.length)
+		return "No processes";
+	const head = `<th>tid</th><th>state</th><th>priority</th><th>cpuLastTick</th><th>minCpu</th><th>avgUsrCpu</th><th>avgSysCpu</th><th>maxCpu</th><th>age</th><th>desc</th>`;
+	const grouped = _.groupBy(sorted, 'pid');
+	var results = '';
+	for (const group of Object.keys(grouped)) {
+		const process = kernel.process.get(group);
+		const th = grouped[group];
+		const rows = _.map(th, t => {
+			const p = kernel.process.get(t.pid) || {};
+			const asleep = (t.sleep && Game.time < t.sleep) || (p.sleep && Game.time < p.sleep);
+			const state = (asleep) ? 'SLEEP' : t.state;
+			return `<tr><td>${t.tid}</td><td>${state}</td><td>${t.priority}</td><td>${_.round(t.lastTickSysCpu, 5)} (${_.round(t.lastTickUsrCpu, 5)})</td><td>${_.round(t.minTickCpu, 5)}</td><td>${_.round(t.avgUsrTickCpu, 5)}</td><td>${_.round(t.avgSysTickCpu, 5)}</td><td>${_.round(t.maxTickCpu, 5)}</td><td>${Game.time - t.born}</td><td>${t.desc || '-'}</td></tr>`;
+		});
+		const tbl = `<table style='width: 60vw; margin-bottom: 5px'><thead><tr>${head}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
+		results += `<details><summary>${group}/${process.friendlyName}&#9; (${th.length})</summary>${tbl}</details>`;
+	}
+	// return `<ul>${results}</ul>`;
+	return results;
+}
+
+function playerReport() {
+	const intel = gpbn('intel')[0].intel.threats;
+	const sorted = _.sortByOrder(Object.entries(intel), ([v, k]) => k, ['asc']);
+	const head = `<th>Name</th><th>Score</th>`;
+	const body = _.map(sorted, ([name, score]) => `<tr><td>${name}</td><td>${JSON.stringify(score)}</td></tr>`);
+	return `<table style='width: 50vw'><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table`;
+}
+
 function pagerReport() {
-	const head = `<th>Page Hit / Miss</th><th>IOW</th><th>IOR</th> <th>PW</th> <th>PR</th> <th>Active</th>`;
+	const head = `<th>Page Hit / Miss</th><th>IOW</th><th>IOR</th> <th>PW</th> <th>PR</th> <th>Active</th><th>Cached</th>`;
 	const total = PAGE_HIT + PAGE_MISS;
 	const hitpct = _.round(PAGE_HIT / total, 1);
-	const rows = `<tr><td>${PAGE_HIT} - ${PAGE_MISS} (${hitpct}%)</td><td>${PAGE_IO_WRITE}</td><td>${PAGE_IO_READ}</td> <td>${PAGE_WRITES.size}</td>  <td>${PAGE_REQUESTS.size}</td> <td>${_.size(RawMemory.segments)}</tr>`;
+	const rows = `<tr><td>${PAGE_HIT} - ${PAGE_MISS} (${hitpct}%)</td><td>${PAGE_IO_WRITE}</td><td>${PAGE_IO_READ}</td> <td>${PAGE_WRITES.size}</td>  <td>${PAGE_REQUESTS.size}</td> <td>${_.size(RawMemory.segments)}<td>${PAGE_CACHE.size}</td></tr>`;
 	return `<table style='width: 20vw'><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table`;
 }
 
@@ -124,7 +157,7 @@ function progress() {
 		.filter('my')
 		.filter(c => c.level < 8)
 		// .each(c => console.log("Room: " + c.room.name + ", RCL: " + (c.level+1) + ", " + c.estimate()))
-		.each(c => console.log(`Room: ${c.room.name}, RCL: ${(c.level + 1)}, ${c.estimate()} ${Log.progress(c.room.controller.progress, c.room.controller.progressTotal)}, ${_.round(c.memory.rclAvgTick, 2)} e/t`))
+		.each(c => console.log(`Room: ${ROOM_LINK(c.room.name)}, RCL: ${(c.level + 1)}, ${c.estimate()} ${Log.progress(c.room.controller.progress, c.room.controller.progressTotal)}, ${_.round(c.memory.rclAvgTick, 2)} e/t`))
 		.commit();
 }
 
@@ -135,9 +168,9 @@ function stats() {
 	console.log(`Structures: ${_.size(Game.structures)}`);
 	console.log(`Flags: ${_.size(Game.flags)}`);
 	console.log(`Construction sites: ${_.size(Game.constructionSites)}`);
-	
+
 	const cbr = _.groupBy(Game.creeps, 'memory.role');
-	for(const [role,creeps] of Object.entries(cbr)) {
+	for (const [role, creeps] of Object.entries(cbr)) {
 		const sorted = _.sortByOrder(creeps, 'pos.roomName', ['asc']);
 		const rows = _.map(sorted, c => `<li>${c} <a href='#!/room/${Game.shard.name}/${c.pos.roomName}'>${c.pos}</a></li>`);
 		console.log(`<details><summary>${role} (${creeps.length})</summary><ul>${rows.join('')}</ul></details>`);
@@ -234,6 +267,8 @@ function showRoom(roomName, shard = Game.shard.name) {
 }
 
 function spark(co) {
+	if (typeof co === 'function')
+		throw new TypeError(`Expected generator`);
 	const wrap = function* () {
 		const tsbegin = Date.now();
 		const begin = Game.cpu.getUsed();
@@ -254,18 +289,19 @@ Cmd.register('killAll', killAll, 'Terminate all running processes');
 Cmd.register('killThread', killThread, 'Terminate a running thread by id');
 Cmd.register('reinitAll', reinitAll, 'Reinitialize process table', ['init']);
 Cmd.register('reinitCron', reinitCron);
+Cmd.register('spark', spark, 'Create thread for coroutine');
 Cmd.register('startProcess', start, 'Launch a process', ['start']);
 Cmd.register('stop', stop, 'Attempt to gracefully stop a process');
-Cmd.register('spark', spark, 'Create thread for coroutine');
 
 Cmd.register('events', events, 'Show recent event log for all rooms', [], 'Reporting');
+Cmd.register('pager', pagerReport, 'Show paging report', [], 'Reporting');
 Cmd.register('proc', proc, 'Show process table', ['ps'], 'Reporting');
 Cmd.register('progress', progress, 'Show room and GCL progress', [], 'Reporting');
 Cmd.register('stats', stats, 'Show empire stats for this shard', [], 'Reporting');
 Cmd.register('storage', storage, 'Show storage report', [], 'Reporting');
 Cmd.register('terminals', terminals, 'Show terminal report', [], 'Reporting');
+Cmd.register('thbyps', thr, 'List threads grouped by process', [], 'Reporting');
 Cmd.register('threads', threadReport, 'Show threads', [], 'Reporting');
-Cmd.register('pager', pagerReport, 'Show paging report', [], 'Reporting');
 
 Cmd.register('clearWatches', clearWatches, 'Clear the memory watch', ['cw'], 'GUI');
 Cmd.register('showRoom', showRoom, 'Switch the GUI to a room', [], 'GUI');
@@ -275,3 +311,6 @@ Cmd.register('explain', (x) => JSON.stringify(x, null, 2), 'Explain (Pretty prin
 Cmd.register('getParamStr', Inspector.getParamStr, 'Show the parameter names for a function', ['params'], 'Inspector');
 Cmd.register('inspect', Inspector.inspect, 'Inspect an object or prototype', ['ins'], 'Inspector');
 Cmd.register('prop_find', Inspector.findProperty, 'Find a property in a prototype chain', ['propf'], 'Inspector');
+
+Cmd.register('players', playerReport, 'Show players and their threat scores', [], 'Threat Management');
+// Cmd.register('influence', influenceReport, 'Reports on influence', [],  'Threat Management');
