@@ -131,7 +131,7 @@ class BuildPlanner {
 			// this.buildSourceRoads(room, pos, room.controller.level >= 3);
 			this.buildSourceRoads(room, origin.pos, false);
 			this.buildControllerWall(origin, room.controller);
-			this.planRoad(origin.pos, { pos: room.controller.pos, range: CREEP_UPGRADE_RANGE }, { container: false, initial: 1, tunnel: true });
+			this.planRoad(origin.pos, { pos: room.controller.pos, range: CREEP_UPGRADE_RANGE }, { container: false, initial: 1, tunnel: true, stroke: 'green' });
 		}
 		if (level >= MINIMUM_LEVEL_FOR_LINKS)
 			this.buildLinks(origin.pos, level);
@@ -145,7 +145,7 @@ class BuildPlanner {
 				room.addToBuildQueue(mineral.pos, STRUCTURE_EXTRACTOR);
 			}
 			if (room.terminal)
-				this.planRoad(room.terminal.pos, { pos: mineral.pos, range: 1 }, { rest: 1, initial: 1, container: true, tunnel: true });
+				this.planRoad(room.terminal.pos, { pos: mineral.pos, range: 1 }, { rest: 1, initial: 1, container: true, tunnel: true, stroke: 'blue' });
 		}
 		return OK;
 	}
@@ -262,14 +262,14 @@ class BuildPlanner {
 		if (origin == null)
 			throw new Error("Origin position required");
 		const sources = room.find(FIND_SOURCES);
-		_.each(sources, source => this.planRoad(origin, { pos: source.pos, range: 1 }, { swampCost: 3, rest: 1, initial: 1, container, tunnel: true }));
+		_.each(sources, source => this.planRoad(origin, { pos: source.pos, range: 1 }, { swampCost: 3, rest: 1, initial: 1, container, tunnel: true, stroke: 'yellow' }));
 		if (room.controller && room.controller.level >= 6 && sources.length > 1) {
 			var [s1, s2] = sources;
-			const [c1, c2] =  [s1.container, s2.container];
-			if(c1 && c2)
-				this.planRoad(c1, { pos: c2.pos, range: 1 }, { tunnel: 20, heuristicWeight: 0, swampCost: 3 });
+			const [c1, c2] = [s1.container, s2.container];
+			if (c1 && c2)
+				this.planRoad(c1, { pos: c2.pos, range: 1 }, { tunnel: 20, heuristicWeight: 0, swampCost: 3, stroke: 'yellow' });
 			else
-				this.planRoad(s1, { pos: s2.pos, range: 1 }, { rest: 1, initial: 1, tunnel: false, swampCost: 3 }); // could end up with unusable tunnel
+				this.planRoad(s1, { pos: s2.pos, range: 1 }, { rest: 1, initial: 1, tunnel: false, swampCost: 3, stroke: 'red' }); // could end up with unusable tunnel
 		}
 	}
 
@@ -319,7 +319,7 @@ class BuildPlanner {
 			path = path.slice(opts.rest, path.length - (opts.initial || 0));
 			if (!path || !path.length)
 				return Log.debug(`No road needed for ${fromPos} to ${toPos}`, 'Planner');
-			new RoomVisual(path[0].roomName).poly(path);
+			new RoomVisual(path[0].roomName).poly(path, { stroke: opts.stroke });
 			Log.debug(`Road found, cost ${cost} ops ${ops} incomplete ${incomplete}`, 'Planner');
 			if (opts.dry)
 				return;
@@ -338,67 +338,6 @@ class BuildPlanner {
 			console.log(ex(toPos));
 		}
 		// _.each(path, p => p.createConstructionSite(STRUCTURE_ROAD));
-	}
-
-	/**
-	 * Flood fill code
-	 * https://en.wikipedia.org/wiki/Breadth-first_search
-	 *
-	 * @param pos - starting position
-	 *
-	 * ex: floodFill(controller.pos)
-	 * ex: Planner.floodFill(new RoomPosition(46,19,'E58S41'), {limit: 128, validator: (pos) => Game.map.getTerrainAt(pos) !== 'wall' && !pos.hasObstacle()})
-	 */
-	static floodFill(pos, {
-		validator = (pos) => !pos.isOnRoomBorder() && !pos.hasObstacle(true),
-		stop = () => false,		// stop condition
-		limit = 150,
-		oddeven = false,
-		visualize = true,
-	} = {}) {
-		var start = Game.cpu.getUsed();
-		var s = new CostMatrix.CostMatrix;
-		var q = [pos];
-		var rtn = [];
-		var room = Game.rooms[pos.roomName];
-		var count = 0;
-		var visual = (room) ? room.visual : (new RoomVisual(pos.roomName));
-		while (q.length) {
-			var point = q.shift();
-			if (count++ > limit)
-				break;
-			// This isn't firing, so we're only here if this a good point.
-			// visual.circle(point, {fill: 'yellow'});
-			//	continue;			
-			// console.log('point: ' + point);
-			rtn.push(point);
-
-			// if(goalMet?)
-			// return;
-			var adj = point.getAdjacentPoints();
-			_.each(adj, function (n) {
-				if (s.get(n.x, n.y))
-					return;
-				s.set(n.x, n.y, 1);
-				if (!validator(n)) {
-					if (visualize)
-						visual.circle(n, { fill: 'red', opacity: 1.0 });
-				} else {
-					var color = Util.getColorBasedOnPercentage(100 * (count / limit));
-					// var color = HSV_COLORS[Math.floor(100*(count / limit))];
-					if (oddeven && (n.x + n.y) % 2 === 0)
-						color = 'blue';
-					if (visualize)
-						visual.circle(n, { fill: color, opacity: 1.0 });
-					// room.visual.circle(n, {fill: 'green'});
-					q.push(n);
-				}
-			});
-		}
-
-		var used = Game.cpu.getUsed() - start;
-		console.log(`Used: ${used}, Count: ${count}`);
-		return rtn;
 	}
 
 	/**

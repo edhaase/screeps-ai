@@ -13,7 +13,7 @@ function proc(sortBy = ENV('commands.proc.default_sort', 'pid'), order = ['asc']
 	const head = `<th>pid/name</th><th>ppid/name</th><th>#threads</th><th>totalCpu</th><th>minCpu</th><th>avgUsrCpu</th><th>avgSysCpu</th><th>maxCpu</th><th>age</th><th>title</th>`;
 	const rows = _.map(sorted, r => `<td>${r.pid}/${r.name}</td><td>${(r.parent && r.parent.pid) || '-'}/${(r.parent && r.parent.name) || '-'}</td><td>${r.threads.size}</td><td>${_.round(r.totalCpu, 5)}</td><td>${_.round(r.minCpu, 5)}</td><td>${_.round(r.avgUsrCpu, 5)}</td><td>${_.round(r.avgSysCpu, 5)}</td><td>${_.round(r.maxCpu, 5)}</td><td>${Game.time - r.born}</td><td>${r.title || '-'}</td>`);
 	const body = _.map(rows, r => `<tr>${r}</tr>`);
-	return `<table style='width: 50vw'><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table`;
+	return `<table style='width: 50vw'><thead><tr>${head}</tr></thead><tbody>${body.join('')}</tbody></table`;
 }
 
 function threadReport(pid, sortBy = ENV('commands.threads.default_sort', 'pid'), order = ['asc']) {
@@ -131,7 +131,7 @@ function stop(pid, timeout = undefined) {
 
 function killAll() {
 	for (const [pid,] of kernel.process) {
-		if (pid === 0)
+		if (pid === kernel.pid)
 			continue;
 		kernel.killProcess(pid);
 	}
@@ -221,42 +221,6 @@ function storage() {
 	output += '</table>';
 	console.log(Log.table(headers, rows));
 }
-
-class Tag {
-	constructor(name, content) {
-		this.name = name;
-		this.content = content;
-	}
-
-	toString() { return `<${this.name}>${this.content}</${this.name}>`; }
-
-	static tr(content) { return new this('tr', content); }
-	static td(content) { return new this('tr', content); }
-	static table(keys, rows) { return new this('table', `<thead>${keys}</thread><tbody>${rows}</tbody>`); }
-}
-global.Tag = Tag;
-
-/**
- * Convert any iterable into an easy-to-read table
- * @todo map rows _then_ sort
- */
-global.tbl = function (itr, map, opts = {}) {
-	const cols = Object.keys(map);
-	const head = _.map(cols, k => `<th>${k}</th>`);
-	const rows = [];
-	for (const item of itr) {
-		const row = [];
-		if (opts.skip && opts.skip(item))
-			continue;
-		rows.push(row);
-	}
-	// const rows = _.map(sorted, r => _.map(keys, k => `<td>${r[k]}</td>`).join());
-	// const body = _.map(rows, r => `<tr>${r}</tr>`); * /
-
-	const style = `width='800px'`;
-	const content = `<thead><tr>${head}</tr></thead><tbody>${body}</tbody><tfoot>${foot}</tfoot>`;
-	return `<table ${style}>${content}</table>`;
-};
 
 function clearWatches() {
 	return `<script>var memory = angular.element($('.memory-watch')).scope().MemoryMain; memory.watches.filter(w => w.path !== "").forEach(w => memory.removeWatch(w.path));</script>`;

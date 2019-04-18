@@ -17,6 +17,8 @@ class RoomCostMatrix extends CostMatrix {
 
 	constructor(roomName) {
 		super();
+		if (_.isEmpty(roomName))
+			throw new TypeError(`Expected room name, got ${roomName}`);
 		this.roomName = roomName;
 	}
 
@@ -81,11 +83,15 @@ class RoomCostMatrix extends CostMatrix {
 
 	setTerrainWalls(roomName = this.roomName, score = TILE_UNWALKABLE) {
 		const terrain = Game.map.getRoomTerrain(roomName);
+		const sources = (this.room && this.room.find(FIND_SOURCES)) || [];
 		for (var x = 0; x < 50; x++) {
 			for (var y = 0; y < 50; y++) {
 				if (!(terrain.get(x, y) & TERRAIN_MASK_WALL))
 					continue;
-				this.set(x, y, score);
+				if (_.any(sources, s => s.pos.isNearTo(x, y)))
+					this.set(x,y, TILE_UNWALKABLE);
+				else
+					this.set(x, y, score);
 			}
 		}
 		return this;
@@ -121,7 +127,7 @@ class RoomCostMatrix extends CostMatrix {
 	}
 
 	clone() {
-		const newMatrix = new RoomCostMatrix;
+		const newMatrix = new RoomCostMatrix(this.roomName);
 		newMatrix._bits = new Uint8Array(this._bits);
 		return newMatrix;
 	}

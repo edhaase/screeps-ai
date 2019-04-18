@@ -686,8 +686,7 @@ StructureController.prototype.onUpgrade = function (level, prev) {
 	// If the build queue is full it returns early.
 	// So we can call this at a higher frequency.
 	// if(Game.time % 300 == 0)
-	if (!CPU_LIMITER)
-		require('Planner').buildRoom(this.room);
+	startProcess('planner', { roomName: this.pos.roomName });
 };
 
 /**

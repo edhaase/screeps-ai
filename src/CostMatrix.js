@@ -25,7 +25,7 @@ const TILE_UNWALKABLE = 255;
  */
 class FixedObstacleMatrix extends CostMatrix {
 	constructor(roomName) {
-		super(Game.rooms[roomName]);
+		super(roomName);
 		if (!_.isString(roomName))
 			throw new TypeError("FixedObstacleMatrix expects roomName string");
 
@@ -62,7 +62,7 @@ class LogisticsMatrix extends CostMatrix {
 	 * @throws Error
 	 */
 	constructor(roomName) {
-		super(Game.rooms[roomName]);
+		super(roomName);
 
 		const room = Game.rooms[roomName];
 		if (!room)
@@ -113,9 +113,10 @@ global.LOGISTICS_MATRIX = new DelegatingLazyMap(
 		try {
 			return (new LogisticsMatrix(roomName));
 		} catch (e) {
+			// @todo needs fixing
 			// Log.error(e.stack);
 		}
-		return new CostMatrix;
+		return new PathFinder.CostMatrix;
 	},
 	new LRU({ ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE })
 );
@@ -123,12 +124,11 @@ global.LOGISTICS_MATRIX = new DelegatingLazyMap(
 global.FIXED_OBSTACLE_MATRIX = new DelegatingLazyMap(
 	(roomName) => {
 		try {
-			if (Game.rooms[roomName])
-				return new FixedObstacleMatrix(roomName);
+			return new FixedObstacleMatrix(roomName);
 		} catch (e) {
 			Log.error(e.stack);
 		}
-		return new CostMatrix;
+		return new PathFinder.CostMatrix;
 	},
 	new LRU({ ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE })
 );

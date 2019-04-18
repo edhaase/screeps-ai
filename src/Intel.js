@@ -53,7 +53,7 @@ class Intel {
 		const exits = _.omit(Game.map.describeExits(room.name), (v, k) => !Game.map.isRoomAvailable(v));
 		if (!_.any(exits, exit => Game.rooms[exit] && Game.rooms[exit].my))
 			return false;
-		Log.info(`Intel wants ${room.name} for remote mining as it's near our empire`, 'Intel');
+		Log.debug(`Intel wants ${room.name} for remote mining as it's near our empire`, 'Intel');
 		if (!Memory.empire.remoteMine)
 			return false;
 		room.find(FIND_SOURCES).forEach(s => {

@@ -87,7 +87,7 @@ class Stats extends Process {
 		if (this.stats.lastTS) {
 			const elapsedInSeconds = ((new Date()).getTime() - this.stats.lastTS) / MS_TO_SECONDS;
 			const avg = elapsedInSeconds / freq;
-			this.info(`Updating tick length! ${avg}`);
+			this.info(`Updating tick length! ${_.round(avg,2)}`);
 			this.stats.tickLength = avg;
 		}
 		this.stats.lastTS = (new Date()).getTime();
