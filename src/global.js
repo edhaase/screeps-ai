@@ -11,6 +11,7 @@ global.INVADER_USERNAME = 'Invader';
 global.SOURCE_KEEPER_USERNAME = 'Source Keeper';
 global.IS_PTR = !!(Game.shard && Game.shard.ptr);
 global.IS_SIM = !!Game.rooms['sim'];
+global.MARKET_ORDER_LIMIT = 50;
 
 global.RUNTIME_ID = Game.time;
 

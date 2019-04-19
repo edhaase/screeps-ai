@@ -3,16 +3,23 @@
 
 const Co = require('os.core.co');
 const Process = require('os.core.process');
+const PagedProcess = require('os.core.process.paged');
 const { Future } = require('os.core.future');
 
-class PlannerProc extends Process {
+class PlannerProc extends PagedProcess {
 	constructor(opts) {
 		super(opts);
 		this.priority = Process.PRIORITY_LOWEST;
 		this.default_thread_prio = Process.PRIORITY_LOWEST;
+		this.pageIds = [SEGMENT_BUILD];
+	}
+
+	onPageCorrupted() {
+		return {};
 	}
 
 	*run() {
+		const [builder] = yield* this.read(); // also stored in this.pages
 		// Cleanup memory
 		if (this.roomName)
 			return yield* this.plan(Game.rooms[this.roomName]);

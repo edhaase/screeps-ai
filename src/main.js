@@ -17,7 +17,6 @@ global.Time = require('Time');
 global.Player = require('Player');
 global.Filter = require('Filter');
 global.Route = require('Route');
-global.Market = require('Market');
 global.Intel = require('Intel');
 
 // Deffered modules though we can load when we have cpu for it
