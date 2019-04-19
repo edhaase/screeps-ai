@@ -1,4 +1,4 @@
-/** os.algo.xorcrypt */
+/** algo.xorcrypt */
 'use strict';
 
 /* Appropriated from Semperrrabit */

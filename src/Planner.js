@@ -27,9 +27,9 @@
 
 /* eslint-disable consistent-return */
 
-const FleePlanner = require('os.algo.fleeplanner');
+const FleePlanner = require('algo.fleeplanner');
 const { VisibilityError } = require('os.core.errors');
-const dt = require('os.algo.dt').distanceTransform;
+const dt = require('algo.dt').distanceTransform;
 
 // @todo Find way to preserve road plan from expiring.
 // @todo Put terminal within range 2 of controller.

@@ -1,4 +1,4 @@
-/** os.algo.map.enclosure */
+/** algo.map.enclosure */
 'use strict';
 /**
  * Check if a room is reachable from the world.
