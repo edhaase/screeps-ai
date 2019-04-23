@@ -294,32 +294,29 @@ StructureController.prototype.runCensus = function () {
 	const signers = census[`${roomName}_signer`] || [];
 	const scientists = census[`${roomName}_scientist`] || [];
 
-	var resDecay = _.sum(this.room.resources, 'decay');
+	const resDecay = _.sum(this.room.resources, 'decay');
 	const sites = this.room.find(FIND_MY_CONSTRUCTION_SITES);
 
 	// Income
+	const enDecay = _(this.room.resources).filter('resourceType', RESOURCE_ENERGY).sum('decay');
 	const sources = this.room.find(FIND_SOURCES);
 	const base = Math.min(_.sum(sources, 'ept'), _.sum(miners, 'harvestPower') + _.sum(dualminers, 'harvestPower'));
 	const remote = Math.floor(_.sum(haulers, 'memory.ept')) || 0;
 	const reactor = (this.room.energyAvailable >= SPAWN_ENERGY_START) ? 0 : spawns.length;
 	const overstock = Math.floor((storage && storedEnergy * Math.max(0, storage.stock - 1) || 0) / CREEP_LIFE_TIME);
-	const income = base + remote + reactor + overstock;
-	Log.info(`${this.pos.roomName}: Base ${_.round(base, 3)} Remote ${_.round(remote, 3)} Reactor ${_.round(reactor, 3)} Over ${_.round(overstock, 3)}`, 'Controller');
+	const income = base + remote + reactor + overstock + enDecay;
 
 	const upkeepCreeps = _.sum(creeps, 'cpt');
 	const upkeepStructures = _.sum(this.room.structures, 'upkeep');
 	const upkeep = upkeepCreeps + upkeepStructures;
 	// const upkeep = upkeepStructures;
-	Log.info(`${this.pos.roomName}: Upkeep: ${_.round(upkeep, 3)}, Creep: ${_.round(upkeepCreeps, 3)}, Structure: ${_.round(upkeepStructures, 3)}`, 'Controller');
 
 	const expense = 0;
 	const net = income - (expense + upkeep);
 	const avail = income - upkeep;
 	const minimumAvailable = 0.25;
-	const modifier = (!storage) ? 1.0 : Math.max(minimumAvailable, storage.stock);
+	const modifier = (!storage || !storage.isActive()) ? 1.0 : Math.max(minimumAvailable, storage.stock);
 	const adjusted = avail * modifier;
-	Log.info(`${this.pos.roomName}: Income: ${_.round(income, 3)}, Overstock: ${_.round(overstock, 3)}, Expense: ${_.round(expense, 3)}, Upkeep: ${_.round(upkeep, 3)}, Net: ${_.round(net, 3)}, Avail ${_.round(avail, 3)}, Banked: ${storedEnergy}, Adjusted ${_.round(adjusted, 3)}`, 'Controller');
-
 
 	// Distribution		
 	const upperRepairLimit = 0.95;
@@ -329,8 +326,13 @@ StructureController.prototype.runCensus = function () {
 	const allotedUpgrade = Math.floor(Math.min(adjusted - allotedRepair - allotedBuild, maxAllotedUpgrade));
 
 	const remainder = adjusted - allotedRepair - allotedBuild - allotedUpgrade;
-	Log.info(`${this.pos.roomName}: Allotments: ${_.round(allotedUpgrade, 3)} upgrade, ${_.round(allotedRepair, 3)} repair, ${_.round(allotedBuild, 3)} build, ${_.round(remainder, 3)} leftover`, 'Controller');
 
+	var report = "";
+	report += `\nBase ${_.round(base, 3)} Remote ${_.round(remote, 3)} Reactor ${_.round(reactor, 3)} Over ${_.round(overstock, 3)} Decay: ${enDecay}`;
+	report += `\nUpkeep: ${_.round(upkeep, 3)}, Creep: ${_.round(upkeepCreeps, 3)}, Structure: ${_.round(upkeepStructures, 3)}`;
+	report += `\nIncome: ${_.round(income, 3)}, Overstock: ${_.round(overstock, 3)}, Expense: ${_.round(expense, 3)}, Upkeep: ${_.round(upkeep, 3)}, Net: ${_.round(net, 3)}, Avail ${_.round(avail, 3)}, Banked: ${storedEnergy}, Adjusted ${_.round(adjusted, 3)}`;
+	report += `\nAllotments: ${_.round(allotedUpgrade, 3)} upgrade, ${_.round(allotedRepair, 3)} repair, ${_.round(allotedBuild, 3)} build, ${_.round(remainder, 3)} leftover`;
+	Log.info(`<details><summary>Income/Expense Report (${this.pos.roomName})</summary>${report}</details>`);
 	/**
 	 * Emergency conditions - Should probably be detected elsewhere
 	 */
