@@ -1,7 +1,7 @@
 /** os.ds.influence.js - Influence maps! */
 'use strict';
 
-const DEFAULT_MAX_INFLUENCE_DISTANCE = 15;
+const DEFAULT_MAX_INFLUENCE_DISTANCE = 7;
 
 /**
  * Positive and negative influence?
@@ -35,11 +35,16 @@ class InfluenceMap {
 	 * Normalized map is good for combining
 	 */
 	normalize() {
-		const max = _.max(this.data);
-		for (const key in this.data) {
-			this.data[key] /= max;
+		const copy = this.clone();
+		const max = _.max(copy.data);
+		const min = _.min(copy.data);
+		for (const key in copy.data) {
+			if (copy.data[key] > 0)
+				copy.data[key] = (copy.data[key] / max);
+			else
+				copy.data[key] = -(copy.data[key] / min);
 		}
-		return this;
+		return copy;
 	}
 
 	set(roomName, score) {
@@ -68,17 +73,22 @@ class InfluenceMap {
 		return this.propagateAll();
 	}
 
-	*propagateAll() {
+	*propagateAll(render) {
 		const entries = Object.entries(this.pending);
 		this.pending = {};
-		for (const change of entries)
+		for (const change of entries) {	
 			yield* this.propagate(change);
+			if(render) {
+				yield this.draw(render);
+			}
+			
+		}
 		return this;
 	}
 
 	*propagate([origin, delta]) {
 		const changes = {};
-		const seen = {};
+		const seen = {[origin]: 0};
 		const q = [origin];
 		const owner = _.get(Memory.intel, [origin, 'owner']);
 		for (const roomName of q) {
@@ -94,7 +104,7 @@ class InfluenceMap {
 			//	continue;
 			if (delta > 0 && Memory.intel[roomName] && Memory.intel[roomName].owner && Player.status(Memory.intel[roomName].owner) === PLAYER_HOSTILE)
 				continue;	// Don't push through owned rooms
-			if (delta < 0 && Memory.intel[roomName] && Memory.intel[roomName].owner !== owner)
+			if (delta < 0 && Memory.intel[roomName] && Memory.intel[roomName].owner && Memory.intel[roomName].owner !== owner)
 				continue;	// @todo check alliance map
 			const exits = _.values(Game.map.describeExits(roomName));
 			for (const exit of exits) {
@@ -112,7 +122,7 @@ class InfluenceMap {
 			if (!this.data[roomName])
 				this.data[roomName] = 0.0;
 			// this.data[roomName] += change;
-			this.data[roomName] = _.round(this.data[roomName] + change, 5);
+			this.data[roomName] += change;
 		}
 	}
 
@@ -120,7 +130,7 @@ class InfluenceMap {
 		return _.mapValues(this.data, (v, k) => _.round(v, 3));
 	}
 
-	table(width = 35) {
+	bounds() {
 		const entries = _.map(this.data, (v, k) => [ROOM_NAME_TO_COORD(k), v]);
 		var lx = Infinity, ux = -Infinity, ly = Infinity, uy = -Infinity;
 		for (const [[x, y]] of entries) {
@@ -130,7 +140,27 @@ class InfluenceMap {
 			uy = Math.max(uy, y);
 		}
 		console.log(`bounds ${lx} ${ly} ${ux} ${uy}`);
+		return [lx, uy, ux, ly];
+	}
 
+	draw(start) {
+		//if (!this.normals)
+			this.normals = this.normalize();
+		const vmap = require('visual.intel-map');
+		const renderBehind = (rN, rv, x, y) => rv.text(_.round(this.normals.data[rN], 2), x, y);
+		const renderInFront = (rN, rv, x, y) => rv.text(rN, x, y + 0.75);
+		const hue = (x) => 120 * ((1 + x) / 2);
+		const sat = (x) => Math.abs(((1 + x) / 2) - 50) / 50;
+		// 0.5 + (this.normals.data[rN] * -0.5)
+		// -1 = 0 = red
+		// 1.0 = 120 = green
+		const colorFn = (rN) => Util.hsv2rgb(hue(this.normals.data[rN]), sat(this.normals.data[rN]), 1.0);
+		vmap(start, this.normals.data, { roomSize: 3, renderBehind, colorFn, renderInFront });
+		return false;
+	}
+
+	table(width = 35) {
+		const [lx, uy, ux, ly] = this.bounds();
 		var row, rows = "";
 		for (var v = ly; v <= uy; v++) {
 			row = "";
@@ -145,6 +175,11 @@ class InfluenceMap {
 	}
 }
 
+InfluenceMap.fulltest = function (first) {
+	global.INF = this.test();
+	spark(INF.propagateAll(first));
+};
+
 InfluenceMap.test = function (first) {
 	const im = new InfluenceMap();
 	const owned = _.pick(Memory.intel, (v, k) => v.owner !== undefined);
@@ -153,6 +188,8 @@ InfluenceMap.test = function (first) {
 	for (const [roomName, intel] of Object.entries(owned)) {
 		const { owner } = intel;
 		if (!owner || owner === WHOAMI)
+			continue;
+		if (Player.status(owner) > PLAYER_HOSTILE)
 			continue;
 		const level = intel.level || 8;;
 		im.set(roomName, -100 * (level / 8));

@@ -4,7 +4,7 @@
 /* global CLAMP */
 
 const TILE_UNWALKABLE = 255;
-// global.CM_COLORS = Util.getColorRange(256);
+global.CM_COLORS = Util.getColorRange(256);
 
 class CostMatrix extends PathFinder.CostMatrix {
 	/** @inherits static deserialize */
@@ -134,9 +134,7 @@ class CostMatrix extends PathFinder.CostMatrix {
 	/**
 	 *
 	 */
-	/* draw(roomName, color = (v) => CM_COLORS[v]) {
-		if (!roomName && this.room)
-			roomName = this.room.name;
+	draw(roomName, color = (v) => CM_COLORS[v]) {
 		var visual = new RoomVisual(roomName);
 		for (var x = 0; x < 50; x++)
 			for (var y = 0; y < 50; y++) {
@@ -152,7 +150,7 @@ class CostMatrix extends PathFinder.CostMatrix {
 					// visual.circle(pos, {fill: CM_COLORS[this.get(x,y)]});
 				}
 			}
-	} */
+	}
 
 	/** [object CostMatrix] */
 	get [Symbol.toStringTag]() { return 'CostMatrix'; }
