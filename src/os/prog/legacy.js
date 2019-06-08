@@ -7,19 +7,21 @@ const Co = require('os.core.co');
 const ITO = require('os.core.ito');
 const Process = require('os.core.process');
 
-const MARGIN = 5;
+const DEFAULT_FREQUENCY = 1;
 
 class Legacy extends Process {
 
 	constructor(opts) {
 		super(opts);
 		this.table = new Map();
+		if (!this.frequency)
+			this.frequency = DEFAULT_FREQUENCY;
 	}
 
 	*run() {
-		while (!(yield)) {
+		while (true) {
 			yield* this.coSpawnMissingThreads(Game[this.collection], this.identifier, this.collection, this.method || 'run');
-			yield;
+			yield this.sleepThread(this.frequency);
 		}
 	}
 
@@ -29,10 +31,12 @@ class Legacy extends Process {
 	}
 
 	*coSpawnMissingThreads(collection, iden = 'id', col = null, method = 'run') {
-		const missed = _.filter(collection, c => !this.table.has(c[iden]) && c.run);
+		const missed = _.filter(collection, c => !this.table.has(c[iden]) && c[method]);
 		if (!missed || !missed.length)
 			return;
 		for (const itm of missed) {
+			//if (itm instanceof Structure && !itm.isActive())
+			//	continue;
 			const thread = this.startThread(this.invoker, [itm[iden], col, method], undefined, itm.toString());
 			thread.key = itm[iden];
 			this.table.set(thread.key, thread);

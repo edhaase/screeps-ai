@@ -108,7 +108,7 @@ function reinitAll() {
 	global.startProcess('empire');
 	global.startProcess('legacy', { title: 'Creep runner', collection: 'creeps', identifier: 'name' });
 	global.startProcess('legacy', { title: 'Powercreep runner', collection: 'powerCreeps', identifier: 'name' });
-	global.startProcess('legacy', { title: 'Structure runner', collection: 'structures', identifier: 'id' });
+	global.startProcess('legacy', { title: 'Structure runner', collection: 'structures', identifier: 'id', frequency: 5 });
 	global.startProcess('legacy', { title: 'Flag runner', collection: 'flags', identifier: 'name' });
 	global.startProcess('legacy.rooms', { title: 'Room runner' });
 	global.startProcess('stats');
@@ -172,7 +172,7 @@ function stats() {
 	const cbr = _.groupBy(Game.creeps, 'memory.role');
 	for (const [role, creeps] of Object.entries(cbr)) {
 		const sorted = _.sortByOrder(creeps, 'pos.roomName', ['asc']);
-		const rows = _.map(sorted, c => `<li>${c} <a href='#!/room/${Game.shard.name}/${c.pos.roomName}'>${c.pos}</a></li>`);
+		const rows = _.map(sorted, c => `<li>${c} ${ROOM_LINK(c.pos.roomName, undefined, c.pos)}</li>`);
 		console.log(`<details><summary>${role} (${creeps.length})</summary><ul>${rows.join('')}</ul></details>`);
 	}
 	// console.log(ex(_.countBy(Game.creeps, 'memory.role')));
@@ -246,7 +246,7 @@ function spark(co) {
 	return kernel.attachThread(thread, Process.PRIORITY_IDLE, 0);
 }
 
-Cmd.register('getProcessByName', gpbn, 'Find all processes with name', ['gpbn']);
+Cmd.register('getProcessByName', gpbn, 'Find all processes with name', ['gpbn', 'pidof']);
 Cmd.register('highlight', hl, 'Highlight a given object in the current room', ['hl']);
 Cmd.register('kill', kill, 'Kill a process by pid');
 Cmd.register('killAll', killAll, 'Terminate all running processes');
