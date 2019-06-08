@@ -67,13 +67,13 @@ StructureTower.prototype.run = function () {
 	this.defer(_.random(7, 16));
 };
 
-const {defer} = StructureTower.prototype;
+const { defer } = StructureTower.prototype;
 StructureTower.prototype.defer = function (ticks) {
 	return defer.call(this, Math.min(50, ticks));
 };
 
-StructureTower.prototype.getAttackStrategy = function() {
-	if(!this.memory.att) {
+StructureTower.prototype.getAttackStrategy = function () {
+	if (!this.memory.att) {
 		this.memory.att = TOWER_STRATEGY_CHANGE;
 		this.memory.ats = _.random(0, MAX_ATTACK_STRATEGY);
 		Log.info(`Tower ${this.id} changing attack strategy to ${this.memory.ats}`, 'Tower');
@@ -81,37 +81,37 @@ StructureTower.prototype.getAttackStrategy = function() {
 	return this.memory.ats;
 };
 
-StructureTower.prototype.minmaxAttack = function (selector=_.min) {
+StructureTower.prototype.minmaxAttack = function (selector = _.min) {
 	var target = selector(this.room.hostiles, c => c.damage || 0);
 	if (target === Infinity || target === -Infinity)
 		return ERR_NOT_FOUND;
-	return this.attack(target);	
+	return this.attack(target);
 };
 
 StructureTower.prototype.runAttack = function () {
-	if(!this.room.hostiles || !this.room.hostiles.length)
+	if (!this.room.hostiles || !this.room.hostiles.length)
 		return false;
-	switch(this.getAttackStrategy()) {
-	case TOWER_STRATEGY_CLOSEST_CTRL:
-		return this.attack(this.room.controller.pos.findClosestByRange(this.room.hostiles)) === OK;
-	case TOWER_STRATEGY_CLOSEST:
-		return this.attack(this.pos.findClosestByRange(this.room.hostiles)) === OK;
-	default:
-	case TOWER_STRATEGY_DISTRIBUTE:
-		return this.minmaxAttack(_.min) === OK;
-	case TOWER_STRATEGY_FIRST:
-		return this.attack(_.first(this.room.hostiles)) === OK;
-	case TOWER_STRATEGY_FOCUS:
-		return this.minmaxAttack(_.max) === OK;
-	case TOWER_STRATEGY_RANDOM:
-		return this.attack(_.sample(this.room.hostiles)) === OK;
-	case TOWER_STRATEGY_WEAKEST:
-		return this.attack(_.min(this.room.hostiles,'hits')) === OK;
-	case TOWER_STRATEGY_TOUGHEST:
-		return this.attack(_.max(this.room.hostiles,'hits')) === OK;
-	case TOWER_STRATEGY_HEAL:
-		return this.runHeal() === OK || this.attack(_.max(this.room.hostiles,'hits')) === OK;
-	}	
+	switch (this.getAttackStrategy()) {
+		case TOWER_STRATEGY_CLOSEST_CTRL:
+			return this.attack(this.room.controller.pos.findClosestByRange(this.room.hostiles)) === OK;
+		case TOWER_STRATEGY_CLOSEST:
+			return this.attack(this.pos.findClosestByRange(this.room.hostiles)) === OK;
+		default:
+		case TOWER_STRATEGY_DISTRIBUTE:
+			return this.minmaxAttack(_.min) === OK;
+		case TOWER_STRATEGY_FIRST:
+			return this.attack(_.first(this.room.hostiles)) === OK;
+		case TOWER_STRATEGY_FOCUS:
+			return this.minmaxAttack(_.max) === OK;
+		case TOWER_STRATEGY_RANDOM:
+			return this.attack(_.sample(this.room.hostiles)) === OK;
+		case TOWER_STRATEGY_WEAKEST:
+			return this.attack(_.min(this.room.hostiles, 'hits')) === OK;
+		case TOWER_STRATEGY_TOUGHEST:
+			return this.attack(_.max(this.room.hostiles, 'hits')) === OK;
+		case TOWER_STRATEGY_HEAL:
+			return this.runHeal() === OK || this.attack(_.max(this.room.hostiles, 'hits')) === OK;
+	}
 };
 
 // 2017-04-05: Target locks repair candidate, if it gets low on energy it 
@@ -179,7 +179,7 @@ StructureTower.prototype.runHeal = function () {
 /**
  * Adjust creep hit points on the same tick for intelligent decision making.
  */
-const {heal,attack,repair} = StructureTower.prototype;
+const { heal, attack, repair } = StructureTower.prototype;
 StructureTower.prototype.heal = function (target) {
 	const status = heal.call(this, target);
 	if (status === OK) {
