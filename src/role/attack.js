@@ -11,47 +11,40 @@
 'use strict';
 
 module.exports = {
-	boosts: [],
+	boosts: ['ZH', 'ZH2O', 'XZH2O'],
 	priority: function () {
 		// (Optional)
 	},
-	body: function () {
-		// Depends..
-	},
-	init: function () {
-
+	body: function ({ room }) {
+		return Arr.repeat([WORK, MOVE], room.energyAvailable);
 	},
 	/* eslint-disable consistent-return */
 	run: function () {
-		var flag = Game.flags["Kill"];
-		if (!flag)
-			return;
-		flag = flag.pos;
+		const { avoidRamparts = true } = this.memory;
+		const target = this.getTarget(
+			({ room }) => room.find(FIND_HOSTILE_STRUCTURES, { filter: s => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_RAMPART }),
+			(s) => Filter.unauthorizedHostile(s) && (!avoidRamparts || !s.pos.hasRampart(r => !r.isPublic)),
+			(candidates) => this.pos.findClosestByPath(candidates)
+		);
 
-		if (this.pos.isNearTo(flag)) {
-			var ignoreController = function (structure) {
-				if (structure.structureType === STRUCTURE_CONTROLLER) return false;
-				// if ( structure.structureType === STRUCTURE_WALL ) return false;
-				// if ( structure.hits > 100000 ) return false;
-				// if ( this.memory.ignorelist[structure.id] ) return false;
-				return true;
-			};
-
-			var threat = null;
-			// if ( !threat ) threat = this.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-			if (!threat) threat = this.pos.findClosestByRange(FIND_HOSTILE_SPAWNS, { filter: ignoreController });
-			// if ( !threat ) threat = this.pos.findClosestByRange(FIND_HOSTILE_SPAWNS);
-			// if ( !threat ) threat = this.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES);
-			if (!threat) threat = this.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES, { filter: ignoreController });
-			if (threat)
-				this.attack(threat);
-		} else {
-			this.moveTo(flag, {
-				ignoreDestructibleStructures: false,
-				ignoreCreeps: false,
-				ignoreRoads: (this.plainSpeed === this.roadSpeed),
-			}); // unless stuck
-			// this.moveTo(flag);
+		if (!target) {
+			if (avoidRamparts) {
+				this.memory.avoidRamparts = false;
+				return;
+			} else {
+				this.memory.avoidRamparts = true;
+				return this.pushState('Breach', this.pos.roomName);
+			}
 		}
+		const range = this.pos.getRangeTo(target);
+		if (range <= CREEP_RANGED_ATTACK_RANGE && this.hasActiveBodypart(RANGED_ATTACK))
+			this.rangedMassAttack();
+		if (range > 1) {
+			this.moveTo(target);
+			const wall = this
+		} else if (this.hasActiveBodypart(WORK))
+			this.dismantle(target);
+		else if (this.hasActiveBodypart(ATTACK))
+			this.attack(target);
 	}
 };

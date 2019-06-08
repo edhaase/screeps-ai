@@ -9,6 +9,7 @@
 /* global UNIT_COST, DEFAULT_SPAWN_JOB_EXPIRE */
 
 const Arr = require('Arr');
+const Body = require('os.ds.body');
 
 const MAX_RCL_UPGRADER_SIZE = UNIT_COST([MOVE, MOVE, MOVE, CARRY]) + BODYPART_COST[WORK] * CONTROLLER_MAX_UPGRADE_PER_TICK * UPGRADE_CONTROLLER_POWER;
 
@@ -387,6 +388,29 @@ module.exports = {
 		if (body.length <= 2)
 			body = [RANGED_ATTACK, MOVE];
 		return spawn.submit({ body, memory: { role: 'guard', site: flag, origin: spawn.pos.roomName }, priority: PRIORITY_HIGH, room });
+	},
+
+	requestG2: function(spawn, en, flag, room) {
+		const energyCapacityAvailable = en || spawn.room.energyCapacityAvailable;
+		Log.debug(`Total: ${energyCapacityAvailable}`);
+		const avail = Math.floor(energyCapacityAvailable * 0.98);
+		const [c,h,m] = [0.40 * avail, 0.40 * avail, 0.20 * avail];
+		const [lc,lh,lm] = [0.40 * MAX_CREEP_SIZE, 0.10 * MAX_CREEP_SIZE, 0.5 * MAX_CREEP_SIZE];
+		Log.debug(`${c} ${h} ${m}`);
+		Log.debug(`${lc} ${lh} ${lm}`);
+		const pc = CLAMP(1, Math.floor(c / BODYPART_COST[RANGED_ATTACK]), lc);
+		const ph = CLAMP(1, Math.floor(h / BODYPART_COST[HEAL]), lh);
+		const pm = CLAMP(1, Math.floor(m / BODYPART_COST[MOVE]), lm);
+		Log.debug(`${pc} ${ph} ${pm}`);
+		const rc = c - pc * BODYPART_COST[RANGED_ATTACK];
+		const rm = m - pm * BODYPART_COST[MOVE];	
+		const rh = h - ph * BODYPART_COST[HEAL];
+		const rem = rc + rm + rh;
+		const pcw = CLAMP(1, Math.floor( (c+rem) / BODYPART_COST[RANGED_ATTACK]), lc);
+		Log.debug(`rc ${rc} rm ${rm} rh ${rh} rem ${rem} pcw ${pcw}`);
+		const body = Util.RLD([pcw,RANGED_ATTACK,pm,MOVE,ph,HEAL]);
+		const cost = UNIT_COST(body);
+		Log.warn(`Body cost: ${cost}`);
 	},
 
 	requestSwampGuard: function (spawn, flag, body, room) {

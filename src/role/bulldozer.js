@@ -50,9 +50,10 @@ module.exports = {
 		const range = this.pos.getRangeTo(target);
 		if (range <= CREEP_RANGED_ATTACK_RANGE && this.hasActiveBodypart(RANGED_ATTACK))
 			this.rangedAttack(target);
-		if (range > 1)
+		if (range > 1) {
 			this.moveTo(target);
-		else if (this.hasActiveBodypart(WORK))
+			const wall = this
+		} else if (this.hasActiveBodypart(WORK))
 			this.dismantle(target);
 		else if (this.hasActiveBodypart(ATTACK))
 			this.attack(target);

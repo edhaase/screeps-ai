@@ -40,8 +40,7 @@ module.exports = {
 	},
 	run: function () {
 		const { terminal } = this.room;
-		const labs = this.room.find(FIND_MY_STRUCTURES, { filter: s => s.structureType === STRUCTURE_LAB });
-		const orderedLabs = _.sortByAll(labs, [l => l.pos.getRangeTo(terminal), 'id']);
+
 		const spawns = this.room.find(FIND_MY_SPAWNS);
 		const active = _.sortBy(_.filter(spawns, s => s.spawning), 'remainingTime');
 
@@ -57,12 +56,16 @@ module.exports = {
 		}
 		const tombstone = this.pos.findClosestByRange(this.room.tombstones, { filter: t => _.findKey(t.store, (a, k) => a > 0 && k !== RESOURCE_ENERGY) });
 		if (tombstone) {
-			return this.pushState('Transfer', { src: tombstone.id, dst: terminal.id, res: _.findKey(tombstone.store, (a, k) => a > 0 && k !== RESOURCE_ENERGY) });
+			return this.pushState('WithdrawAll', { target: tombstone.id, avoid: [RESOURCE_ENERGY] });
+			// return this.pushState('Transfer', { src: tombstone.id, dst: terminal.id, res: _.findKey(tombstone.store, (a, k) => a > 0 && k !== RESOURCE_ENERGY) });
 		}
 
 		if (this.carryTotal > 0) {
 			this.pushState('Transfer', { res: _.findKey(this.carry), dst: terminal.id });
 		}
+
+		const labs = this.room.find(FIND_MY_STRUCTURES, { filter: s => s.structureType === STRUCTURE_LAB && s.isActive() });
+		const orderedLabs = _.sortByAll(labs, [l => l.pos.getRangeTo(terminal), 'id']);
 
 		// Idle conditions
 		if (!terminal || !labs || !labs.length)

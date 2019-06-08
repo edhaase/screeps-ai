@@ -12,11 +12,13 @@ class PagedProcess extends Process {
 		this.pager = Pager; // Or PagerTHP
 		this.pageIds = [];
 		this.pages = [];
+		this.immediate = [];
 	}
 
 	onPageCorrupted(pageId) {
 		// Throw error to terminate
 		// Return object to initialize, override to provide array.
+		this.error(`Error parsing ${pageId}`);
 		return {};
 	}
 
@@ -37,7 +39,6 @@ class PagedProcess extends Process {
 			try {
 				result.push(this.onPageDeserialize(pages[idx], this.pageIds[idx]));
 			} catch (err) {
-				this.error(`Error parsing ${this.pageIds[idx]}`);
 				const obj = this.onPageCorrupted(this.pageIds[idx]);
 				result.push(obj);
 				dirty = true;
@@ -51,7 +52,7 @@ class PagedProcess extends Process {
 
 	write() {
 		for (const indx in this.pages) {
-			this.pager.write(this.pageIds[indx], this.onPageSerialize(this.pages[indx]));
+			this.pager.write(this.pageIds[indx], this.onPageSerialize(this.pages[indx]), !!this.immediate[indx]);
 		}
 	}
 

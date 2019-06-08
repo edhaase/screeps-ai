@@ -6,8 +6,8 @@
 /** */
 /* global DEFINE_CACHED_GETTER */
 const LRU = require('os.ds.lru');
-const TTL = 1500;
-const MAX = 1500;
+const TTL = 500;
+const MAX = 5000;
 const map = new LRU({ ttl: TTL, max: MAX });
 const volatile = new WeakMap();
 

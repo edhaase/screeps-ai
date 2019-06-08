@@ -109,7 +109,7 @@ module.exports = {
 				break;
 			case ERR_NOT_ENOUGH_RESOURCES:
 				if (source.ticksToRegeneration < this.ticksToLive) {
-					Log.info(`[Mining] ${this.name} at ${this.pos} reporting site empty for ${source.ticksToRegeneration} ticks!`);
+					Log.info(`${this.name} at ${this.pos} reporting site empty for ${source.ticksToRegeneration} ticks!`, 'Mining');
 					this.defer(source.ticksToRegeneration);
 				} else {
 					this.setRole('recycle');

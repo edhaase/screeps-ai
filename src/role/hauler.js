@@ -17,7 +17,7 @@ module.exports = {
 		const state = this.getState('U');
 		if (state === 'U') {
 			this.setState('G');
-			this.pushState("MoveTo", { pos: this.memory.site, range: 1 }, false);
+			this.pushState("MoveTo", { pos: this.memory.site, range: 1, repathPerRoom: false }, false);
 			// Find pull candidates?
 			const candidate = this.pos.findClosestByRange(this.room.creepsByRole['miner'] || [], { filter: c => c.plainSpeed > 1 && c.memory.dest.roomName === this.memory.site.roomName && c.getState() !== 'Pullee' && c.pos.getRangeToPlain(c.memory.dest) !== 1 });
 			if (candidate) {
@@ -68,7 +68,7 @@ module.exports = {
 				}
 			}
 			this.setState('U');
-			this.pushState("MoveTo", { pos: this.memory.dropoff, range: this.memory.range || 1 });
+			this.pushState("MoveTo", { pos: this.memory.dropoff, range: this.memory.range || 1, repathPerRoom: false });
 		}
 	}
 };

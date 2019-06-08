@@ -62,10 +62,20 @@ RoomObject.prototype.getPathTo = function (pos, range = 1, opts = {}) {
 			maxRooms: opts.maxRooms || PATHFINDER_MAX_ROOMS,
 			heuristicWeight: 0.8 + (Math.random() * 1.2)
 		});
-
 		//this.room.visual.poly(_.filter(result.path,'roomName',this.pos.roomName));
 		result.route = route;
-		var { ops, cost, incomplete } = result;
+		var { path, ops, cost, incomplete } = result;
+		/* if (opts.repathPerRoom !== false && path && path.length) {
+			const [next] = path;
+			const index = _.findIndex(path, p => p.roomName !== next.roomName);
+			const limit =  (index > -1) ? index : path.length - 1;
+			if(limit < path.length - 1) {
+				Log.debug(`Repath per room: Next ${next.roomName}, limit ${limit}/${path.length-1}`);
+				const rooms = _.map(path, 'roomName');
+				Log.debug(`Path: ${rooms}`);
+			}
+			path.length = limit + 1;
+		} */
 		Log.debug(`New path for ${this.name}: ops ${ops} cost ${cost} incomplete ${incomplete}`, 'Creep');
 	} catch (e) {
 		Log.error(`Unable to find path to ${pos}: ${e}`, 'Creep');

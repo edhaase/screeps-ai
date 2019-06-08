@@ -12,6 +12,7 @@
 /* global DEFINE_CACHED_GETTER */
 
 const DEFAULT_STORAGE_RESERVE = 100000;
+const MAX_OVERSTOCK_PCT = 10.0;
 
 Object.defineProperty(StructureStorage.prototype, 'reserve', {
 	set: function (value) {
@@ -27,7 +28,7 @@ Object.defineProperty(StructureStorage.prototype, 'reserve', {
 		if (this === StructureStorage.prototype)
 			return 0;
 		if (this.memory.r == null)
-			return Math.min(DEFAULT_STORAGE_RESERVE, this.storeCapacity);
+			return Math.min(DEFAULT_STORAGE_RESERVE, this.storeCapacity || 1);
 		return this.memory.r;
 	},
 	configurable: true,
@@ -35,4 +36,4 @@ Object.defineProperty(StructureStorage.prototype, 'reserve', {
 });
 
 // Sliding scale - Possibly exponential decay at lower levels
-DEFINE_CACHED_GETTER(StructureStorage.prototype, 'stock', (s) => (s.store[RESOURCE_ENERGY] || 0) / s.reserve);
+DEFINE_CACHED_GETTER(StructureStorage.prototype, 'stock', (s) => CLAMP(0.0, (s.store[RESOURCE_ENERGY] || 0) / s.reserve, MAX_OVERSTOCK_PCT));

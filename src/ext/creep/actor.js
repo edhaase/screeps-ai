@@ -261,7 +261,7 @@ Creep.prototype.getCostMatrix = function (roomName) {
  * 2016-11-02: Reintroduced the arena matrix in a way that makes sense. 
  */
 const DEFAULT_FLEE_PLAN_AHEAD = 5;
-const DEFAULT_FLEE_OPTS = { maxRooms: 3, maxOps: 2500, flee: true, planAhead: DEFAULT_FLEE_PLAN_AHEAD, heuristicWeight: 0.8 };
+const DEFAULT_FLEE_OPTS = { maxRooms: 3, maxOps: 2500, flee: true, fleeRoom: true, planAhead: DEFAULT_FLEE_PLAN_AHEAD, heuristicWeight: 0.8 };
 Creep.prototype.flee = function (min = MINIMUM_SAFE_FLEE_DISTANCE, all = false, opts = {}) {
 	if (!min || typeof min !== "number" || min <= 1)
 		throw new TypeError(`Unacceptable minimum distance: ${min}, must be postive integer greater than 1`);
@@ -279,6 +279,8 @@ Creep.prototype.flee = function (min = MINIMUM_SAFE_FLEE_DISTANCE, all = false, 
 
 	_.defaults(opts, DEFAULT_FLEE_OPTS);
 	const goals = _.map(hostiles, c => ({ pos: c.pos, range: min + opts.planAhead }));
+	if (opts.fleeRoom) // Harder to chase us across room bounderies
+		goals.unshift({ pos: new RoomPosition(25, 25, this.pos.roomName), range: 25 });
 	// Smarter flee via cost fixing.
 	// If we can move equally across both, prefer swamps
 	if (opts.swampCost == null || opts.plainCost == null) {
@@ -340,7 +342,13 @@ Creep.prototype.intercept = function (target, range = CREEP_RANGED_ATTACK_RANGE)
  * Random direction or flee?
  */
 Creep.prototype.scatter = function () {
-	this.flee(MINIMUM_SAFE_FLEE_DISTANCE, true);
+	const { path } = PathFinder.search(this.pos, { pos: this.pos, range: 2 }, {
+		flee: true,
+		maxRooms: 1,
+		roomCallback: (r) => LOGISTICS_MATRIX.get(r)
+	});
+	this.room.visual.poly(path);
+	return this.move(this.pos.getDirectionTo(path[0]));
 };
 
 /**
@@ -709,4 +717,12 @@ Creep.prototype.runRenewSelf = function (opts) {
 		return this.popState(false);
 	}
 	return this.pushState('EvadeMove', { pos: alt.pos, range: 1 });
+};
+
+
+Creep.prototype.runBreach = function(opts) {
+	const roomName = opts.roomName || opts;	
+	if (this.pos.roomName !== roomName)
+		return this.pushState('MoveToRoom', roomName);
+	
 };

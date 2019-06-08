@@ -151,7 +151,7 @@ module.exports = {
 				goal = getDropoffSite(this);
 				const MAX_OVERSTOCK = 1.5;
 				if (!goal) {
-					if (storage && storage.my && storage.stock < 1.0)
+					if (storage && storage.my && storage.stock < 1.0 && storage.isActive())
 						goal = storage;
 					else if (controller.container && controller.container.storedPct < 1.0 && controller.level < MAX_ROOM_LEVEL)
 						goal = controller.container;
@@ -159,7 +159,7 @@ module.exports = {
 						&& (terminal.store[RESOURCE_ENERGY] < TERMINAL_RESOURCE_LIMIT * MAX_OVERSTOCK) // || (storage && storage.stock >= 1))
 						&& terminal.storedTotal < terminal.storeCapacity)
 						goal = terminal;
-					else if (storage && storage.my && storage.storedPct < 0.9 && storage.stock < MAX_OVERSTOCK)
+					else if (storage && storage.my && storage.storedPct < 0.9 && storage.stock < MAX_OVERSTOCK && storage.isActive())
 						goal = storage;
 					else
 						goal = controller;

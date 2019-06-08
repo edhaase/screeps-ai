@@ -87,7 +87,7 @@ class LivingEntity extends RoomObject {
 		opts.costCallback = (name, cm) => LOGISTICS_MATRIX.get(name);
 		const { pos } = opts;
 		const roomPos = new RoomPosition(pos.x, pos.y, pos.roomName);
-		if (this.pos.inRangeTo(roomPos, opts.range) || opts.failed >= MOVE_STATE_FAILED_ATTEMPTS)
+		if (this.pos == null || this.pos.inRangeTo(roomPos, opts.range) || opts.failed >= MOVE_STATE_FAILED_ATTEMPTS)
 			return this.popState();
 		const status = this.moveTo(roomPos, opts);
 		if (status === ERR_NO_PATH) {
@@ -179,6 +179,18 @@ class LivingEntity extends RoomObject {
 			if (status !== OK)
 				Log.debug(`Moving to target ${target} range ${range}, status ${status}`, 'LivingEntity');
 		}
+	}
+
+	runUsePortal(opts) {
+		const roomName = opts.roomName || opts;
+		if (this.pos.hasStructure(STRUCTURE_PORTAL))
+			return this.scatter();
+		if (this.pos.roomName === roomName)
+			return this.popState();
+		const portal = this.pos.findClosestByPath(FIND_STRUCTURES, { filter: s => s.structureType === STRUCTURE_PORTAL && s.destination.roomName === roomName });
+		if (!portal)
+			return this.popState();
+		this.moveTo(portal, { range: 0 });
 	}
 
 	transferAny(target) {
@@ -301,8 +313,8 @@ class LivingEntity extends RoomObject {
 			return this.popState(true);
 		if (!opts.avoid)
 			opts.avoid = [];
-		const res = target.mineralType || _.findKey(target.store, (v, k) => v > 0 && !opts.avoid.includes(k)) || RESOURCE_ENERGY;
-		const amt = Math.min(this.carryCapacityAvailable, target.mineralAmount || (target.store && target.store[res]));
+		const res = target.mineralType || _.findKey(target.store, (v, k) => v > 0 && !opts.avoid.includes(k)) || (target.power > 0 && RESOURCE_POWER) || RESOURCE_ENERGY;
+		const amt = Math.min(this.carryCapacityAvailable, target.mineralAmount || target.power || (target.store && target.store[res]));
 		if (amt <= 0)
 			return this.popState(true);
 		const status = this.withdraw(target, res, amt);
@@ -325,7 +337,7 @@ class LivingEntity extends RoomObject {
 		if (allowMove) {
 			target = this.getTarget(
 				({ room }) => [...room.structures, ...room.resources, ...room.tombstones],
-				(c) => Filter.canProvideEnergy(c),
+				(c) => Filter.canProvideEnergy(c) && (!opts.ignoreControllerContainer || c !== c.room.controller.container),
 				(c) => this.pos.findClosestByPath(c)
 			);
 		} else {

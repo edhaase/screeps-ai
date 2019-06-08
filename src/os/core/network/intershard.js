@@ -1,26 +1,41 @@
 /** os.core.network.intershard.js */
 'use strict';
 
-/* global MAKE_CONSTANT, ENV, IST_BROADCAST_ADDRESS */
+/* global MAKE_CONSTANT, ENV, IST_BROADCAST_ADDRESS, SHARD_TOKEN */
 
 const DEFAULT_INTERSHARD_IO_TIMEOUT = 120; // In seconds
-const SHARD_TOKEN = Game.shard.name.slice(-1);
 const MINIMUM_SHARD_CPU = 1;
+
+const { createShardLocalUUID } = require('os.core.uuid');
 
 MAKE_CONSTANT(global, 'IST_BROADCAST_ADDRESS', '*');
 
 class Message {
 	constructor(opts) {
-		this.id = SHARD_TOKEN + Game.time.toString(36).toUpperCase();
+		this.id = createShardLocalUUID();
 		this.ts = Date.now();
-		this.timeout = ENV('intershard.message_timeout', DEFAULT_INTERSHARD_IO_TIMEOUT);
+		this.timeout = opts.timeout || ENV('intershard.message_timeout', DEFAULT_INTERSHARD_IO_TIMEOUT);
 		this.dest = opts.dest || IST_BROADCAST_ADDRESS;
 	}
 
 	serialize() { return JSON.stringify(this); }
 	static deserialize(str) { return new this(JSON.parse(str)); }
 }
+
+Message.TYPE_PING = 0;
+Message.TYPE_PONG = 1;	// Connection testing
+Message.TYPE_RPC = 2;	// Remote procedure call
+Message.TYPE_SDP = 3;	// Service discovery
+
 exports.Message = Message;
+
+
+exports.ping = function (shard) {
+	exports.send(new Message({
+		dest: shard,
+		type
+	}));
+};
 
 exports.send = function (msg) {
 	if (!(msg instanceof Message))

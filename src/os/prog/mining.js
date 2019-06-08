@@ -1,6 +1,8 @@
 /** os.prog.mining.js */
 'use strict';
 
+/* global Log, MAX_CREEP_SPAWN_TIME */
+
 const Process = require('os.core.process');
 
 class MiningProc extends Process {
@@ -12,8 +14,9 @@ class MiningProc extends Process {
 		// Only maintain threads for running stuff
 		// Ignore extractors for minerals we're at capacity of
 		// Power banks are a separate process
-	}
 	
+	}
+
 }
 
 module.exports = MiningProc;

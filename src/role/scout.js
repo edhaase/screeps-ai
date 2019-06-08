@@ -20,13 +20,11 @@ module.exports = {
 	init: function () {
 		// Since we can't call this while spawning..
 		this.pushState('EvalOnce', { script: 'this.notifyWhenAttacked(false)' });
-		// const status = this.notifyWhenAttacked(false);
-		// Log.debug(`Scout set notifyWhenAttacked(false) status ${status}`);
 	},
 	/* eslint-disable consistent-return */
 	run: function () {
-		const { roomName = this.pos.roomName } = this.memory;
-		if (this.pos.roomName !== roomName)
+		const { roomName } = this.memory;	
+		if (roomName && this.pos.roomName !== roomName)
 			return this.moveToRoom(roomName);
 		const { room } = this;
 		// @todo if hostile, leave the way we entered

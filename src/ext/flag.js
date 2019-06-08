@@ -412,7 +412,7 @@ Flag.prototype.runLogic = function () {
 		// @todo pick structure in room, including containers.
 		if (this.room && (!this.memory.dropoff || (this.memory.step == null || this.memory.step <= 0))) {
 			this.memory.steps = undefined;
-			const storages = _.filter(Game.structures, s => [STRUCTURE_LINK, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_CONTROLLER].includes(s.structureType));
+			const storages = _.filter(Game.structures, s => [STRUCTURE_LINK, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_CONTROLLER].includes(s.structureType) && s.isActive());
 			const { goal, cost, ops, incomplete } = site.findClosestByPathFinder(storages, s => ({ pos: s.pos, range: 1 }));
 			if (goal) {
 				this.memory.dropoff = goal.pos;
@@ -454,7 +454,7 @@ Flag.prototype.runLogic = function () {
 			// Log.info(`New hauler: step count ${steps}, estCarry ${estCarry}, reqCarry ${reqCarry}`, "Flag");
 			// let spawn = this.pos.findClosestSpawn();
 			const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1 });
-			Log.success(`Requesting new hauler to site: ${this.pos} from spawn ${spawn}`, 'Flag#Hauler');
+			Log.debug(`Requesting new hauler to site: ${this.pos} from spawn ${spawn}`, 'Flag#Hauler');
 			if (spawn && !spawn.hasJob({ memory: { role: 'hauler', site, dropoff: this.memory.dropoff } })) {
 				const priority = (miner) ? assigned / reqCarry : PRIORITY_MIN;
 				Unit.requestHauler(spawn, { role: 'hauler', site, dropoff: this.memory.dropoff, steps: this.memory.steps }, this.memory.hasRoad, remaining, priority, this.pos.roomName);
@@ -482,7 +482,7 @@ Flag.prototype.runLogic = function () {
 				Log.debug(`${this.name} setting capacity to ${this.memory.work}`, 'Flag');
 			}
 		}
-		const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1 });
+		const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 3 });
 		const miner = this.getAssignedUnit(c => c.getRole() === 'miner' && this.pos.isEqualToPlain(c.memory.dest) && (c.spawning || c.ticksToLive > UNIT_BUILD_TIME(c.body) + cost));
 		if (!miner) {
 			if (!spawn) {

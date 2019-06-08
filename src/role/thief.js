@@ -40,7 +40,7 @@ module.exports = {
 		// Heal state handled when idle
 
 		const rooms = _.filter(Game.rooms, canLootRoom); // Just, don't even try if it's safe moded.
-		const candidates = _.flatten(_.map(rooms, r => r.find(FIND_HOSTILE_STRUCTURES, { filter: s => s.storedNonEnergyResources > 0 && s.owner.username === 'Screeps' && !s.pos.hasRampart(x => !x.isPublic) })));
+		const candidates = _.flatten(_.map(rooms, r => r.find(FIND_HOSTILE_STRUCTURES, { filter: s => (s.storedNonEnergyResources > 0 || s.power) && s.owner.username === 'Screeps' && !s.pos.hasRampart(x => !x.isPublic) })));
 
 		if (_.isEmpty(candidates)) {
 			Log.warn(`${this.name}/${this.pos} No visible targets`, 'Creep');

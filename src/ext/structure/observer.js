@@ -61,19 +61,9 @@ StructureObserver.prototype.run = function () {
 		Intel.markCandidateForRemoteMining(prevRoom);
 	}
 
-	// Run stored command
-	if (prevRoom && memory.cmd !== undefined) {
-		Log.info(`Observer ${this.pos.roomName} running stored program`, 'Observer');
-		try {
-			const fn = eval(memory.cmd);
-			fn.call(this, Game.rooms[this.lastRoom]);
-		} catch (e) {
-			Log.error(e, 'Observer');
-			Log.error(e.stack, 'Observer');
-		}
-		this.lastRoom = undefined;
-		this.memory.cmd = undefined;
-		return;
+	if  (this.memory.roomName) {	// OS override
+		this.observeRoom(this.memory.roomName);
+		delete this.memory.roomName;
 	}
 
 	if (memory.mode === OBSERVER_MODE_WATCH) {
@@ -202,8 +192,10 @@ StructureObserver.prototype.isInRange = function (roomName) {
  * observer.exec('E57S49', (room) => room.find(FIND_SOURCES));
  */
 StructureObserver.prototype.exec = function (roomName, fn = () => 1) {
-	if (this.observeRoom(roomName) === OK)
+	const status = this.observeRoom(roomName);
+	if (status === OK)
 		this.memory.cmd = fn.toString();
+	return status;
 };
 
 StructureObserver.prototype.watch = function () {
