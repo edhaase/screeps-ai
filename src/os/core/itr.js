@@ -1,6 +1,12 @@
 /** os.itr.js - Iterator methods */
 'use strict';
 
+exports.first = function first(itr) {
+	for (const itm of itr)	// In case it's not a generator..
+		return itm;
+
+};
+
 exports.take = function* take(itr, n) {
 	var remaining = n;
 	for (const itm of itr) {
@@ -10,11 +16,41 @@ exports.take = function* take(itr, n) {
 	}
 };
 
+exports.min = function min(itr, fn = _.identity) {
+	var x, v = Infinity;
+	var n = null;
+	for (const itm of itr) {
+		x = fn(itm);
+		if (x >= v)
+			continue;
+		v = x;
+		n = itm;
+	}
+	return n;
+};
+
+exports.find = function find(itr, fn) {
+	for (const itm of itr) {
+		if (fn(itm))
+			return itm;
+	}
+	return null;
+};
+
 exports.filter = function* filter(itr, fn) {
 	for (const itm of itr) {
 		if (fn(itm))
 			yield itm;
 	}
+};
+
+exports.compact = function* compact(itr, filter = _.identity) {
+	yield* exports.filter(itr, (v) => v !== null && filter(v));
+};
+
+exports.sample = function* sample(items) {
+	while (true)
+		yield _.sample(items, 1);
 };
 
 exports.sum = function sum(itr, fn = _.identity) {
@@ -24,12 +60,12 @@ exports.sum = function sum(itr, fn = _.identity) {
 	return total;
 };
 
-exports.flatten = function* (itr) {
+exports.flatten = function* flatten(itr) {
 	for (const itm of itr)
 		yield* itm;
 };
 
-exports.avg = function (itr, iter = _.identity) {
+exports.avg = function avg(itr, iter = _.identity) {
 	var total = 0;
 	var count = 0;
 	for (const i of itr) {
