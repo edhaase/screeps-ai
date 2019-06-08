@@ -60,8 +60,8 @@ module.exports = {
 					this.moveTo(threat, { range: 1 });
 				else if(threat.canAttack)
 					this.flee(CREEP_RANGED_ATTACK_RANGE);
-				if (this.hits < this.hitsMax)
-					this.heal(this);
+				// if (this.hits < this.hitsMax) // Allow overheal
+				this.heal(this, true);
 			} else {
 				// We're able to fight but out of any form of range. DRIVE ME CLOSER SO I CAN HIT THEM WITH MY SWORD.
 				if (this.canFight) {
