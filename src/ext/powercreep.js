@@ -26,12 +26,12 @@ PowerCreep.prototype.run = function () {
 	try {
 		if (this.isDeferred())
 			return;
-		if (this.pos)
+		if (!this.isSpawned() && !this.spawnCooldownTime && this.spawnRandom() === OK) // Should we spawn? Sure, why not.
+			return;
+		else if (this.pos)
 			this.updateStuck();
 		if (this.invokeState() === true)
 			return;
-		if (!this.isSpawned()) // Should we spawn? Sure, why not.
-			return this.pushState('SpawnSelf');
 		if (this.shard && this.shard.name !== Game.shard.name)
 			return;
 		return this.doIdle();
@@ -89,14 +89,6 @@ PowerCreep.prototype.spawnRandom = function () {
 	if (status === OK)
 		this.memory.born = Game.time;
 	return status;
-};
-
-/**
- * Bring yourself into world somewhere 
- */
-PowerCreep.prototype.runSpawnSelf = function (opts) {
-	if (!this.spawnCooldownTime && this.spawnRandom() === OK)
-		return this.popState(false);
 };
 
 PowerCreep.prototype.isPowerDisabled = function (room) {
@@ -209,7 +201,8 @@ PowerCreep.prototype.usePowerSmart = function (power, target) {
 			return this.pushState('AcquireOps', { amount: ops, allowGen: this.hasPower(PWR_GENERATE_OPS), allowTerm: true, allowRequest: true });
 	} else if (status === ERR_NOT_IN_RANGE) {
 		return this.pushState('MoveTo', { pos: target.pos || target, range });
-	}
+	} else if (status === ERR_INVALID_ARGS && !this.isPowerDisabled(this.room.name) && this.room.controller.canEnablePower(this.pos.getRangeTo(this.room.controller)))
+		return this.pushState('EnableRoom', this.room.controller.pos);
 	return status;
 };
 

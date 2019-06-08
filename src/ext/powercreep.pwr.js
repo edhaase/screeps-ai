@@ -79,9 +79,11 @@ PowerCreep.prototype[`runPwr${PWR_OPERATE_SPAWN}`] = function (opts) {
 
 const MAX_ALERT = 100;
 PowerCreep.prototype[`runPwr${PWR_OPERATE_TOWER}`] = function (opts) {
+	if (!this.isSpawned())
+		return this.popState(true);
 	// Because of the large cooldown we can keep doing this
 	if (this.hasPower(PWR_GENERATE_OPS) && !this.powers[PWR_GENERATE_OPS].cooldown)
-		return this.usePower(PWR_GENERATE_OPS);
+		return this.usePowerSmart(PWR_GENERATE_OPS);
 	if (opts.alert == null)
 		opts.alert = MAX_ALERT;
 	if (opts.alert <= 0)
@@ -98,7 +100,7 @@ PowerCreep.prototype[`runPwr${PWR_OPERATE_TOWER}`] = function (opts) {
 	if (cooldown)
 		return; // Cooldown is short, no idle time
 	const { duration, range, ops } = POWER_INFO[PWR_OPERATE_TOWER];
-	const target = this.pos.findClosestByPath(this.room.structuresByType[STRUCTURE_TOWER], { filter: s => _.isEmpty(s.effects) });
+	const target = this.pos.findClosestByPath(this.room.structuresByType[STRUCTURE_TOWER], { filter: s => _.isEmpty(s.effects) && s.energy >= TOWER_ENERGY_COST });
 	if (!target)
 		return;
 	this.usePowerSmart(PWR_OPERATE_TOWER, target);
