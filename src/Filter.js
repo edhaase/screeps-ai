@@ -37,7 +37,7 @@ module.exports = {
 			;
 	},
 
-	loadedTower: s => s.structureType === STRUCTURE_TOWER && s.energy > TOWER_ENERGY_COST,
+	loadedTower: s => s.structureType === STRUCTURE_TOWER && s.energy > TOWER_ENERGY_COST && s.isActive(),
 
 	/**
 	 * Filter for room objects that can provide energy
@@ -64,9 +64,11 @@ module.exports = {
 	 */
 	canReceiveEnergy: function (thing) {
 		if (thing.my === false)
-			return 0;
+			return 0, 9;
 		if (thing instanceof Creep && thing.carryTotal === 0) // Only target creeps if they're entirely empty (or we'll never break target)
 			return 1.0;
+		// else if (thing instanceof Structure && !thing.isActive()) // Too much cpu to be practical
+		//	return 0.0;
 		else if (thing.energy != null)
 			return (1.0 - thing.energyPct);
 		else if (thing.stock != null)
