@@ -85,7 +85,7 @@ class LogisticsMatrix extends CostMatrix {
 }
 
 /**
- * Where are we most likely to get horribly murdered?
+ * 
  */
 class TowerThreatMatrix extends CostMatrix {
 	constructor(room) {
