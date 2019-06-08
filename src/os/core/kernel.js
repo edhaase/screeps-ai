@@ -142,7 +142,7 @@ class Kernel {
 		const [page] = yield* Pager.read([SEGMENT_PROC]);
 		if (page === '') {
 			Log.debug(`Bootstrap initialization on shard ${Game.shard.name} at tick ${Game.time}`, 'Kernel');
-			global.reinitAll();
+			return global.reinitAll();
 		} else {
 			Log.debug(`Process table fetched at ${Game.time}`, 'Kernel');
 			this.proc = JSON.parse(page || '[]');
