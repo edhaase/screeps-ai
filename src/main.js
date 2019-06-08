@@ -18,6 +18,7 @@ global.Player = require('Player');
 global.Filter = require('Filter');
 global.Route = require('Route');
 global.Intel = require('Intel');
+global.WorldPosition = require('os.ds.worldpos').WorldPosition;
 
 // Deffered modules though we can load when we have cpu for it
 DEFER_REQUIRE('global');
