@@ -121,6 +121,22 @@ RoomObject.prototype.getUniqueTarget = function (selector, restrictor, validator
 	return target;
 };
 
+const Itr = require('os.core.itr');
+RoomObject.prototype.getUniqueTargetItr = function (selector, restrictor, validator = _.identity, chooser = Itr.first, prop = 'tid') {
+	const tid = this.memory[prop];
+	var target = Game.getObjectById(tid);
+	if (tid == null || target == null || !validator(target, this)) {
+		this.room.visual.circle(this.pos, { fill: 'red' });
+		this.clearTarget(prop);
+		const invalid = restrictor.call(this, this) || [];
+		const candidates = Itr.compact(selector.call(this, this), x => validator(x, this) && !invalid.includes(x.id));
+		target = chooser(candidates, this);
+		if (target)
+			this.memory[prop] = target.id;
+	}
+	return target;
+};
+
 /**
  * Function wrapper version - Should optimize better.
  *
