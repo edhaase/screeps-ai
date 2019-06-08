@@ -26,6 +26,8 @@
 /* global DEFINE_CACHED_GETTER, Log, Filter, UNIT_BUILD_TIME */
 /* global CREEP_UPGRADE_RANGE */
 
+const { LogicError } = require('os.core.errors');
+
 /**
  * This is the rate we need to maintain to reach RCL 3 before safe mode drops.
  * Preferentially, we want to significantly exceed that so we have time to build the tower.
@@ -49,17 +51,6 @@ global.CONTROLLER_STATE_BREEDER_REACTOR = 4;	// Requires maintaining room energy
 global.BIT_CTRL_ANNOUNCE_ATTACKS = (1 << 1); // Do we notify on hostiles?
 ..bits instead of state maybe, or utility functions/scores.
 */
-
-global.BIT_CTRL_DISABLE_CENSUS = (1 << 1);		// Disable room census. For claimed remote mines.
-global.BIT_CTRL_DISABLE_AUTOBUILD = (1 << 2);	// Prevent this controller from placing buildings.
-global.BIT_CTRL_DISABLE_SAFEMODE = (1 << 3);
-
-global.BITS_CTRL_REMOTE_CLAIM = BIT_CTRL_DISABLE_CENSUS | BIT_CTRL_DISABLE_AUTOBUILD | BIT_CTRL_DISABLE_SAFEMODE;
-
-global.BIT_CTRL_REMOTE_MINING = (1 << 2);			// Do we enable mining of harvesting rooms?
-global.BIT_CTRL_REMOTE_MINERL_MINING = (1 << 3);	// Do we enable mineral harvesting in SK rooms?
-global.BIT_DISABLE_TOWER_REPAIR = (1 << 4);
-global.BIT_DISABLE_TOWER_HEAL = (1 << 5);
 
 const SAFE_MODE_LOW_COOLDOWN = 2000;
 const SAFE_MODE_LOW_TICKS = 4000;
@@ -106,8 +97,7 @@ StructureController.prototype.run = function () {
 		_.invoke(this.room.structuresByType[STRUCTURE_RAMPART], 'setPublic', false);
 		this.memory.relock = undefined;
 	}
-	if ((Game.time % (DEFAULT_SPAWN_JOB_EXPIRE + 1)) === 0 && !this.checkBit(BIT_CTRL_DISABLE_CENSUS)) {
-		// if (this.clock(DEFAULT_SPAWN_JOB_EXPIRE) === 0 && !this.checkBit(BIT_CTRL_DISABLE_CENSUS)) { // Staggering jobs might be bad.
+	if ((Game.time % (DEFAULT_SPAWN_JOB_EXPIRE + 1)) === 0) {
 		try {
 			var nukes = this.room.find(FIND_NUKES, { filter: n => n.timeToLand < MAX_CREEP_SPAWN_TIME });
 			if (nukes && nukes.length) {
@@ -543,7 +533,7 @@ StructureController.prototype.runCensus = function () {
 		_.invoke(repair, 'setRole', 'recycle');
 	}
 
-	if (this.room.terminal && !scientists.length)
+	if (!scientists.length && this.room.terminal && this.room.terminal.isActive())
 		spawn.submit({
 			body: [MOVE, MOVE, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, MOVE],
 			memory: { role: 'scientist', room: this.pos.roomName, msg: '' },
@@ -718,16 +708,15 @@ StructureController.prototype.canUnclaim = function () {
 
 const { unclaim } = StructureController.prototype;
 StructureController.prototype.unclaim = function () {
-	if (this.canUnclaim())
-		unclaim.call(this);
-	else
+	if (!this.canUnclaim()) {
 		Log.notify(`Unable to unclaim ${this.pos.roomName}`);
+		throw new LogicError(`Unable to unclaim ${this.pos.roomName}`);
+	}
+	return unclaim.call(this);
 };
 
 const { activateSafeMode } = StructureController.prototype;
 StructureController.prototype.activateSafeMode = function () {
-	if (this.checkBit(BIT_CTRL_DISABLE_SAFEMODE))
-		return ERR_INVALID_TARGET;
 	// const nukes = this.room.find(FIND_NUKES, { filter: n => n.timeToLand < MINIMUM_REQUIRED_SAFE_MODE });
 	// if (!_.isEmpty(nukes))
 	//	return ERR_BUSY;
