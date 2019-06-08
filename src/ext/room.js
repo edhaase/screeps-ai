@@ -232,20 +232,12 @@ Room.prototype.updateBuild = function () {
 Room.getType = function (roomName) {
 	const res = /[EW](\d+)[NS](\d+)/.exec(roomName);
 	const [, EW, NS] = res;
-
-	if (EW % 10 === 0 || NS % 10 === 0) {
+	const EWI = EW % 10, NSI = NS % 10;
+	if (EWI === 0 || NSI === 0) {
 		return 'Highway';
-	} else if (EW % 10 === 5 && NS % 10 === 5) {
+	} else if (EWI === 5 && NSI === 5) {
 		return 'Center';
-	} else if (
-		(EW % 10 === 6 && NS % 10 === 4)
-		|| (EW % 10 === 6 && NS % 10 === 5)
-		|| (EW % 10 === 6 && NS % 10 === 6)
-		|| (EW % 10 === 5 && NS % 10 === 4)
-		|| (EW % 10 === 5 && NS % 10 === 6)
-		|| (EW % 10 === 4 && NS % 10 === 4)
-		|| (EW % 10 === 4 && NS % 10 === 5)
-		|| (EW % 10 === 4 && NS % 10 === 6)) {
+	} else if (Math.abs(5 - EWI) <= 1 && Math.abs(5 - NSI) <= 1) {
 		return 'SourceKeeper';
 	} else {
 		return 'Room';
