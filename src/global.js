@@ -7,13 +7,7 @@
 
 global.WHOAMI = (_.find(Game.structures) || _.find(Game.creeps)).owner.username;
 global.PREVENT_UNCLAIM = ['E59S39', 'E58S41'];
-global.INVADER_USERNAME = 'Invader';
-global.SOURCE_KEEPER_USERNAME = 'Source Keeper';
-global.IS_PTR = !!(Game.shard && Game.shard.ptr);
-global.IS_SIM = !!Game.rooms['sim'];
 global.MARKET_ORDER_LIMIT = 50;
-
-global.RUNTIME_ID = Game.time;
 
 global.MAX_ROOM_LEVEL = 8;							// Because this should really be a constant.
 global.MAX_OWNED_ROOMS = Infinity;					// Lower this if we can't afford more.
@@ -61,6 +55,8 @@ global.CARRY_PARTS = (capacity, steps) => Math.ceil(capacity / ENERGY_REGEN_TIME
 global.DISMANTLE_RETURN = (workParts) => DISMANTLE_COST * DISMANTLE_POWER * workParts;
 
 global.GCL_LEVEL = (i) => ((i ** GCL_POW) - ((i - 1) ** GCL_POW)) * GCL_MULTIPLY;
+
+global.ENERGY_CAPACITY_AT_LEVEL = (x) => (CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][x] * SPAWN_ENERGY_START) + CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][x] * EXTENSION_ENERGY_CAPACITY[x];
 
 /*
 global.CONTROLLER_DOWNGRADE_FULL = {1: CONTROLLER_DOWNGRADE[1]};
@@ -120,7 +116,7 @@ global.FLAG_MILITARY = COLOR_RED;	// Military
 global.FLAG_MINING = COLOR_YELLOW;	// Economy
 
 /** military flags */
-global.STRATEGY_ATTACK = COLOR_RED;	// Murder.
+global.STRATEGY_ATTACK = COLOR_RED;
 global.STRATEGY_DISMANTLE = COLOR_PURPLE;	// Similar to PLAN_DEMOLISH, but no carry. Just take shit apart.
 global.STRATEGY_SCOUT = COLOR_BLUE;	// Assign a scout to this location (memory: auto disable?)
 global.STRATEGY_STEAL = COLOR_CYAN;	// (MOVE,CARRY) drains resources
@@ -458,11 +454,10 @@ global.goid = (x) => Game.getObjectById(x);				// get object by id
 global.exg = (x) => ex(goid(x));
 
 global.wroom = function (roomName, fn) {			// with room
-	const ob = _.find(Game.structures, (s) => s.structureType === STRUCTURE_OBSERVER && Game.map.getRoomLinearDistance(s.pos.roomName, roomName) <= OBSERVER_RANGE);
-	if (ob)
-		return ob.exec(roomName, fn);
-	else
+	const ob = _.find(Game.structures, (s) => s.structureType === STRUCTURE_OBSERVER && Game.map.getRoomLinearDistance(s.pos.roomName, roomName) <= OBSERVER_RANGE && s.exec(roomName,fn) === OK);
+	if (!ob)
 		return "No observer in range";
+	return ob;
 };
 
 /**
@@ -512,13 +507,6 @@ global.forEachFn = function forEachFn(proto, cb) {
 		cb(name, proto);
 	}
 };
-
-/* global.ppc = function() {
-	var ordered = _.sortBy(Memory.profiler.map, m => m.time / m.call);
-	_.each(ordered, ({time,calls},m) => console.log(`${m} ${time/calls}`));
-} */
-
-global.roomLink = (room, shard = 'shard0') => `<a href='https://screeps.com/a/#!/room/${shard}/${room}'>${shard}/${room}</a>`;
 
 /** Set height of console, author Spedwards */
 global.setConsoleLines = function (lines) {
