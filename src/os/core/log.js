@@ -41,7 +41,8 @@ class Log {
 		var color = Log.color[level];
 		if (tag && this.getLogLevel(tag) > level)
 			return;
-		this.toConsole(msg, color, tag);
+		const out = msg.replace(/([WE])(\d+)([NS])(\d+)/gi, r => ROOM_LINK(r));
+		this.toConsole(out, color, tag);
 	}
 
 	/**
