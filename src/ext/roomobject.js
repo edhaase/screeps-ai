@@ -567,37 +567,6 @@ RoomObject.prototype.getAvailablePositions = function () {
 };
 
 /**
- * Bitwise memory for rooms, creeps, flags and structures
- */
-RoomObject.prototype.enableBit = function (bit) {
-	// let bits = this.memory.bits || 0;    
-	if (this.memory !== undefined)
-		return (this.memory.bits |= bit);
-	return 0;
-};
-
-RoomObject.prototype.disableBit = function (bit) {
-	if (this.memory !== undefined)
-		return (this.memory.bits &= ~bit);
-	return 0;
-};
-
-RoomObject.prototype.checkBit = function (bit) {
-	if (this.memory !== undefined)
-		return ((this.memory.bits || 0) & bit) !== 0;
-	return false;
-};
-
-RoomObject.prototype.clearBits = function () {
-	if (this.memory !== undefined)
-		this.memory.bits = undefined;
-};
-
-RoomObject.prototype.canUseBits = function () {
-	return this.memory !== undefined;
-};
-
-/**
  * Checks for a link in range
  */
 RoomObject.prototype.getLink = function (range = 2) {
