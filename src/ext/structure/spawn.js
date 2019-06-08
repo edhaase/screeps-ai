@@ -70,6 +70,16 @@ StructureSpawn.prototype.run = function () {
 		this.renewAdjacent();
 };
 
+StructureSpawn.prototype.generateName = function (job) {
+	if (ENV('spawn.name.randomize', false) === false)
+		return `${job.memory.role}${this.getNextId()}`;
+	// return `${this.getNextId(36)}${job.memory.role.slice(0,2)}`;
+	return `${this.getNextId(36)}`;
+	/* const [low, high] = ENV('spawn.name.charset', [0x2800, 0x28FF]);
+	const c = _.random(low, high - 1);
+	return `${String.fromCodePoint(c & 0x3FFF)}${this.getNextId()}`; */
+};
+
 StructureSpawn.prototype.processJobs = function () {
 	const q = this.getQueue(), [job] = q;
 	if (!job) {
@@ -92,7 +102,7 @@ StructureSpawn.prototype.processJobs = function () {
 		return true;
 	}
 
-	var assignedName = job.name || `${job.memory.role}${this.getNextId()}`;
+	var assignedName = job.name || this.generateName(job);
 	var result = this.spawnCreep(job.body, assignedName, { memory: job.memory, cost: job.cost, directions: job.directions, group: job.memory.gid });
 	if (result !== OK) {
 		Log.error(`${this.pos.roomName}/${this.name} failed to create creep, status: ${result}`, 'Spawn');
@@ -145,12 +155,12 @@ StructureSpawn.prototype.initCreep = function (name, roleName, job) {
  * Incremental rolling number to prevent creep collisions. Combine with
  * initial role to further increase potential number of names.
  */
-const CREEP_ID_ROLLOVER = 1000;
-StructureSpawn.prototype.getNextId = function () {
+const CREEP_ID_ROLLOVER = 10000;
+StructureSpawn.prototype.getNextId = function (base = 10) {
 	if (Memory.creepnum == null)
 		Memory.creepnum = 0;
 	const creepNum = Memory.creepnum++ % CREEP_ID_ROLLOVER;
-	return `${SHARD_TOKEN}${creepNum}`;
+	return `${SHARD_TOKEN}${creepNum.toString(base).toUpperCase()}`;
 };
 
 StructureSpawn.prototype.resetEnergyClock = function () {
