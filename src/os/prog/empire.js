@@ -71,7 +71,7 @@ class EmpireProc extends Process {
 	}
 
 	// @todo Fuzz factor is still problematic.
-	getAllCandidateRoomsByScore(range = 3) {
+	getAllCandidateRoomsByScore(range = ENV('empire.expansion_default_range', 5)) {
 		return this
 			.getAllCandidateRooms(range)
 			// .map(r => ({name: r, score: Intel.scoreRoomForExpansion(r) * (0.1+Math.random() * 0.1)}))
