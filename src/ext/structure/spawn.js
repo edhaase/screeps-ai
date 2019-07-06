@@ -357,6 +357,8 @@ StructureSpawn.prototype.hasJob = function (job) {
  */
 global.DEFUNCT_SPAWN_TICKS = 300;
 StructureSpawn.prototype.isDefunct = function () {
+	if (!this.room.my) // cheaper isActive check with the room-level spawn queue
+		return true;
 	if (this.room.energyAvailable >= this.room.energyCapacityAvailable)
 		return false;
 	if (this.spawning && this.spawning.remainingTime === 0 && Game.time - Game.creeps[this.spawning.name].memory.born > 1)

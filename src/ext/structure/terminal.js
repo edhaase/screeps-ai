@@ -71,7 +71,7 @@ DEFINE_CACHED_GETTER(StructureTerminal.prototype, 'creditsReservedForEnergy', (t
  * @todo stick store in memory so we can track change over ticks.
  */
 StructureTerminal.prototype.run = function () {
-	if (this.cooldown || this.isDeferred() || this.busy)
+	if (this.cooldown || this.isDeferred() || this.busy || !this.room.my)
 		return;
 	try {
 		if (!(Game.time % MODERATE_ENERGY_FREQUENCY))

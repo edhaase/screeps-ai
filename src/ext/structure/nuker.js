@@ -27,7 +27,7 @@ DEFINE_CACHED_GETTER(StructureNuker.prototype, 'armed', s => s.energy >= s.energ
 DEFINE_CACHED_GETTER(StructureNuker.prototype, 'ready', s => s.armed && s.cooldown <= 0);
 
 StructureNuker.prototype.run = function () {
-	if (this.cooldown > 1024 || this.isDeferred())
+	if (this.cooldown > 1024 || this.isDeferred() || !this.isActive())
 		return;
 
 	if (this.cooldown === NUKER_EARLY_READY_WARNING)

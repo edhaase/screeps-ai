@@ -54,7 +54,7 @@ StructureTower.prototype.onDefer = function () {
  * Structure run method
  */
 StructureTower.prototype.run = function () {
-	if (this.energy < TOWER_ENERGY_COST || this.isDeferred() || this.isBusy)
+	if (this.energy < TOWER_ENERGY_COST || this.isDeferred() || this.isBusy || !this.room.my)
 		return;
 	if (this.runAttack())
 		return;

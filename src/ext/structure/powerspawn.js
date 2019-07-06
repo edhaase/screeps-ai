@@ -12,6 +12,8 @@
 /* global DEFAULT_SPAWN_JOB_PRIORITY */
 
 StructurePowerSpawn.prototype.run = function () {
+	if (!this.room.my)
+		return;
 	if (Game.time % (CREEP_LIFE_TIME + 200) === 0 && !this.power)
 		this.runReload();
 	// Not needed, this meets the special case of `checkStructureAgainstController`.

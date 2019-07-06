@@ -48,7 +48,7 @@ const Intel = require('Intel');
  * If idle defaults to radar sweep.
  */
 StructureObserver.prototype.run = function () {
-	if (CPU_LIMITER || this.isDeferred())
+	if (CPU_LIMITER || this.isDeferred() || !this.isActive())
 		return;
 
 	const { memory } = this;
