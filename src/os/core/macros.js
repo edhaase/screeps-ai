@@ -18,7 +18,7 @@ global.MM_AVG = (n, p = n, s = DEFAULT_AVG_SAMPLES) => ((s - 1) * p + n) / s; //
 global.M_AVG = (n, p = n, s = DEFAULT_AVG_SAMPLES, w = 1) => p + (n / s / w) - (p / s);
 
 
-global.CLAMP = function (low, value, high) {
+global.CLAMP = function (low, value, high = Infinity) {
 	return Math.max(low, Math.min(value, high));
 };
 
