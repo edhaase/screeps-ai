@@ -51,14 +51,17 @@ class Thread {
 		} finally {
 			const delta = Game.cpu.getUsed() - start;
 			this.lastRunUsrTick = Game.time;
-			// Per tick stats
-			this.lastTickUsrCpu += delta;
 
-			// Iteration stats
-			this.lastRunCpu = delta;
-			this.minCpu = Math.max(0, Math.min(this.minCpu, delta)); // Already initialized on attach (But why were we getting negative numbers?)
-			this.maxCpu = Math.min(Game.cpu.tickLimit - 1, Math.max(this.maxCpu, delta));
-			this.avgUsrCpu = MM_AVG(delta, this.avgUsrCpu);	// Tracks only samples of when a thread actually runs	
+			// Per tick stats, only update if the value makes sense.
+			if (delta >= 0 && delta <= Game.cpu.tickLimit) {
+				this.lastTickUsrCpu += delta;
+
+				// Iteration stats
+				this.lastRunCpu = delta;
+				this.minCpu = Math.max(0, Math.min(this.minCpu, delta)); // Already initialized on attach (But why were we getting negative numbers?)
+				this.maxCpu = Math.min(Game.cpu.tickLimit - 1, Math.max(this.maxCpu, delta));
+				this.avgUsrCpu = MM_AVG(delta, this.avgUsrCpu);	// Tracks only samples of when a thread actually runs	
+			}
 
 			// Reset pending deliverables
 			this.pending_deliver = undefined;
