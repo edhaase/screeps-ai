@@ -34,8 +34,9 @@ module.exports = {
 			else
 				this.pushState('AcquireEnergy', { allowMove: true, allowHarvest: true });
 		} else {
-			var target = this.getTarget(
+			var target = this.getUniqueTarget(
 				({ room }) => room.structures,
+				({ room }) => room.find(FIND_MY_CREEPS, { filter: c => c.getRole() === 'repair' && c.memory.tid }).map(c => c.memory.tid),
 				(s) => (s.hits + this.memory.repairPower) <= s.hitsMax,
 				(weak) => {
 					if (!this.room.controller)
