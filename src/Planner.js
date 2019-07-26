@@ -395,6 +395,8 @@ class BuildPlanner {
 			return ERR_NOT_FOUND;
 		if (!ignorePlan) {
 			room.find(FIND_STRUCTURES).forEach(({ pos, structureType }) => {
+				if (structureType === STRUCTURE_ROAD)
+					cm.set(pos.x, pos.y, 1); // Required to consider tunnels
 				if (structureType === STRUCTURE_RAMPART || OBSTACLE_OBJECT_TYPES.includes(structureType))
 					cm.set(pos.x, pos.y, 255);
 			});
