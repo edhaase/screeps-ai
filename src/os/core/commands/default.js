@@ -242,8 +242,9 @@ function spark(co) {
 		console.log(`<details><summary>Thread result {~used ${delta} cpu, ${tsdelta / 1000} seconds)</summary>${ex(result)}</details>`);
 		return result;
 	};
-	const thread = new kernel.threadClass(wrap(), 0, 'Worker');
-	return kernel.attachThread(thread, Process.PRIORITY_IDLE, 0);
+	// const thread = new kernel.threadClass(wrap(), 0, 'Worker');
+	// return kernel.attachThread(thread, Process.PRIORITY_IDLE, 0);
+	return kernel.startThread(wrap, null, Process.PRIORITY_IDLE, 'Worker', kernel.pid);
 }
 
 Cmd.register('getProcessByName', gpbn, 'Find all processes with name', ['gpbn', 'pidof']);
