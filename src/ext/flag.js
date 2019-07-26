@@ -457,7 +457,7 @@ Flag.prototype.runLogic = function () {
 			Log.debug(`Requesting new hauler to site: ${this.pos} from spawn ${spawn}`, 'Flag#Hauler');
 			if (spawn && !spawn.hasJob({ memory: { role: 'hauler', site, dropoff: this.memory.dropoff } })) {
 				const priority = (miner) ? assigned / reqCarry : PRIORITY_MIN;
-				Unit.requestHauler(spawn, { role: 'hauler', site, dropoff: this.memory.dropoff, steps: this.memory.steps }, this.memory.hasRoad, remaining, priority, this.pos.roomName);
+				Unit.requestHauler(spawn, { role: 'hauler', site, dropoff: this.memory.dropoff, steps: this.memory.steps, origin: this.memory.dropoff.roomName }, this.memory.hasRoad, remaining, priority, this.pos.roomName);
 			}
 		} else if (reqCarry - assigned < 0) {
 			Log.warn(`${this.name}/${this.pos} Reporting excess hauler capacity: ${(reqCarry - assigned)}`, 'Flag#Hauler');
