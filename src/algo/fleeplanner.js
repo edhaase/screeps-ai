@@ -89,7 +89,7 @@ class FleePlanner {
 	search(structureType, tempGoals) {
 		if (!structureType)
 			return false;
-		var goals = this.cloneGoals();
+		var goals = this.cloneGoals(structureType);
 		if (tempGoals)
 			goals = goals.concat(tempGoals);
 		var ds = Game.cpu.getUsed();
