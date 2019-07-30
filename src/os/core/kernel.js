@@ -351,6 +351,7 @@ class Kernel {
 		} catch (e) {
 			Log.error(`${thread.pid}/${thread.tid} Uncaught thread exception [${thread.desc}]`, 'Kernel');
 			Log.error(e.stack);
+			Log.notify(e.stack);
 			this.killThread(thread.tid);
 			if (process && process.flags & Process.FLAG_ALL_THREADS_CRITICAL)
 				this.killProcess(process.pid);
