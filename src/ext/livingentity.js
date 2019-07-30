@@ -58,7 +58,11 @@ class LivingEntity extends RoomObject {
 			plainCost: this.plainSpeed,
 			swampCost: this.swampSpeed,
 			maxOps: 8000,
-			roomCallback: (r) => (Intel.isHostileRoom(r) ? false : LOGISTICS_MATRIX.get(r))
+			roomCallback: (r) => {
+				if (r === this.pos.roomName || !Intel.isHostileRoom(r))
+					return LOGISTICS_MATRIX.get(r);
+				return false;
+			}
 		});
 		if (!path || path.length <= 0 || incomplete) {
 			this.popState(false);
@@ -111,7 +115,7 @@ class LivingEntity extends RoomObject {
 	}
 
 	runMoveToRoom(opts) {
-		if (this.moveToRoom(opts.room || opts) === ERR_NO_PATH)
+		if (this.moveToRoom(opts.room || opts, opts.enter) === ERR_NO_PATH)
 			this.popState();
 		if (!opts.evade && !opts.attack)
 			return;
@@ -250,17 +254,28 @@ class LivingEntity extends RoomObject {
 			this.popState();
 	}
 
-	/** Tower drain */
-	runBorderHop(dest) {
+	/**
+	 *  Tower drain / Border hop
+	 * @todo What to do if hostile towers aren't operational
+	 */
+	runTowerDrain(opts) {
+		const { dest } = opts;
+		const room = Game.rooms[dest];
+		if (room) {
+			const towers = room.find(FIND_HOSTILE_STRUCTURES, { filter: s => s.structureType === STRUCTURE_TOWER });
+			if (!towers || !towers.length || _.all(towers, s => s.energy < TOWER_ENERGY_COST || !s.isActive()))
+				return this.popState();
+		}
+		if (this.hasActiveBodypart(HEAL))
+			this.heal(this); // Always heal, for overheal effect
 		// If hurt, stop and push heal
-		if (this.hits < this.hitsMax || (this.pos.roomName === dest && !this.pos.isOnRoomBorder())) {
-			this.pushState('FleeRoom', { room: dest, range: 3 });
-			if (this.hasActiveBodypart(HEAL))
-				this.heal(this);
-			else
-				this.pushState('HealSelf');
-		} else if (this.pos.roomName !== dest) {
-			this.moveToRoom(dest, false);
+		if (this.pos.roomName === dest && !this.pos.isOnRoomBorder()) {
+			// Only need to run away if we're in the room with towers.
+			this.say('Flee!');
+			this.pushState('FleeRoom', { room: dest, range: 2 });
+		} else if (this.hits >= this.hitsMax && this.pos.roomName !== dest || this.pos.isOnRoomBorder()) {
+			this.say('Push!');
+			this.moveToRoom(dest, true);
 		}
 	}
 
