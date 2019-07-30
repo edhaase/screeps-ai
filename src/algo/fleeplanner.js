@@ -94,7 +94,7 @@ class FleePlanner {
 			goals = goals.concat(tempGoals);
 		var ds = Game.cpu.getUsed();
 		var { path, ops, cost, incomplete } = PathFinder.search(this.origin, goals, this);
-		Log.warn(`Found ${path.length}, cost: ${cost}, ops: ${ops}, incomplete: ${incomplete}`, 'Planner');
+		Log.debug(`Found ${path.length}, cost: ${cost}, ops: ${ops}, incomplete: ${incomplete}`, 'Planner');
 		this.cpu += (Game.cpu.getUsed() - ds);
 		if (!path || !path.length || incomplete === true || ops === this.maxOps)
 			return false;
