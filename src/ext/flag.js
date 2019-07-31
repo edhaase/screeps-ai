@@ -40,7 +40,7 @@ Flag.prototype.run = function () {
 		this.runLogic();
 	} catch (e) {
 		Log.error(`Error on ${this.name} at ${this.pos}`, 'Flag');
-		Log.error(e, 'Flag');
+		Log.error(e.toString(), 'Flag');
 		Log.error(e.stack, 'Flag');
 	}
 };
@@ -141,19 +141,23 @@ Flag.prototype.remove = function () {
 	return status;
 };
 
-Flag.prototype.assignNearbySpot = function (limit = CREEP_LIFE_TIME) {
-	const { path, cost } = PathFinder.search(
-		this.pos,
-		_.map(Game.spawns, s => ({ pos: s.pos, range: 5 }))
-	);
-	if (cost > limit) {
-		Log.warn('cost exceeds limit, no target set', 'Flag');
-		return;
-	}
+Flag.prototype.assignNearbySpot = function () {
+	const spawns = Game.activeSpawns || _.filter(Game.spawns, s => s.isActive());
+	Game.activeSpawns = spawns;
+
+	const { path, cost, ops, incomplete } = this.pos.findClosestByPathFinder(spawns, s => ({ pos: s.pos, range: 5 }), {
+		maxCost: MAX_HAULER_STEPS(1, this.memory.capacity || SOURCE_ENERGY_CAPACITY) /* only consider things we could still make an income off of */
+	});
+
+	if (incomplete || !path || !path.length)
+		return false;
 	const goal = _.last(path);
+	if (!goal)
+		return false;
 	Log.info(`${this.name} assigning ${goal} to dropoff`, 'Flag');
 	this.memory.dropoff = goal;
 	this.memory.steps = cost;
+	return true;
 };
 
 /**
@@ -412,8 +416,15 @@ Flag.prototype.runLogic = function () {
 		// @todo pick structure in room, including containers.
 		if (this.room && (!this.memory.dropoff || (this.memory.step == null || this.memory.step <= 0))) {
 			this.memory.steps = undefined;
-			const storages = _.filter(Game.structures, s => [STRUCTURE_LINK, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_CONTROLLER].includes(s.structureType) && s.isActive());
-			const { goal, cost, ops, incomplete } = site.findClosestByPathFinder(storages, s => ({ pos: s.pos, range: 1 }));
+			const storages = Game.flagPickupHaulerStuff || _.filter(Game.structures, s => [STRUCTURE_LINK, STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_CONTROLLER].includes(s.structureType) && s.my && s.isActive());
+			Game.flagPickupHaulerStuff = storages;
+			// controller containers are technically their own pathable things, and may not be closer than the controller itself given room terrain.
+			// range here should be adjusted for type (controller range 3), and containers should be candidates with range 1
+			// however range 3 for a hauler could be the wrong side entirely, or not even in the same room if the controller is near an edge.
+			/* global MAX_HAULER_STEPS */
+			const { goal, cost, ops, incomplete } = site.findClosestByPathFinder(storages, s => ({ pos: s.pos, range: 1 }), {
+				maxCost: MAX_HAULER_STEPS(1, this.memory.capacity || SOURCE_ENERGY_CAPACITY) /* only consider things we could still make an income off of */
+			});
 			if (goal) {
 				this.memory.dropoff = goal.pos;
 				this.memory.range = 1;
@@ -426,8 +437,12 @@ Flag.prototype.runLogic = function () {
 					}
 				}
 				Log.info(`${this.name} found dropoff goal: ${goal} ${this.memory.dropoff} range ${this.memory.range} (from ${this.pos}) at cost ${cost} ops ${ops} incomplete ${incomplete}`, 'Flag#Hauler');
-			} else
-				this.assignNearbySpot();
+			} else if (this.assignNearbySpot() === false) {
+				Log.error(`${this.name} unable to assign dropoff, removing flags`, 'Flag#Hauler');
+				const flags = (this.room) ? this.pos.lookFor(LOOK_FLAGS) : _.filter(Game.flags, f => f.pos.isEqualTo(this.pos));
+				flags.forEach(f => f.remove());
+				return this.remove();
+			}
 			// this.memory.steps = this.pos.getStepsTo({ pos: this.memory.dropoff, range: 1 });
 			this.memory.steps = cost;
 		}
