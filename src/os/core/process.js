@@ -11,13 +11,14 @@ if (!Memory.process) {
 }
 
 class Process {
-	constructor(opts) {
+	constructor(opts, kernel = global.kernel) {
 		if (!opts.pid)
 			throw new Error("Expected pid");
 		MAKE_CONSTANT(this, 'instantiated', Game.time, false);
 		MAKE_CONSTANTS(this, opts);
 		MAKE_CONSTANT(this, 'friendlyName', this.name.charAt(0).toUpperCase() + this.name.slice(1));
 		MAKE_CONSTANT(this, 'born', parseInt(this.pid.toString().split('.')[0], 36));
+		MAKE_CONSTANT(this, 'kernel', kernel, false);
 
 		if (this.default_thread_prio == null)
 			this.default_thread_prio = ENVC('thread.default_priority', Process.PRIORITY_DEFAULT, 0.0, 1.0);
@@ -38,15 +39,15 @@ class Process {
 	}
 
 	get children() {
-		return global.kernel.childrenLookupTable.get(this);
+		return this.kernel.childrenLookupTable.get(this);
 	}
 
 	get parent() {
-		return global.kernel.process.get(this.ppid) || null;
+		return this.kernel.process.get(this.ppid) || null;
 	}
 
 	get threads() {
-		return global.kernel.threadsByProcess.get(this);
+		return this.kernel.threadsByProcess.get(this);
 	}
 
 	/** Memory */
@@ -58,6 +59,10 @@ class Process {
 
 	set memory(v) {
 		return (Memory.process[this.pid] = v);
+	}
+
+	get local() {
+		return this.getCurrentThread().local;
 	}
 
 	/** Stats */
@@ -108,24 +113,24 @@ class Process {
 
 	shutdown() {
 		/** A graceful shutdown has been requested */
-		global.kernel.killProcess(this.pid);
+		this.kernel.killProcess(this.pid);
 	}
 
 	/** Thread management */
 	startProcess(name, opts, ppid = this.pid) {
-		return global.kernel.startProcess(name, opts, ppid);
+		return this.kernel.startProcess(name, opts, ppid);
 	}
 
-	startThread(co, args = [], prio, desc) {
-		return global.kernel.startThread(co, args, prio, desc, this.pid, this);
+	startThread(co, args = [], prio, desc, thisArg = this) {
+		return this.kernel.startThread(co, args, prio, desc, this.pid, thisArg);
 	}
 
 	attachThread(thread, priority = this.default_thread_prio) {
-		return global.kernel.attachThread(thread, priority);
+		return this.kernel.attachThread(thread, priority);
 	}
 
 	getCurrentThread() {
-		const thread = global.kernel.getCurrentThread(); // Should hopefully always be the same one running
+		const thread = this.kernel.getCurrentThread(); // Should hopefully always be the same one running
 		if (thread && thread.pid !== this.pid)
 			throw new OperationNotPermitted(`Process ${this.pid} does not have permission to access ${thread.tid} in process ${thread.pid}`);
 		return thread;
@@ -140,13 +145,17 @@ class Process {
 	}
 
 	*waitForThread(thread) {
-		while (global.kernel.threads.has(thread.tid))
+		while (this.kernel.threads.has(thread.tid))
 			yield;
+	}
+
+	setThreadTitle(title) {
+		return this.getCurrentThread().desc = title;
 	}
 
 	/** Logging */
 	log(level = Log.LEVEL_WARN, msg) {
-		Log.log(level, `${this.pid}/${global.kernel.ctid || '-'} ${msg}`, this.friendlyName);
+		Log.log(level, `${this.pid}/${this.kernel.ctid || '-'} ${msg}`, this.friendlyName);
 	}
 
 	debug(msg) { this.log(Log.LEVEL_DEBUG, msg); }

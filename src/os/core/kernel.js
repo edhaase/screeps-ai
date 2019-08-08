@@ -56,6 +56,7 @@ class Kernel {
 		MAKE_CONSTANT(this, 'threadsByProcess', new LazyWeakMap(() => new Map()));
 		MAKE_CONSTANT(this, 'schedule', new PriorityQueue(null, (itm) => itm.priority));
 		MAKE_CONSTANT(this, 'childrenLookupTable', new LazyWeakMap(() => new Map()));
+		MAKE_CONSTANT(this, 'kernel', this, false); // Sanity
 
 		this.nextThreadId = 0;  // Threads are transient, so we don't need anything fancy here.
 		this.threadClass = Thread;
@@ -67,6 +68,8 @@ class Kernel {
 		this.postTickFn = {};	// Clear the post-tick actions list
 		this.halt = false;
 		this.throttle = Game.cpu.tickLimit;
+
+		this.startThread(this.boot, [], Process.PRIORITY_CRITICAL, 'Kernel boot thread');
 		Log.debug(`New kernel on tick ${Game.time}`, 'Kernel');
 	}
 
@@ -80,22 +83,21 @@ class Kernel {
 			yield true;
 	}
 
-	/**
-	 *
-	 */
-	*tick() {
-		try {
-			yield* this.wire(); // Prototypes must be loaded first
-			this.startThread(this.watchdog, [], Process.PRIORITY_CRITICAL, 'Kernel watchdog thread');
-			this.startThread(this.init, [], Process.PRIORITY_CRITICAL, 'Process initialization');
-			this.startThread(Pager.tick, [], Process.PRIORITY_IDLE, 'Pager thread');	// We want this to run last
-			this.startThread(ForeignSegment.tickAsync, [], Process.PRIORITY_IDLE, 'Foreign segment thread');
-			this.startThread(ForeignSegment.tickIdleReset, [], Process.PRIORITY_IDLE, 'Foreign segment idle reset thread');
-			this.startThread(GCP.tick, [], Process.PRIORITY_IDLE, 'Memory garbage collection thread');
-			yield* this.loop();
-		} catch (e) {
-			throw e;
+	/** Bootup thread */
+	*boot() {
+		for (const m of DEFERRED_MODULES) {
+			yield true;
+			require(m);
 		}
+		DEFERRED_MODULES.length = 0; // Recover the space
+		this.startThread(this.watchdog, [], Process.PRIORITY_CRITICAL, 'Kernel watchdog thread');
+		this.startThread(Pager.tick, [], Process.PRIORITY_IDLE, 'Pager thread');	// We want this to run last
+		this.startThread(ForeignSegment.tickAsync, [], Process.PRIORITY_IDLE, 'Foreign segment thread');
+		this.startThread(ForeignSegment.tickIdleReset, [], Process.PRIORITY_IDLE, 'Foreign segment idle reset thread');
+		this.startThread(GCP.tick, [], Process.PRIORITY_IDLE, 'Memory garbage collection thread');
+
+		this.setThreadTitle('Process initialization');
+		yield* this.init();
 	}
 
 	getHeapUsagePct() {
@@ -126,17 +128,6 @@ class Kernel {
 		}
 	}
 
-	*wire() {
-		for (const m of DEFERRED_MODULES) {
-			if (Game.cpu.getUsed() / Game.cpu.tickLimit > 0.90) {
-				Log.warn(`Module loader has yielded on ${Game.time}`, 'Kernel');
-				yield;
-			}
-			require(m);
-		}
-		DEFERRED_MODULES.length = 0; // Recover the space
-	}
-
 	*init() {
 		Log.debug(`Init started on ${Game.time}`, 'Kernel');
 		const [page] = yield* Pager.read([SEGMENT_PROC]);
@@ -154,12 +145,12 @@ class Kernel {
 				this.cpid = entry.pid;
 				this.ctid = null;  // In case we call a thread specific method during class construction
 				try {
-					const p = Process.deserializeByProcessName(entry);
+					const p = Process.deserializeByProcessName(entry, this);
 					this.processByName.get(p.name).push(p);
 					Log.debug(`Reloaded ${p} on tick ${Game.time}`, 'Kernel');
 					this.process.set(p.pid, p);
 				} catch (e) {
-					Log.error(`Unable to reload process`, 'Kernel');
+					Log.error(`Unable to reload process ${entry.name}/${entry.pid}`, 'Kernel');
 					Log.error(e.stack, 'Kernel');
 				}
 			}
@@ -169,8 +160,7 @@ class Kernel {
 
 			// Call reload methods _after_ all process deserialized in case one of them needs to find another
 			for (const [, p] of this.process) {
-				if (Game.cpu.getUsed() / Game.cpu.tickLimit > 0.90)
-					yield Log.warn(`Process loader has yielded on ${Game.time}`, 'Kernel');
+				yield true;
 				this.cpid = p.pid;
 				if (p && p.onReload)
 					p.onReload();
@@ -195,7 +185,7 @@ class Kernel {
 		entry.ppid = ppid;
 		entry.name = name;
 		const parent = this.process.get(ppid);
-		const p = Process.deserializeByProcessName(entry);
+		const p = Process.deserializeByProcessName(entry, this);
 		this.threadsByProcess.set(p, new Map());
 		this.processByName.get(p.name).push(p);
 		if (parent)
@@ -376,7 +366,7 @@ class Kernel {
 			threadGroup.delete(thread.tid);
 			if (process.onThreadExit)
 				process.onThreadExit(thread.tid, thread);
-			if (threadGroup.size <= 0 && thread.pid !== global.kernel.pid) {
+			if (threadGroup.size <= 0 && thread.pid !== this.pid) {
 				Log.warn(`${thread.pid}/${thread.tid}/${process.name} Last thread exiting, terminating process on tick ${Game.time} (age ${Game.time - process.born} ticks)`, 'Kernel');
 				this.killProcess(thread.pid);
 			}
@@ -389,7 +379,7 @@ class Kernel {
 		return true;
 	}
 
-	startThread(co, args = [], prio, desc, pid = this.cpid || global.kernel.pid, thisArg = this) {
+	startThread(co, args = [], prio, desc, pid = this.cpid || this.pid, thisArg = this) {
 		const coro = co.apply(thisArg, args);
 		const thread = new this.threadClass(coro, pid, desc);
 		return this.attachThread(thread, prio, pid);
@@ -410,6 +400,7 @@ class Kernel {
 		const pprio = (process.priority !== undefined) ? process.priority : ENV('process.default_priority', Process.PRIORITY_DEFAULT);
 		thread.priority = tprio * pprio;
 		// Log.debug(`${thread.pid}/${thread.tid} Attaching thread at priority ${thread.priority} total on tick ${Game.time} [${thread.desc}]`, 'Kernel');
+		thread.kernel = this;
 		this.threads.set(thread.tid, thread);
 		this.schedule.insert(thread);
 		this.queue.unshift(thread);
@@ -423,6 +414,10 @@ class Kernel {
 
 	getCurrentThread() {
 		return this.threads.get(this.ctid);
+	}
+
+	setThreadTitle(title) {
+		return this.getCurrentThread().desc = title;
 	}
 
 	get totalCpu() {

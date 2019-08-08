@@ -26,6 +26,7 @@ class Thread {
 		this.state = Thread.STATE_RUNNING;
 		this.desc = desc;
 		this.born = Game.time;
+		this.local = {}; // poor man's thread local scope
 	}
 
 	complete(fn) {
@@ -104,7 +105,7 @@ class Thread {
 						this.pending_deliver = v;
 						this.pending_error = err;
 						if (this.lastRunSysTick === Game.time)	// We've already been skipped, queue us up to run again.
-							global.kernel.queue.unshift(this);
+							this.kernel.queue.unshift(this);
 					});
 				} else {
 					Log.debug(`Thread ${this.tid}/${this.desc} yielded promise on tick ${Game.time}`, 'Kernel');

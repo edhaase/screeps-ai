@@ -64,7 +64,7 @@ const Kernel = require('os.core.kernel');
 const kernel = new Kernel();
 global.kernel = kernel; // Publish to global scope for commands
 
-const coro = kernel.tick();
+const coro = kernel.loop();
 module.exports.loop = function () {
 	coro.next();
 };
