@@ -46,7 +46,7 @@ module.exports = {
 		 */
 		var structure = this.getUniqueTarget(
 			() => goalRoom.find(ttype, { filter: s => s.structureType !== STRUCTURE_NUKER }),
-			() => _(Game.creeps).filter(c => c.memory.tid).map('memory.tid').value(),
+			() => _(Game.creeps).filter(c => c.memory.role === 'disruptor' && c.memory.tid).map('memory.tid').value(),
 			(s) => (s.energy > 1 || s.storedTotal > 1) && !s.pos.hasRampart(),
 			(candidates, { pos }) => pos.findClosestByPath(candidates)
 		);
