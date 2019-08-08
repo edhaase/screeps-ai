@@ -146,6 +146,7 @@ class Kernel {
 				this.ctid = null;  // In case we call a thread specific method during class construction
 				try {
 					const p = Process.deserializeByProcessName(entry, this);
+					MAKE_CONSTANT(p, 'kernel', this, false); // Inject kernel
 					this.processByName.get(p.name).push(p);
 					Log.debug(`Reloaded ${p} on tick ${Game.time}`, 'Kernel');
 					this.process.set(p.pid, p);
@@ -186,6 +187,7 @@ class Kernel {
 		entry.name = name;
 		const parent = this.process.get(ppid);
 		const p = Process.deserializeByProcessName(entry, this);
+		MAKE_CONSTANT(p, 'kernel', this, false); // Inject kernel
 		this.threadsByProcess.set(p, new Map());
 		this.processByName.get(p.name).push(p);
 		if (parent)

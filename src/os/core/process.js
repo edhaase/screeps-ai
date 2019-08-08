@@ -11,14 +11,14 @@ if (!Memory.process) {
 }
 
 class Process {
-	constructor(opts, kernel = global.kernel) {
-		if (!opts.pid)
+	constructor(opts) {
+		if (opts.pid == null)
 			throw new Error("Expected pid");
 		MAKE_CONSTANT(this, 'instantiated', Game.time, false);
 		MAKE_CONSTANTS(this, opts);
 		MAKE_CONSTANT(this, 'friendlyName', this.name.charAt(0).toUpperCase() + this.name.slice(1));
-		MAKE_CONSTANT(this, 'born', parseInt(this.pid.toString().split('.')[0], 36));
-		MAKE_CONSTANT(this, 'kernel', kernel, false);
+		MAKE_CONSTANT(this, 'born', opts.born || parseInt(this.pid.toString().split('.')[0], 36));	
+		MAKE_CONSTANT(this, 'ts', Date.now());
 
 		if (this.default_thread_prio == null)
 			this.default_thread_prio = ENVC('thread.default_priority', Process.PRIORITY_DEFAULT, 0.0, 1.0);
@@ -155,7 +155,7 @@ class Process {
 
 	/** Logging */
 	log(level = Log.LEVEL_WARN, msg) {
-		Log.log(level, `${this.pid}/${this.kernel.ctid || '-'} ${msg}`, this.friendlyName);
+		Log.log(level, `${this.pid}/${(this.kernel && this.kernel.ctid) || '-'} ${msg}`, this.friendlyName);
 	}
 
 	debug(msg) { this.log(Log.LEVEL_DEBUG, msg); }
