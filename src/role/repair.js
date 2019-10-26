@@ -37,7 +37,7 @@ module.exports = {
 			var target = this.getUniqueTarget(
 				({ room }) => room.structures,
 				({ room }) => room.find(FIND_MY_CREEPS, { filter: c => c.getRole() === 'repair' && c.memory.tid }).map(c => c.memory.tid),
-				(s) => (s.hits + this.memory.repairPower) <= s.hitsMax,
+				(s) => (s.hits + this.memory.repairPower) <= s.hitsMax && CONSTRUCTION_COST[s.structureType],
 				(weak) => {
 					if (!this.room.controller)
 						this.setRole('recycle');
