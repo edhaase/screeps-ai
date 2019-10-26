@@ -38,6 +38,8 @@ class Log {
 
 	/** */
 	static log(level = Log.LEVEL_DEBUG, msg, tag) {
+		if (msg == null || msg === '')
+			return;
 		var color = Log.color[level];
 		if (tag && this.getLogLevel(tag) > level)
 			return;
