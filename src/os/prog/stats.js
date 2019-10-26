@@ -29,7 +29,6 @@ class Stats extends Process {
 			/** This only needs to be saved if we're about to update stats */
 			this.stats['bucket'] = Game.cpu.bucket;
 			this.stats['cpu'] = Game.cpu;
-			this.stats['gcl'] = Game.gpl;
 			this.stats['cpu']['used'] = _.round(global.kernel.lastRunCpu, CPU_PRECISION);
 			this.stats['gcl'] = Game.gcl;
 			this.stats['gpl'] = Game.gpl;
