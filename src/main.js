@@ -53,6 +53,7 @@ DEFER_REQUIRE('ext.structure.extractor');
 DEFER_REQUIRE('ext.structure.rampart');
 DEFER_REQUIRE('ext.structure.powerbank');
 DEFER_REQUIRE('ext.structure.powerspawn');
+DEFER_REQUIRE('ext.ruin');
 DEFER_REQUIRE('ext.powercreep');
 DEFER_REQUIRE('ext.powercreep.pwr');
 DEFER_REQUIRE('ext.tombstone');
