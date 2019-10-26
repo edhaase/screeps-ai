@@ -28,11 +28,13 @@ PowerCreep.prototype.run = function () {
 			return;
 		if (!this.isSpawned() && !this.spawnCooldownTime && this.spawnRandom() === OK) // Should we spawn? Sure, why not.
 			return;
+		else if (!this.isSpawned())
+			return;			
 		else if (this.pos)
-			this.updateStuck();
+			this.updateStuck();		
 		if (this.invokeState() === true)
 			return;
-		if (this.shard && this.shard.name !== Game.shard.name)
+		if (this.shard && this.shard !== Game.shard.name)
 			return;
 		return this.doIdle();
 		// Check if power is enabled in room before gen-ops
