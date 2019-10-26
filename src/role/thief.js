@@ -39,12 +39,17 @@ module.exports = {
 		// Periodically refresh if we have targets
 		// Heal state handled when idle
 
-		const rooms = _.filter(Game.rooms, canLootRoom); // Just, don't even try if it's safe moded.
-		const candidates = _.flatten(_.map(rooms, r => r.find(FIND_HOSTILE_STRUCTURES, { filter: s => (s.storedNonEnergyResources > 0 || s.power) && s.owner.username === 'Screeps' && !s.pos.hasRampart(x => !x.isPublic) })));
+		// @todo Keep track of loot rooms and check them again if we aren't certain
 
+		const rooms = _.filter(Game.rooms, canLootRoom); // Just, don't even try if it's safe moded.
+
+		const structures = _.flatten(_.map(rooms, r => r.find(FIND_HOSTILE_STRUCTURES, { filter: s => (s.storedNonEnergyResources > 0 || s.power) && (!s.owner || s.owner.username === 'Screeps') && !s.pos.hasRampart(x => !x.isPublic) })));
+		const ruins = _.flatten(_.map(rooms, r => r.find(FIND_RUINS, { filter: s => (s.storedNonEnergyResources > 0 || s.power) && (!s.owner || s.owner.username === 'Screeps') && !s.pos.hasRampart(x => !x.isPublic) })));
+		const candidates = structures.concat(ruins);
 		if (_.isEmpty(candidates)) {
 			Log.warn(`${this.name}/${this.pos} No visible targets`, 'Creep');
-			if (this.pos.findInRange(FIND_MY_SPAWNS, 1))
+			this.say('?');
+			if (this.pos.findInRange(FIND_MY_SPAWNS, 1).length)
 				this.scatter(); // Don't renew if we have zero targets total
 			else
 				this.defer(_.random(MIN_WAIT, MAX_WAIT));
