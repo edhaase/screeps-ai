@@ -22,20 +22,11 @@ module.exports = {
 			this.moveToRoom(site);
 			return;
 		}
-		let target = null;
-		if (avoidRamparts) {
-			target = this.getTarget(
-				({ room }) => room.find(FIND_HOSTILE_STRUCTURES, { filter: s => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_RAMPART }),
-				(s) => Filter.unauthorizedHostile(s) && !s.pos.hasRampart(r => !r.isPublic),
-				(candidates) => this.pos.findClosestByPath(candidates)
-			);
-		} else {
-			target = this.getTarget(
-				({ room }) => room.find(FIND_HOSTILE_STRUCTURES, { filter: s => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_RAMPART }),
-				(s) => Filter.unauthorizedHostile(s),
-				(candidates) => this.pos.findClosestByPath(candidates)
-			);
-		}
+		const target = this.getTarget(
+			({ room }) => room.find(FIND_HOSTILE_STRUCTURES, { filter: s => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_RAMPART && CONSTRUCTION_COST[s.structureType] }),
+			(s) => Filter.unauthorizedHostile(s) && (!avoidRamparts || !s.pos.hasRampart(r => !r.isPublic)),
+			(candidates) => this.pos.findClosestByPath(candidates)
+		);
 
 		if (!target) {
 			if (avoidRamparts) {
@@ -52,10 +43,8 @@ module.exports = {
 			this.rangedAttack(target);
 		if (range > 1) {
 			this.moveTo(target);
-			const wall = this
 		} else if (this.hasActiveBodypart(WORK))
 			this.dismantle(target);
-		else if (this.hasActiveBodypart(ATTACK))
-			this.attack(target);
+
 	}
 };
