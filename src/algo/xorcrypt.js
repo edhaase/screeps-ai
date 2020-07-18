@@ -2,7 +2,7 @@
 'use strict';
 
 /* Appropriated from Semperrrabit */
-exports.xorcrypt = function xorcrypt(str, key) {
+export function xorcrypt(str, key) {
 	var ret = "";
 	for (var i = 0; i < str.length; i++) {
 		ret += String.fromCharCode((str.charCodeAt(i) ^ key.charCodeAt(i % key.length)) & 0x3FFF);

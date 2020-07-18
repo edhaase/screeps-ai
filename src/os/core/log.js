@@ -7,37 +7,50 @@
  */
 'use strict';
 
-class Log {
+import { ROOM_LINK } from '/os/core/macros';
+import { ENV } from '/os/core/macros';
+
+export const LOG_LEVEL = {
+	DEBUG: 0,
+	INFO: 1,
+	WARN: 2,
+	ERROR: 3,
+	SUCCESS: 4
+};
+
+export const DEFAULT_LOG_LEVEL = ENV('log.default', LOG_LEVEL.WARN);
+
+export class Log {
 	constructor() {
 		throw new Error("Log is a static class");
 	}
 
 	static debug(msg, tag) {
-		this.log(Log.LEVEL_DEBUG, msg, tag);
+		this.log(LOG_LEVEL.DEBUG, msg, tag);
 	}
 
 	/** */
 	static info(msg, tag) {
-		this.log(Log.LEVEL_INFO, msg, tag);
+		this.log(LOG_LEVEL.INFO, msg, tag);
 	}
 
 	/** */
 	static warn(msg, tag) {
-		this.log(Log.LEVEL_WARN, msg, tag);
+		this.log(LOG_LEVEL.WARN, msg, tag);
 	}
 
 	/** */
 	static error(msg, tag) {
-		this.log(Log.LEVEL_ERROR, msg, tag);
+		this.log(LOG_LEVEL.ERROR, msg, tag);
 	}
 
 	/** */
 	static success(msg, tag) {
-		this.log(Log.LEVEL_SUCCESS, msg, tag);
+		this.log(LOG_LEVEL.SUCCESS, msg, tag);
 	}
 
 	/** */
-	static log(level = Log.LEVEL_DEBUG, msg, tag) {
+	static log(level = LOG_LEVEL.DEBUG, msg, tag) {
 		if (msg == null || msg === '')
 			return;
 		var color = Log.color[level];
@@ -45,19 +58,6 @@ class Log {
 			return;
 		const out = msg.replace(/([WE])(\d+)([NS])(\d+)/gi, r => ROOM_LINK(r));
 		this.toConsole(out, color, tag);
-	}
-
-	/**
-	 * HTML table in console
-	 * ex: Log.table(['a','b'], [[1,2],[3,4]])
-	 */
-	static table(headers, rows) {
-		let tbl = '<table>';
-		_.each(headers, h => tbl += '<th width="50px">' + h + '</th>');
-		_.each(rows, row => tbl += '<tr>' + _.map(row, el => (`<td>${el}</td>`)).join('') + '</tr>');		
-		tbl += '</table>';
-		// console.log(msg);
-		return tbl.replace(/([WE])(\d+)([NS])(\d+)/gi, r => ROOM_LINK(r));
 	}
 
 	/** */
@@ -71,7 +71,7 @@ class Log {
 		if (!Memory.logging)
 			Memory.logging = {};
 		if (Memory.logging[tag] == null)
-			return Log.LEVEL_WARN;
+			return DEFAULT_LOG_LEVEL;
 		return Memory.logging[tag];
 	}
 
@@ -91,22 +91,20 @@ class Log {
 }
 
 /** Log levels */
-Log.LEVEL_DEBUG = 0;
-Log.LEVEL_INFO = 1;
-Log.LEVEL_WARN = 2;
-Log.LEVEL_ERROR = 3;
-Log.LEVEL_SUCCESS = 4;
+LOG_LEVEL.DEBUG = 0;
+LOG_LEVEL.INFO = 1;
+LOG_LEVEL.WARN = 2;
+LOG_LEVEL.ERROR = 3;
+LOG_LEVEL.SUCCESS = 4;
 
 /** Log colors */
 Log.color = {
-	[Log.LEVEL_DEBUG]: 'yellow',
-	[Log.LEVEL_INFO]: 'cyan',
-	[Log.LEVEL_WARN]: 'orange',
-	[Log.LEVEL_ERROR]: 'red',
-	[Log.LEVEL_SUCCESS]: 'green'
+	[LOG_LEVEL.DEBUG]: 'yellow',
+	[LOG_LEVEL.INFO]: 'cyan',
+	[LOG_LEVEL.WARN]: 'orange',
+	[LOG_LEVEL.ERROR]: 'red',
+	[LOG_LEVEL.SUCCESS]: 'green'
 };
 
 Object.freeze(Log);
 Object.freeze(Log.color);
-
-module.exports = Log;

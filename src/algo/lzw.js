@@ -1,7 +1,7 @@
 /** Lzw.js - Courtesy of @proximo */
 'use strict';
 
-class Lzw {
+export default class Lzw {
 	/**
 	 * @param string
 	 * @returns string

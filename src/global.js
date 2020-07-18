@@ -1,5 +1,7 @@
 /**
  * global.js - Configuration Constants
+ * 
+ * Please refer to /lib/icons for unicode symbols
  */
 'use strict';
 
@@ -7,14 +9,12 @@
 
 global.WHOAMI = (_.find(Game.structures) || _.find(Game.creeps)).owner.username;
 global.PREVENT_UNCLAIM = ['E59S39', 'E58S41'];
-global.MARKET_ORDER_LIMIT = 50;
 
 global.MAX_ROOM_LEVEL = 8;							// Because this should really be a constant.
 global.MAX_OWNED_ROOMS = Infinity;					// Lower this if we can't afford more.
 
 global.CONST_COST = 0.2;
 global.HARD_UNIT_CAP = Game.cpu.limit / CONST_COST;			// Anything above this value is guaranteed to eat bucket.
-global.SOFT_UNIT_CAP = 60;									// Arbritary limit, as we're already eating bucket.
 global.HARD_CONST_CAP = Game.cpu.tickLimit / CONST_COST;	// Hard cap on number of const actions per tick.
 
 // General energy-per-tick (EPT) goal to aim for
@@ -45,7 +45,9 @@ global.UPGRADER_PARTS_GOAL = Math.ceil(CONTROLLER_MAX_UPGRADE_PER_TICK / UPGRADE
 global.TICKS_TO_EMPTY_BUCKET = Math.ceil(10000 / (Game.cpu.tickLimit - Game.cpu.limit));
 
 global.BODYPART_MAX_HITS = 100;
+global.UNIT_MAX_TTL = (body) => body.some(p => p.type === CLAIM || p === CLAIM) ? CREEP_CLAIM_LIFE_TIME : CREEP_LIFE_TIME;
 global.UNIT_COST = (body) => _.sum(body, p => BODYPART_COST[p.type || p]);
+global.UNIT_COST_PER_TICK = (body) => UNIT_COST(body) / UNIT_MAX_TTL(body);
 global.UNIT_BUILD_TIME = (body) => CREEP_SPAWN_TIME * body.length;
 global.RENEW_COST = (body) => Math.ceil(SPAWN_RENEW_RATIO * UNIT_COST(body) / CREEP_SPAWN_TIME / body.length);
 global.RENEW_TICKS = (body) => Math.floor(SPAWN_RENEW_RATIO * CREEP_LIFE_TIME / CREEP_SPAWN_TIME / body.length); // Can't renew claim
@@ -106,16 +108,13 @@ global.NUKE_EFFECT_RANGE = 2;
 global.PATHFINDER_MAX_ROOMS = 64;
 
 global.BUCKET_MAX = 10000;
-global.BUCKET_LIMITER = true; // Default to enabled during resets.
-global.BUCKET_LIMITER_LOWER = 4000;
-global.BUCKET_LIMITER_UPPER = 6000;
 
 /** Critical infrastructure is auto-ramparted periodically or on creation */
-global.CRITICAL_INFRASTRUCTURE = [STRUCTURE_LINK, STRUCTURE_STORAGE, STRUCTURE_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_NUKER, STRUCTURE_OBSERVER, STRUCTURE_TOWER, STRUCTURE_POWER_SPAWN, STRUCTURE_LAB, STRUCTURE_NUKER, STRUCTURE_POWER_SPAWN];
+global.CRITICAL_INFRASTRUCTURE = [STRUCTURE_FACTORY, STRUCTURE_LINK, STRUCTURE_STORAGE, STRUCTURE_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_NUKER, STRUCTURE_OBSERVER, STRUCTURE_TOWER, STRUCTURE_POWER_SPAWN, STRUCTURE_LAB, STRUCTURE_NUKER, STRUCTURE_POWER_SPAWN];
 
 /** primary flag types */
 global.FLAG_MILITARY = COLOR_RED;	// Military
-global.FLAG_MINING = COLOR_YELLOW;	// Economy
+global.FLAG_ECONOMY = COLOR_YELLOW;	// Economy
 
 /** military flags */
 global.STRATEGY_ATTACK = COLOR_RED;
@@ -131,7 +130,7 @@ global.STRATEGY_I = COLOR_WHITE;
 
 /** economy flags */ // SITE_SK?
 global.SITE_DUAL_MINER = COLOR_RED;
-global.SITE_STATUS_UNKNOWN = COLOR_PURPLE;
+global.SITE_DEPOSIT = COLOR_PURPLE;
 global.SITE_SKMINE = COLOR_BLUE;				// ? requests guards?
 global.SITE_PICKUP = COLOR_CYAN;				// in use, desginated pickup site for haulers
 global.SITE_LOCAL = COLOR_YELLOW;
@@ -139,14 +138,6 @@ global.SITE_MINERAL = COLOR_ORANGE;				// in use, builds extractors
 global.SITE_LAB = COLOR_BROWN;
 global.SITE_REMOTE = COLOR_GREY;
 global.SITE_IDLE = COLOR_WHITE;					// in use, idle sites are ignored
-
-Object.defineProperty(global, 'CPU_LIMITER', {
-	get: function () {
-		// @todo: adjust limit based on remaining bucket, and log function
-		return Game.cpu.getUsed() > Game.cpu.limit - 1;
-	},
-	configurable: true
-});
 
 global.BODYPART_THREAT = {
 	[HEAL]: 150,
@@ -218,21 +209,8 @@ global.DIR_TABLE = {
 
 // Unicode options
 // https://en.wikipedia.org/wiki/List_of_Unicode_characters
-global.UNICODE_ARROWS = {
-	[TOP]: "\u2191",
-	[TOP_RIGHT]: "\u2197",
-	[RIGHT]: "\u2192",
-	[BOTTOM_RIGHT]: "\u2198",
-	[BOTTOM]: "\u2193",
-	[BOTTOM_LEFT]: "\u2199",
-	[LEFT]: "\u2190",
-	[TOP_LEFT]: "\u2196",
-	"ARROW_BARS": "\u21B9",
-	"THREE_RIGHT": "\u21F6",
-};
-global.UNICODE = {
-	MU: '\u03BC', // Greek letter mu. Mathematical average.
-};
+
+
 // Number forms:
 // \u2160 - \u216F
 
@@ -248,76 +226,6 @@ global.REVERSE_DIR = {
 	[BOTTOM_LEFT]: TOP_RIGHT,
 	[LEFT]: RIGHT,
 	[TOP_LEFT]: BOTTOM_RIGHT
-};
-
-/**
- * Stolen from dragoonreas github
- * https://github.com/dragoonreas/Screeps/blob/9a1c6dbccad327d481a774f20b8152ecce117a0b/scripts/globals.js
- */
-global.ICONS = {
-	[STRUCTURE_CONTROLLER]: "\uD83C\uDFF0"
-	, [STRUCTURE_SPAWN]: "\uD83C\uDFE5"
-	, [STRUCTURE_EXTENSION]: "\uD83C\uDFEA"
-	, [STRUCTURE_CONTAINER]: "\uD83D\uDCE4"
-	, [STRUCTURE_STORAGE]: "\uD83C\uDFE6"
-	, [STRUCTURE_RAMPART]: "\uD83D\uDEA7"
-	, [STRUCTURE_WALL]: "\u26F0"
-	, [STRUCTURE_TOWER]: "\uD83D\uDD2B"
-	, [STRUCTURE_ROAD]: "\uD83D\uDEE3"
-	, [STRUCTURE_LINK]: "\uD83D\uDCEE"
-	, [STRUCTURE_EXTRACTOR]: "\uD83C\uDFED"
-	, [STRUCTURE_LAB]: "\u2697"
-	, [STRUCTURE_TERMINAL]: "\uD83C\uDFEC"
-	, [STRUCTURE_OBSERVER]: "\uD83D\uDCE1"
-	, [STRUCTURE_POWER_SPAWN]: "\uD83C\uDFDB"
-	, [STRUCTURE_NUKER]: "\u2622"
-	, [STRUCTURE_KEEPER_LAIR]: "" // TODO: Add icon for keeper lair
-	, [STRUCTURE_PORTAL]: "" // TODO: Add icon for portal
-	, [STRUCTURE_POWER_BANK]: "" // TODO: Add icon for power bank
-	, source: "" // TODO: Add icon for source
-	, constructionSite: "\uD83C\uDFD7"
-	, resource: "\uD83D\uDEE2"
-	, creep: "" // TODO: Add icon for creep
-	, moveTo: "\u27A1"
-	, attack: "\uD83D\uDDE1" // NOTE: Same as attackController
-	, build: "\uD83D\uDD28"
-	, repair: "\uD83D\uDD27"
-	, dismantle: "\u2692"
-	, harvest: "\u26CF"
-	, pickup: "\u2B07" // NOTE: Same as withdraw
-	, withdraw: "\u2B07" // NOTE: Same as pickup
-	, transfer: "\u2B06" // NOTE: Same as upgradeController
-	, upgradeController: "\u2B06" // NOTE: Same as transfer
-	, claimController: "\uD83D\uDDDD"
-	, reserveController: "\uD83D\uDD12"
-	, attackController: "\uD83D\uDDE1" // NOTE: Same as attack
-	, recycle: "\u267B"
-	, wait0: "\uD83D\uDD5B" // 12:00
-	, wait1: "\uD83D\uDD67" // 12:30
-	, wait2: "\uD83D\uDD50" // 01:00
-	, wait3: "\uD83D\uDD5C" // 01:30
-	, wait4: "\uD83D\uDD51" // 02:00
-	, wait5: "\uD83D\uDD5D" // 02:30
-	, wait6: "\uD83D\uDD52" // 03:00
-	, wait7: "\uD83D\uDD5E" // 03:30
-	, wait8: "\uD83D\uDD53" // 04:00
-	, wait9: "\uD83D\uDD5F" // 04:30
-	, wait10: "\uD83D\uDD54" // 05:00
-	, wait11: "\uD83D\uDD60" // 05:30
-	, wait12: "\uD83D\uDD55" // 06:00
-	, wait13: "\uD83D\uDD61" // 06:30
-	, wait14: "\uD83D\uDD56" // 07:00
-	, wait15: "\uD83D\uDD62" // 07:30
-	, wait16: "\uD83D\uDD57" // 08:00
-	, wait17: "\uD83D\uDD63" // 08:30
-	, wait18: "\uD83D\uDD58" // 09:00
-	, wait19: "\uD83D\uDD64" // 09:30
-	, wait20: "\uD83D\uDD59" // 10:00
-	, wait21: "\uD83D\uDD65" // 10:30
-	, wait22: "\uD83D\uDD5A" // 11:00
-	, wait23: "\uD83D\uDD66" // 11:30
-	, testPassed: "\uD83C\uDF89" // for when scout reaches its goal location
-	, testFinished: "\uD83C\uDFC1" // for when scout has finished its test run
 };
 
 // Appropriated from engineeryo
@@ -418,17 +326,6 @@ global.DEFINE_BACKED_PROPERTY = function (proto, propertyName, store, opts = {})
 };
 
 global.DEFINE_MEMORY_BACKED_PROPERTY = function (proto, propertyName, opts = {}) {
-	/* const {enumerable = false, key = propertyName} = opts;
-	Object.defineProperty(proto, propertyName, {
-		get: function () {
-			return this.memory[key];
-		},
-		set: function (v) {
-			return (this.memory[key] = v);
-		},
-		configurable: true,
-		enumerable: enumerable
-	}); */
 	DEFINE_BACKED_PROPERTY(proto, propertyName, 'memory', opts);
 };
 
@@ -440,11 +337,6 @@ global.STACK_TRACE = function () {
 	return new Error("Stack Trace").stack;
 };
 
-/* global.HSV_COLORS = [];
-for(var i=0; i<100; i++)
-	HSV_COLORS[i] = Util.getColorBasedOnPercentage(i);
-*/
-
 global.profile = function (ticks = 30, filter = null) {
 	Game.profiler.profile(ticks, filter);
 };
@@ -454,73 +346,3 @@ global.wcmc = (hits) => Math.floor(254 * Math.sqrt(Math.sqrt(hits / WALL_HITS_MA
 
 global.goid = (x) => Game.getObjectById(x);				// get object by id
 global.exg = (x) => ex(goid(x));
-
-global.wroom = function (roomName, fn) {			// with room
-	const ob = _.find(Game.structures, (s) => s.structureType === STRUCTURE_OBSERVER && Game.map.getRoomLinearDistance(s.pos.roomName, roomName) <= OBSERVER_RANGE && s.exec(roomName,fn) === OK);
-	if (!ob)
-		return "No observer in range";
-	return ob;
-};
-
-/**
- *
- */
-global.releaseRoom = function (roomName, confirm = false) {
-	if (confirm !== true)
-		return "Confirmation required";
-	_(Game.flags).filter('pos.roomName', roomName).invoke('remove').commit();
-	_(Game.structures).filter('pos.roomName', roomName).invoke('destroy').commit();
-	_(Game.creeps).filter('pos.roomName', roomName).invoke('suicide').commit();
-};
-
-global.resetRoom = function (roomName) {
-	var room = Game.rooms[roomName];
-	room.find(FIND_FLAGS).forEach(f => f.remove());
-	room.find(FIND_STRUCTURES).forEach(s => s.destroy());
-	room.find(FIND_MY_CREEPS).forEach(c => c.suicide());
-	Memory.rooms[roomName] = undefined;
-};
-
-global.memLargestKey = function () {
-	return _.max(Object.keys(Memory), k => JSON.stringify(Memory[k]).length);
-};
-
-global.largestKey = function (a) {
-	return _.max(Object.keys(a), k => JSON.stringify(a[k]).length);
-};
-
-global.memStats = function () {
-	// return ex(_.transform(Memory, (r,n,k) => r[k] = JSON.stringify(Memory[k]).length, {} ));
-	return ex(_.mapValues(Memory, (v) => JSON.stringify(v).length));
-};
-
-/**
- * Loops over only functions on the prototype and
- * passes them to a callback function.
- */
-global.forEachFn = function forEachFn(proto, cb) {
-	var names = Object.getOwnPropertyNames(proto);
-	var name, j, desc;
-	for (j = 0; j < names.length; j++) {
-		name = names[j];
-		desc = Object.getOwnPropertyDescriptor(proto, name);
-		if (desc.get !== undefined || desc.set !== undefined)
-			continue;
-		cb(name, proto);
-	}
-};
-
-/** Set height of console, author Spedwards */
-global.setConsoleLines = function (lines) {
-	console.log(`<script>document.querySelector('.editor-panel').style.height = "${Math.ceil(lines * 22.5714) + 30}px";</script>`);
-};
-
-global.IS_SAME_ROOM_TYPE = function (roomA, roomB) {
-	if (!roomA || !roomB)
-		return false;
-	const statusA = Game.map.getRoomStatus(roomA);
-	const statusB = Game.map.getRoomStatus(roomB);
-	if (!statusA || !statusB)
-		return false;
-	return statusA.status === statusB.status;
-}

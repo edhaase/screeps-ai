@@ -1,7 +1,7 @@
-/** os.core.profiler.js - Dynamic prototype wiring (Instrumentation) */
+/** /os/core/profiler.js - Dynamic prototype wiring (Instrumentation) */
 'use strict';
 
-const Inspector = require('os.core.ins.inspector');
+import * as Inspector from '/os/core/ins/inspector';
 
 /**
  * 
@@ -32,7 +32,7 @@ class InvalidUsage extends Error { }
 
 //  ex(Object.getOwnPropertyDescriptors(Object.getOwnPropertyDescriptor(Creep.prototype, 'threat')))
 
-class Intercept {
+export class Intercept {
 	constructor(proto, prop) {
 		this.proto = proto;
 		this.prop = prop;
@@ -71,7 +71,7 @@ class Intercept {
 	}
 }
 
-exports.FunctionIntercept = class FunctionIntercept extends Intercept {
+export class FunctionIntercept extends Intercept {
 	constructor(proto, prop) {
 		super(proto, prop);
 		const orig = this.descriptor.value;
@@ -90,7 +90,7 @@ exports.FunctionIntercept = class FunctionIntercept extends Intercept {
 	}
 };
 
-exports.PropertyIntercept = class PropertyIntercept extends Intercept {
+export class PropertyIntercept extends Intercept {
 	constructor(proto, prop) {
 		super(proto, prop);
 		const orig = this.descriptor.get;
@@ -108,7 +108,7 @@ exports.PropertyIntercept = class PropertyIntercept extends Intercept {
 	}
 };
 
-exports.HookAll = function (proto) {
+export function HookAll(proto) {
 	if (!proto.hooks) {
 		proto.hooks = new Map();
 		const { functions } = Inspector.getPropertiesByGroups(proto);

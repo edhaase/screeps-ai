@@ -30,7 +30,7 @@ const NO_INFO = {};
  * @param {Object.<string, RoomInfo>} roomsInfo - dictionary with info about all rooms to be rendered, indexed by their names
  * @param {RenderOptions} [options] - see {@link RenderOptions}
  */
-function renderIntelMap(targetRoom, roomsInfo, options = {}) {
+export function renderIntelMap(targetRoom, roomsInfo, options = {}) {
 	const {
 		lastVisitThreshold = 2 * CREEP_LIFE_TIME,
 		roomSize = 3,
@@ -94,7 +94,7 @@ function renderIntelMap(targetRoom, roomsInfo, options = {}) {
  * @param {boolean} isFirstRow - whether the room is in the first row of the map
  * @param {boolean} isFirstCol - whether the room is in the first column of the map
  */
-function drawExits(roomName, rv, x, y, size, borderWidth, isFirstRow, isFirstCol) {
+export function drawExits(roomName, rv, x, y, size, borderWidth, isFirstRow, isFirstCol) {
 	const exits = Game.map.describeExits(roomName);
 
 	if (exits) {
@@ -130,7 +130,7 @@ function drawExits(roomName, rv, x, y, size, borderWidth, isFirstRow, isFirstCol
  * @param {number} opacity - opacity of the map's background
  * @param {Function} renderBehind - parameterless callback to render stuff directly on top of the background
  */
-function drawRoom(info = NO_INFO, roomName, lastVisitThreshold, rv, x, y, size, opacity, renderBehind, colorFn) {
+export function drawRoom(info = NO_INFO, roomName, lastVisitThreshold, rv, x, y, size, opacity, renderBehind, colorFn) {
 	const intelFreshness = typeof info.lastVisit === 'number' ? getIntelFreshness(info.lastVisit, lastVisitThreshold) : 1;
 	const hslValue = Math.max(intelFreshness, 0.15);
 	const textColor = hslValue < 0.5 || info === NO_INFO ? '#FFF' : '#000';
@@ -201,7 +201,7 @@ function drawRoom(info = NO_INFO, roomName, lastVisitThreshold, rv, x, y, size, 
  * @param {number} y - the y coordinate of the center of the room in the rendered map
  * @param {number} size - the size of room in the rendered map
  */
-function renderResources(info, rv, x, y, size) {
+export function renderResources(info, rv, x, y, size) {
 	const validMineral = info.mineral && RESOURCE_COLORS[info.mineral] && info.mineral !== RESOURCE_ENERGY;
 	const mineral = validMineral ? info.mineral : '?';
 	const resources = (info.mineral ? [mineral] : []).concat(info.sources ? new Array(info.sources).fill(RESOURCE_ENERGY) : []);
@@ -230,7 +230,7 @@ function renderResources(info, rv, x, y, size) {
  * @param {string} roomName
  * @returns {int[]}
  */
-function roomNameToCoords(roomName) {
+export function roomNameToCoords(roomName) {
 	const [, we, lon, ns, lat] = roomNameRegExp.exec(roomName);
 	return [
 		we === 'W' ? -lon - 1 : +lon,
@@ -244,7 +244,7 @@ function roomNameToCoords(roomName) {
  * @param {int[]} coords
  * @returns {string}
  */
-function coordsToRoomName(coords) {
+export function coordsToRoomName(coords) {
 	const [x, y] = coords;
 	const [absX, absY] = coords.map(n => Math.abs(n));
 	return (x < 0 ? 'W' + (absX - 1) : 'E' + absX)
@@ -258,7 +258,7 @@ function coordsToRoomName(coords) {
  * @param {number} lastVisitThreshold - number of ticks after which a room's info is considered old
  * @returns {number} - a number between 0.0 and 1.0 (1.0 being the freshest and 0.0 the oldest)
  */
-function getIntelFreshness(lastVisit, lastVisitThreshold) {
+export function getIntelFreshness(lastVisit, lastVisitThreshold) {
 	return 1 - Math.min((Game.time - lastVisit) / lastVisitThreshold, 1);
 }
 
@@ -270,7 +270,7 @@ function getIntelFreshness(lastVisit, lastVisitThreshold) {
  * @param {number} v - value (from 0.0 to 1.0)
  * @returns {string} - a color in the format '#RRGGBB'
  */
-function hsv2rgb(h, s, v) {
+export function hsv2rgb(h, s, v) {
 	let rgb, i, data = [];
 	if (s === 0) {
 		rgb = [v, v, v];
@@ -342,5 +342,3 @@ function hsv2rgb(h, s, v) {
  * @param {number} y - the y coordinate of the center of the room in the rendered map
  * @param {number} size - the size of room in the rendered map
  */
-
-module.exports = renderIntelMap;

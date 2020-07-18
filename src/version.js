@@ -1,1 +1,0 @@
-/** Used by grunt for build version */

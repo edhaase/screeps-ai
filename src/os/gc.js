@@ -5,7 +5,11 @@
 
 const DEFAULT_GC_FREQ = 100;
 
-class GCP {
+import { ENVC } from '/os/core/macros';
+import ROLES from '/role/index';
+import { Log, LOG_LEVEL } from '/os/core/Log';
+
+export default class GCP {
 	static *tick() {
 		// Cleanup memory
 		while (!(yield)) {
@@ -34,8 +38,8 @@ class GCP {
 				const roleName = memory.role;
 				delete Memory.creeps[name]; // Don't set to undefined, if memhack enabled the key will still be iterable
 				try {
-					const role = require(`role.${roleName}`);
-					if (!role.onCleanup)
+					const role = ROLES[roleName];
+					if (!role || !role.onCleanup)
 						continue;
 					role.onCleanup(memory, name);
 				} catch (e) {
@@ -49,6 +53,8 @@ class GCP {
 	}
 
 	static cleanupGroups() {
+		if (!Memory.groups)
+			return;
 		for (const name in Memory.groups.members) {
 			if (Memory.group.members[name].length > 0)
 				continue;
@@ -93,5 +99,3 @@ class GCP {
 		Log.debug(msg, 'GC');
 	}
 }
-
-module.exports = GCP;

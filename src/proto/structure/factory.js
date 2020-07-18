@@ -1,0 +1,2 @@
+export const FACTORY_MAX_ENERGY = 15000;
+export const FACTORY_MIN_ENERGY = 5000;

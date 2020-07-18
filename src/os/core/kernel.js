@@ -2,29 +2,34 @@
 'use strict';
 
 /* global ENV, ENVC, SEGMENT_PROC, MM_AVG, DEFERRED_MODULES, MAKE_CONSTANT, Log */
+import { Log, LOG_LEVEL } from '/os/core/Log';
+import { ENV, ENVC, MAKE_CONSTANT } from '/os/core/macros';
+import { MM_AVG, CLAMP } from '/os/core/math';
+import { to_precision } from '/lib/util';
 
-const Co = require('os.core.co');
-const BaseArray = require('os.ds.array');
-const BaseMap = require('os.ds.map');
-const { ForeignSegment } = require('os.core.network.foreign');
-const LazyMap = require('os.ds.lazymap');
-const LazyWeakMap = require('os.ds.lazyweakmap');
-const { Pager } = require('os.core.pager');
-const PriorityQueue = require('os.ds.pq');
-const Process = require('os.core.process');
-const Thread = require('os.core.thread');
-const GCP = require('os.gc');
-const { createShardLocalUUID } = require('os.core.uuid');
+import { waitForTick } from '/os/core/co';
+import BaseArray from '/ds/BaseArray';
+import BaseMap from '/ds/BaseMap';
+import LazyMap from '/ds/LazyMap';
+import ForeignSegment from '/os/network/foreign';
+import LazyWeakMap from '/ds/LazyWeakMap';
+import Pager from '/os/core/pager';
+import PriorityQueue from '/ds/PriorityQueue';
+import Process from '/os/core/process';
+import Thread from '/os/core/thread';
+import GCP from '/os/gc';
+import { createShardLocalUUID } from '/os/core/uuid';
+import { OperationNotPermitted } from '/os/core/errors';
+import PROGRAMS from '/programs/index';
 
-const { OperationNotPermitted } = require('os.core.errors');
+export const MAX_CPU_SAFE_THRESHOLD = 0.90; // As a percentage
+export const DEFAULT_HEAP_CHECK_FREQ = 10;
+export const DEFAULT_HEAP_WARNING = 0.85;
+export const DEFAULT_HEAP_CRITICAL = 0.95;
+export const DEFAULT_SHUTDOWN_GRACE_PERIOD = 10;
 
-const DEFAULT_HEAP_CHECK_FREQ = 10;
-const DEFAULT_HEAP_WARNING = 0.85;
-const DEFAULT_HEAP_CRITICAL = 0.95;
-const DEFAULT_SHUTDOWN_GRACE_PERIOD = 10;
-
-const MAX_PRECISION = 7;
-const DEFAULT_PRECISION = 5;
+export const MAX_PRECISION = 7;
+export const DEFAULT_PRECISION = 5;
 global.CPU_PRECISION = ENVC('process.default_cpu_precision', DEFAULT_PRECISION, 0, MAX_PRECISION);
 
 // @todo load stats once, sync to heap, switch to write only
@@ -35,7 +40,7 @@ global.CPU_PRECISION = ENVC('process.default_cpu_precision', DEFAULT_PRECISION, 
 // kill process with zero threads
 // Improve error handling (macaros?)
 // Total cpu loading / #ticks to load
-class Kernel {
+export default class Kernel {
 
 	constructor() {
 		/** We're a process! Sort of. */
@@ -46,8 +51,8 @@ class Kernel {
 		MAKE_CONSTANT(this, 'instantiated', Game.time);
 		MAKE_CONSTANT(this, 'ts', Date.now());
 		MAKE_CONSTANT(this, 'priority', Process.PRIORITY_IDLE);
-		// this.minCpu = Infinity;
-		// this.maxCpu = -Infinity;
+		this.minCpu = Infinity;
+		this.maxCpu = -Infinity;
 
 		/** Kernel specific stuff */
 		MAKE_CONSTANT(this, 'process', new Map());
@@ -66,8 +71,7 @@ class Kernel {
 		this.processByName.set('kernel', [this]);
 
 		this.postTickFn = {};	// Clear the post-tick actions list
-		this.halt = false;
-		this.throttle = Game.cpu.tickLimit;
+		this.throttle = MAX_CPU_SAFE_THRESHOLD * Game.cpu.tickLimit;
 
 		this.startThread(this.boot, [], Process.PRIORITY_CRITICAL, 'Kernel boot thread');
 		Log.debug(`New kernel on tick ${Game.time}`, 'Kernel');
@@ -85,11 +89,6 @@ class Kernel {
 
 	/** Bootup thread */
 	*boot() {
-		for (const m of DEFERRED_MODULES) {
-			yield true;
-			require(m);
-		}
-		DEFERRED_MODULES.length = 0; // Recover the space
 		this.startThread(this.watchdog, [], Process.PRIORITY_CRITICAL, 'Kernel watchdog thread');
 		this.startThread(Pager.tick, [], Process.PRIORITY_IDLE, 'Pager thread');	// We want this to run last
 		this.startThread(ForeignSegment.tickAsync, [], Process.PRIORITY_IDLE, 'Foreign segment thread');
@@ -124,7 +123,7 @@ class Kernel {
 			yield;
 			const heapAfter = this.getHeapUsagePct();
 			if (heapAfter < heapUsage)
-				Log.notify(`Explicit gc intervention reduced heap usage from ${heapUsage} to ${heapAfter} on tick ${Game.time}`);
+				Log.warn(`Explicit gc intervention reduced heap usage from ${to_precision(heapUsage, 3)} to ${to_precision(heapAfter, 3)} on tick ${Game.time}`);
 		}
 	}
 
@@ -145,7 +144,8 @@ class Kernel {
 				this.cpid = entry.pid;
 				this.ctid = null;  // In case we call a thread specific method during class construction
 				try {
-					const p = Process.deserializeByProcessName(entry, this);
+					const module = PROGRAMS[entry.name];
+					const p = module.deserialize(entry);
 					MAKE_CONSTANT(p, 'kernel', this, false); // Inject kernel
 					this.processByName.get(p.name).push(p);
 					Log.debug(`Reloaded ${p} on tick ${Game.time}`, 'Kernel');
@@ -177,7 +177,7 @@ class Kernel {
 
 	saveProcessTable() {
 		Log.debug(`Saving process table on tick ${Game.time}`, 'Kernel');
-		Pager.write(SEGMENT_PROC, JSON.stringify(this.proc), true);
+		Pager.write(SEGMENT_PROC, JSON.stringify(this.proc));
 	}
 
 	startProcess(name, opts = {}, ppid) {
@@ -186,7 +186,8 @@ class Kernel {
 		entry.ppid = ppid;
 		entry.name = name;
 		const parent = this.process.get(ppid);
-		const p = Process.deserializeByProcessName(entry, this);
+		const module = PROGRAMS[entry.name];
+		const p = module.deserialize(entry);
 		MAKE_CONSTANT(p, 'kernel', this, false); // Inject kernel
 		this.threadsByProcess.set(p, new Map());
 		this.processByName.get(p.name).push(p);
@@ -254,22 +255,27 @@ class Kernel {
 	}
 
 	*loop() {
-		while (!this.halt) {
+		while (true) {
 			const MIN_CPU_THIS_TICK = Math.min(Game.cpu.limit, Game.cpu.tickLimit);
-			this.throttle = 0.90 * ((Game.cpu.bucket / global.BUCKET_MAX > 0.5) ? Game.cpu.tickLimit : MIN_CPU_THIS_TICK);
+			this.throttle = MAX_CPU_SAFE_THRESHOLD * ((Game.cpu.bucket / global.BUCKET_MAX > 0.5) ? Game.cpu.tickLimit : MIN_CPU_THIS_TICK);
 			this.queue = this.schedule.slice(0);
-			var thread; // , i = this.queue.length - 1;		
+			var thread;
+			var ran = 0;
+			for (thread of this.schedule) {
+				thread.lastTickSysCpu = 0;
+				thread.lastTickUsrCpu = 0;
+			}
 			while ((thread = this.queue.pop()) != null) {
+				ran++;
 				const AVG_USED = Math.max(thread.avgSysCpu, thread.avgUsrCpu);
 				if (Game.cpu.getUsed() + AVG_USED >= this.throttle) {
 					this.lastRunCpu = Game.cpu.getUsed();
-					Log.warn(`Kernel paused at ${Math.ceil(this.lastRunCpu)} / ${this.throttle} cpu usage on tick ${Game.time} (${this.queue.length} threads pending)`, 'Kernel');  // continue running next tick to prevent starvation
+					Log.warn(`Kernel paused at ${Math.ceil(this.lastRunCpu)} / ${this.throttle} cpu usage on tick ${Game.time} with ${this.queue.length} threads pending (ran ${ran})`, 'Kernel');  // continue running next tick to prevent starvation
+					// Log.warn(`Kernel paused at ${Math.ceil(this.lastRunCpu)} / ${this.throttle} cpu usage on tick ${Game.time} with ${this.queue.length} threads pending (ran ${ran}) [${this.queue}]`, 'Kernel');  // continue running next tick to prevent starvation
 					break;
 				}
 
 				try {
-					if (thread.lastRunSysTick !== Game.time)
-						thread.lastTickSysCpu = 0;
 					const start = Game.cpu.getUsed();
 					thread.lastRunSysTick = Game.time;
 					this.runThread(thread);
@@ -278,7 +284,7 @@ class Kernel {
 					thread.lastTickSysCpu += delta;
 				} catch (e) {
 					Log.error(e.stack, 'Kernel');
-					yield* Co.waitForTick(Game.time + 5);
+					yield* waitForTick(Game.time + 5);
 				}
 			}
 
@@ -288,8 +294,14 @@ class Kernel {
 					continue;
 				thread.avgSysTickCpu = MM_AVG(thread.lastTickSysCpu, thread.avgSysTickCpu || 0);
 				thread.avgUsrTickCpu = MM_AVG(thread.lastTickUsrCpu, thread.avgUsrTickCpu || 0);
-				thread.minTickCpu = Math.max(0, Math.min(thread.minTickCpu, thread.lastTickSysCpu || 0)); // Already initialized on attach (But why were we getting negative numbers?)
-				thread.maxTickCpu = Math.min(Game.cpu.tickLimit - 1, Math.max(thread.maxTickCpu, thread.lastTickSysCpu || 0));
+				thread.minTickCpu = CLAMP(0, thread.lastTickSysCpu || 0, thread.minTickCpu); // Already initialized on attach (But why were we getting negative numbers?)
+				thread.maxTickCpu = CLAMP(thread.maxTickCpu, thread.lastTickSysCpu || 0, Game.cpu.tickLimit - 1);
+			}
+			for (const [, p] of this.process) {
+				const { totalCpu } = p;
+				// Log.debug(`minCpu: 0 < ${totalCpu} < ${p.minCpu}, maxCpu: ${p.maxCpu} < ${totalCpu} < ${Game.cpu.tickLimit - 1}`);
+				p.minCpu = CLAMP(0, totalCpu, p.minCpu);
+				p.maxCpu = CLAMP(p.maxCpu, totalCpu, Game.cpu.tickLimit - 1);
 			}
 
 			// Post tick cleanup
@@ -302,7 +314,7 @@ class Kernel {
 				}
 			}
 			this.postTickFn = {};	// Clear the post-tick actions list
-			this.lastRunCpu = Game.cpu.getUsed();
+			this.lastRunCpu = Game.cpu.getUsed();			
 			yield;
 		}
 	}
@@ -381,8 +393,8 @@ class Kernel {
 		return true;
 	}
 
-	startThread(co, args = [], prio, desc, pid = this.cpid || this.pid, thisArg = this) {
-		const coro = co.apply(thisArg, args);
+	startThread(cofn, args = [], prio, desc, pid = this.cpid || this.pid, thisArg = this) {
+		const coro = cofn.apply(thisArg, args);
 		const thread = new this.threadClass(coro, pid, desc);
 		return this.attachThread(thread, prio, pid);
 	}
@@ -425,7 +437,7 @@ class Kernel {
 	get totalCpu() {
 		var total = 0;
 		for (const [, thread] of this.threads)
-			total += thread.lastRunCpu;
+			total += (thread.lastTickSysCpu || 0);
 		return _.round(total, CPU_PRECISION);
 	}
 
@@ -433,5 +445,3 @@ class Kernel {
 		return `[Process ${this.pid} ${this.friendlyName}]`;
 	}
 }
-
-module.exports = Kernel;

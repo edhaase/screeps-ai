@@ -1,67 +1,30 @@
 /** main.js */
 'use strict';
 
-/* global DEFER_REQUIRE, ENV */
+import { Log, LOG_LEVEL } from '/os/core/Log';
+global.Log = Log;
 
-require('os.core.macros');				// Required because we want to be lazy
-require('os.core.constants');			// Required for RUNTIME_ID
-global.Log = require('os.core.log');
-global.Future = require('os.core.future').Future;
+import './os/core/constants';			// Required for RUNTIME_ID
 
-global.Arr = require('Arr');
-global.Util = require('Util');
-global.CostMatrix = require('CostMatrix');
-global.Event = require('Event');
+import { ENV } from '/os/core/macros';
+
+import '/os/core/errors';	// Required here to get the stack trace size increase
+import '/global';
+import '/commands/default';
+import '/proto/index';
+import '/os/proto/spawn';
+
+import Player from '/Player';
+global.Player = Player;
+
+import '/experiment/index';
+
+/* 
 global.Group = require('Group');
 global.Time = require('Time');
-global.Player = require('Player');
-global.Filter = require('Filter');
-global.Route = require('Route');
-global.Intel = require('Intel');
-global.WorldPosition = require('os.ds.worldpos').WorldPosition;
-
-// Deffered modules though we can load when we have cpu for it
-DEFER_REQUIRE('global');
-DEFER_REQUIRE('os.core.errors');	// Required here to get the stack trace size increase
-DEFER_REQUIRE('os.core.ins.inspector');
-DEFER_REQUIRE('os.core.commands.default');
-DEFER_REQUIRE('os.ext.spawn');
-DEFER_REQUIRE('ext.cache');
-DEFER_REQUIRE('ext.constructionsite');
-DEFER_REQUIRE('ext.roomobject');
-DEFER_REQUIRE('ext.livingentity');
-DEFER_REQUIRE('ext.roomposition');
-DEFER_REQUIRE('ext.flag');
-DEFER_REQUIRE('ext.room');
-DEFER_REQUIRE('ext.creep');
-DEFER_REQUIRE('ext.creep.actor');
-DEFER_REQUIRE('ext.creep.actor.rts');
-DEFER_REQUIRE('ext.source');
-DEFER_REQUIRE('ext.roomvisual');
-DEFER_REQUIRE('ext.structure');
-DEFER_REQUIRE('ext.structure.spawn');
-DEFER_REQUIRE('ext.structure.tower');
-DEFER_REQUIRE('ext.structure.storage');
-DEFER_REQUIRE('ext.structure.link');
-DEFER_REQUIRE('ext.structure.observer');
-DEFER_REQUIRE('ext.structure.container');
-DEFER_REQUIRE('ext.structure.controller');
-DEFER_REQUIRE('ext.structure.terminal');
-DEFER_REQUIRE('ext.structure.lab');
-DEFER_REQUIRE('ext.structure.nuker');
-DEFER_REQUIRE('ext.structure.extractor');
-DEFER_REQUIRE('ext.structure.rampart');
-DEFER_REQUIRE('ext.structure.powerbank');
-DEFER_REQUIRE('ext.structure.powerspawn');
-DEFER_REQUIRE('ext.ruin');
-DEFER_REQUIRE('ext.powercreep');
-DEFER_REQUIRE('ext.powercreep.pwr');
-DEFER_REQUIRE('ext.tombstone');
-DEFER_REQUIRE('Group');
-
-// Defer prototype extensions
-
-const Kernel = require('os.core.kernel');
+*/
+import memhack from '/os/core/memhack';
+import Kernel from '/os/core/kernel';
 const kernel = new Kernel();
 global.kernel = kernel; // Publish to global scope for commands
 
@@ -80,6 +43,5 @@ module.exports.loop = function () {
 };
 
 if (ENV('runtime.enable_memhack', true)) {
-	const memhack = require('os.core.memhack').wrap;
 	module.exports.loop = memhack(module.exports.loop);
 }

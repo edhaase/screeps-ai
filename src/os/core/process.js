@@ -1,24 +1,28 @@
 /** Process.js - The base process definition */
 'use strict';
 
-/* global ENV, ENVC, MAKE_CONSTANT, MAKE_CONSTANTS, PROCESS_NAMESPACE, Log */
-
-const { OperationNotPermitted } = require('os.core.errors');
+/* global ENV, ENVC, MAKE_CONSTANT, MAKE_CONSTANTS, Log */
+import { ENVC, MAKE_CONSTANT, MAKE_CONSTANTS } from '/os/core/macros';
+import { OperationNotPermitted } from '/os/core/errors';
+import { Log, LOG_LEVEL } from '/os/core/Log';
 
 if (!Memory.process) {
 	Log.warn(`Initializing process memory space`, 'Memory');
 	Memory.process = {};
 }
 
-class Process {
+export default class Process {
 	constructor(opts) {
 		if (opts.pid == null)
 			throw new Error("Expected pid");
 		MAKE_CONSTANT(this, 'instantiated', Game.time, false);
 		MAKE_CONSTANTS(this, opts);
 		MAKE_CONSTANT(this, 'friendlyName', this.name.charAt(0).toUpperCase() + this.name.slice(1));
-		MAKE_CONSTANT(this, 'born', opts.born || parseInt(this.pid.toString().split('.')[0], 36));	
+		MAKE_CONSTANT(this, 'born', opts.born || parseInt(this.pid.toString().split('.')[0], 36));
 		MAKE_CONSTANT(this, 'ts', Date.now());
+
+		this.minCpu = Infinity;
+		this.maxCpu = -Infinity;
 
 		if (this.default_thread_prio == null)
 			this.default_thread_prio = ENVC('thread.default_priority', Process.PRIORITY_DEFAULT, 0.0, 1.0);
@@ -31,11 +35,6 @@ class Process {
 	/** Overridable */
 	static deserialize(opts) {
 		return new this(opts);
-	}
-
-	static deserializeByProcessName(opts) {
-		const module = require(`${PROCESS_NAMESPACE}${opts.name}`);
-		return module.deserialize(opts);
 	}
 
 	get gid() {
@@ -76,7 +75,7 @@ class Process {
 	get totalCpu() {
 		var total = 0;
 		for (const [, thread] of this.threads)
-			total += (thread.lastRunCpu || 0);
+			total += (thread.lastTickSysCpu || 0);
 		return _.round(total, CPU_PRECISION);
 	}
 
@@ -94,20 +93,6 @@ class Process {
 		return _.round(total, CPU_PRECISION);
 	}
 
-	get minCpu() {
-		var total = 0;
-		for (const [, thread] of this.threads)
-			total += (thread.minCpu || 0);
-		return _.round(total, CPU_PRECISION);
-	}
-
-	get maxCpu() {
-		var total = 0;
-		for (const [, thread] of this.threads)
-			total += (thread.maxCpu || 0);
-		return _.round(total, CPU_PRECISION);
-	}
-
 	/** Lifecycle */
 	onStart() { }
 	onExit() { }
@@ -115,7 +100,12 @@ class Process {
 	onChildExit(pid, process) { }
 
 	onReload() {
-		this.startThread(this.run, undefined, undefined, 'Main thread');
+		this.startThread(this.run, undefined, undefined, `${this.friendlyName} main thread`);
+	}
+
+	exit() {
+		/** An immediate exit is demanded */
+		this.kernel.killProcess(this.pid);
 	}
 
 	shutdown() {
@@ -161,15 +151,15 @@ class Process {
 	}
 
 	/** Logging */
-	log(level = Log.LEVEL_WARN, msg) {
+	log(level = LOG_LEVEL.WARN, msg) {
 		Log.log(level, `${this.pid}/${(this.kernel && this.kernel.ctid) || '-'} ${msg}`, this.friendlyName);
 	}
 
-	debug(msg) { this.log(Log.LEVEL_DEBUG, msg); }
-	info(msg) { this.log(Log.LEVEL_INFO, msg); }
-	warn(msg) { this.log(Log.LEVEL_WARN, msg); }
-	error(msg) { this.log(Log.LEVEL_ERROR, msg); }
-	success(msg) { this.log(Log.LEVEL_SUCCESS, msg); }
+	debug(msg) { this.log(LOG_LEVEL.DEBUG, msg); }
+	info(msg) { this.log(LOG_LEVEL.INFO, msg); }
+	warn(msg) { this.log(LOG_LEVEL.WARN, msg); }
+	error(msg) { this.log(LOG_LEVEL.ERROR, msg); }
+	success(msg) { this.log(LOG_LEVEL.SUCCESS, msg); }
 
 	toString() {
 		return `[Process ${this.pid} ${this.friendlyName}]`;
@@ -178,9 +168,8 @@ class Process {
 
 Process.PRIORITY_DEFAULT = ENVC('process.default_priority', 0.5, 0.0, 1.0);
 Process.PRIORITY_LOWEST = 1.0;
+Process.PRIORITY_HIGH = 0.25;
 Process.PRIORITY_HIGHEST = 0.0;
 
 Process.PRIORITY_CRITICAL = Process.PRIORITY_HIGHEST;
 Process.PRIORITY_IDLE = Process.PRIORITY_LOWEST;
-
-module.exports = Process;

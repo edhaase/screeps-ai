@@ -1,13 +1,15 @@
 /** os.itr.js - Iterator methods */
 'use strict';
 
-exports.first = function first(itr) {
+import { IS_SAME_ROOM_TYPE } from '/os/core/macros';
+
+export function first(itr) {
 	for (const itm of itr)	// In case it's not a generator..
 		return itm;
-
+	return null;
 };
 
-exports.take = function* take(itr, n) {
+export function* take(itr, n) {
 	var remaining = n;
 	for (const itm of itr) {
 		if (remaining-- <= 0)
@@ -16,7 +18,7 @@ exports.take = function* take(itr, n) {
 	}
 };
 
-exports.min = function min(itr, fn = _.identity) {
+export function min(itr, fn = _.identity) {
 	var x, v = Infinity;
 	var n = null;
 	for (const itm of itr) {
@@ -29,7 +31,7 @@ exports.min = function min(itr, fn = _.identity) {
 	return n;
 };
 
-exports.find = function find(itr, fn) {
+export function find(itr, fn) {
 	for (const itm of itr) {
 		if (fn(itm))
 			return itm;
@@ -37,35 +39,35 @@ exports.find = function find(itr, fn) {
 	return null;
 };
 
-exports.filter = function* filter(itr, fn) {
+export function* filter(itr, fn) {
 	for (const itm of itr) {
 		if (fn(itm))
 			yield itm;
 	}
 };
 
-exports.compact = function* compact(itr, filter = _.identity) {
-	yield* exports.filter(itr, (v) => v !== null && filter(v));
+export function* compact(itr, filter = _.identity) {
+	yield* filter(itr, (v) => v !== null && filter(v));
 };
 
-exports.sample = function* sample(items) {
+export function* sample(items) {
 	while (true)
 		yield _.sample(items, 1);
 };
 
-exports.sum = function sum(itr, fn = _.identity) {
+export function sum(itr, fn = _.identity) {
 	var total = 0;
 	for (const itm of itr)
 		total += fn(itm);
 	return total;
 };
 
-exports.flatten = function* flatten(itr) {
+export function* flatten(itr) {
 	for (const itm of itr)
 		yield* itm;
 };
 
-exports.avg = function avg(itr, iter = _.identity) {
+export function avg(itr, iter = _.identity) {
 	var total = 0;
 	var count = 0;
 	for (const i of itr) {
@@ -75,7 +77,7 @@ exports.avg = function avg(itr, iter = _.identity) {
 	return total / count;
 };
 
-exports.explore = function* explore(start, max_range = 30, opts = {}) {
+export function* explore(start, max_range = 30, opts = {}) {
 	const seen = { [start]: 0 };
 	const q = [start];
 	for (const roomName of q) {

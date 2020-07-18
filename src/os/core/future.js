@@ -1,13 +1,14 @@
-/** os.core.future.js - Better response time than the promise */
+/** /os/core/future.js - Better response time than the promise */
 'use strict';
 
-const { LogicError } = require('os.core.errors');
+import { Log, LOG_LEVEL } from '/os/core/Log';
+import { LogicError } from '/os/core/errors';
 
 /**
  * Futures represent values that don't hold a value _yet_, but intend
  * to resolve eventually. Unlike promises, we aim to fire immediately.
  */
-exports.Future = class Future {
+export default class Future {
 	constructor(fn) {
 		this.value = undefined;
 		this.err = undefined;
@@ -84,7 +85,7 @@ exports.Future = class Future {
 			throw new TypeError(`Expected array`);
 		if (!futures.length)
 			return Future.resolve([]);
-		var count = futures.length;		
+		var count = futures.length;
 		const future = new this();
 		for (const f of futures) {
 			f.complete((val, err) => {
@@ -111,6 +112,8 @@ exports.Future = class Future {
 	}
 
 	toString() {
+		if (this.value)
+			return `[Future ${this.value}]`;
 		return `[Future]`;
 	}
 };

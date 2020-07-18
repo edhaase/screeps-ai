@@ -1,5 +1,3 @@
-/** algo.map.enclosure */
-'use strict';
 /**
  * Check if a room is reachable from the world.
  * 
@@ -7,8 +5,9 @@
  * _.filter(Game.rooms, r => r.my && !Algo.isRoomEnclosed(r.name));
  * [room W7N3],[room W7N4],[room W8N4]
  */
+'use strict';
 
-exports.isRoomEnclosed = function isRoomEnclosed(start, opts = {}) {
+export default function isRoomEnclosed(start, opts = {}) {
 	_.defaults(opts, {
 		ignore: r => Game.rooms[r] && Game.rooms[r].my,
 		avoid: (r, EW, NS) => Game.rooms[r] && Game.rooms[r].owned && !Game.rooms[r].my

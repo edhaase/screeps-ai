@@ -1,37 +1,25 @@
-/** os.core.macros.js */
+/** /os/core/macros.js */
 'use strict';
 
-global.MAKE_CONSTANT = (obj, name, value, enumerable = true) => {
-	Object.defineProperty(obj, name, { value, writable: false, configurable: false, enumerable });
+import { CLAMP } from './math';
+
+export const MAKE_CONSTANT = (obj, name, value, enumerable = true) => {
+	Object.defineProperty(obj, name, { value, writable: false, configurable: true, enumerable });
 };
 
-global.MAKE_CONSTANTS = (obj, mapping, enumerable = true) => {
+export const MAKE_CONSTANTS = (obj, mapping, enumerable = true) => {
 	const desc = {};
 	for (const key in mapping)
-		desc[key] = { value: mapping[key], configurable: false, writable: false, enumerable };
+		desc[key] = { value: mapping[key], writable: false, configurable: true, enumerable };
 	Object.defineProperties(obj, desc);
 };
 
-const DEFAULT_AVG_SAMPLES = 100;
-global.CM_AVG = (n, p = n, s = DEFAULT_AVG_SAMPLES) => p + (n - p) / s; // Cumulutive moving average.
-global.MM_AVG = (n, p = n, s = DEFAULT_AVG_SAMPLES) => ((s - 1) * p + n) / s; // Modified moving average.
-global.M_AVG = (n, p = n, s = DEFAULT_AVG_SAMPLES, w = 1) => p + (n / s / w) - (p / s);
+export const ENV = (path, defaultValue) => (_.get(Memory.env, path, defaultValue));
+export const ENVC = (path, defaultValue, min = 0, max = Infinity) => CLAMP(min, ENV(path, defaultValue), max);
 
+export const ROOM_LINK = (roomName, shard = Game.shard.name, tag = roomName) => `<a href='#!/room/${shard}/${roomName}'>${tag}</a>`;
 
-global.CLAMP = function (low, value, high = Infinity) {
-	return Math.max(low, Math.min(value, high));
-};
-
-
-global.ENV = (path, defaultValue) => (_.get(Memory.env, path, defaultValue));
-global.ENVC = (path, defaultValue, min = 0, max = Infinity) => global.CLAMP(min, global.ENV(path, defaultValue), max);
-
-global.DEFERRED_MODULES = [];
-global.DEFER_REQUIRE = (name) => global.DEFERRED_MODULES.push(name);
-
-global.ROOM_LINK = (roomName, shard = Game.shard.name, tag = roomName) => `<a href='#!/room/${shard}/${roomName}'>${tag}</a>`;
-
-global.DEFINE_CACHED_GETTER = function (proto, propertyName, fn, enumerable = false) {
+export const DEFINE_CACHED_GETTER = function (proto, propertyName, fn, enumerable = false) {
 	Object.defineProperty(proto, propertyName, {
 		get: function () {
 			if (this === proto || this == null)
@@ -49,7 +37,7 @@ global.DEFINE_CACHED_GETTER = function (proto, propertyName, fn, enumerable = fa
 	});
 };
 
-global.DEFINE_GETTER = function (proto, propertyName, fn, enumerable = false) {
+export const DEFINE_GETTER = function (proto, propertyName, fn, enumerable = false) {
 	Object.defineProperty(proto, propertyName, {
 		get: function () {
 			return fn.call(this, this);
@@ -58,3 +46,18 @@ global.DEFINE_GETTER = function (proto, propertyName, fn, enumerable = false) {
 		enumerable: enumerable
 	});
 };
+
+/**
+ * 
+ * @param {*} roomA 
+ * @param {*} roomB 
+ */
+export const IS_SAME_ROOM_TYPE = function (roomA, roomB) {
+	if (!roomA || !roomB)
+		return false;
+	const statusA = Game.map.getRoomStatus(roomA);
+	const statusB = Game.map.getRoomStatus(roomB);
+	if (!statusA || !statusB)
+		return false;
+	return statusA.status === statusB.status;
+}

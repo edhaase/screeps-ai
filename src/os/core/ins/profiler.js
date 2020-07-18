@@ -1,7 +1,7 @@
-/** os.core.profiler.js - Dynamic prototype wiring (Instrumentation) */
+/** /os/core/profiler.js - Dynamic prototype wiring (Instrumentation) */
 'use strict';
 
-const { InvalidUsage, PropertyNotConfigurable } = require('os.core.ins.errors');
+import { InvalidUsage, PropertyNotConfigurable } from '/os/core/ins.errors';
 
 /**
  * Inpsect, show stuff on console

@@ -2,7 +2,7 @@
 'use strict';
 
 
-exports.wrap = function wrapLazyMemory(fn) {
+export default function wrapMemory(fn) {
 	let memory, tick;
 	return function () {
 		if (tick && tick + 1 === Game.time && memory) {

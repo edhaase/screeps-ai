@@ -1,6 +1,3 @@
-/** algo.floodfill.js */
-'use strict';
-
 /**
  * Flood fill code
  * https://en.wikipedia.org/wiki/Breadth-first_search
@@ -8,9 +5,13 @@
  * @param pos - starting position
  *
  * ex: floodFill(controller.pos)
- * ex: Planner.floodFill(new RoomPosition(46,19,'E58S41'), {limit: 128, validator: (pos) => Game.map.getTerrainAt(pos) !== 'wall' && !pos.hasObstacle()})
+ * ex: floodFill(new RoomPosition(46,19,'E58S41'), {limit: 128, validator: (pos) => Game.map.getTerrainAt(pos) !== 'wall' && !pos.hasObstacle()})
  */
-exports.floodFill = function floodFill(pos, {
+'use strict';
+
+import { getColorBasedOnPercentage } from '/lib/util';
+
+export function floodFill(pos, {
 	validator = (pos) => !pos.isOnRoomBorder() && !pos.hasObstacle(true),
 	stop = () => false,		// stop condition
 	limit = 150,
@@ -31,7 +32,6 @@ exports.floodFill = function floodFill(pos, {
 		// This isn't firing, so we're only here if this a good point.
 		// visual.circle(point, {fill: 'yellow'});
 		//	continue;			
-		// console.log('point: ' + point);
 		rtn.push(point);
 
 		// if(goalMet?)
@@ -45,7 +45,7 @@ exports.floodFill = function floodFill(pos, {
 				if (visualize)
 					visual.circle(n, { fill: 'red', opacity: 1.0 });
 			} else {
-				var color = Util.getColorBasedOnPercentage(100 * (count / limit));
+				var color = getColorBasedOnPercentage(100 * (count / limit));
 				// var color = HSV_COLORS[Math.floor(100*(count / limit))];
 				if (oddeven && (n.x + n.y) % 2 === 0)
 					color = 'blue';

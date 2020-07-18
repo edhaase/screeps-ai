@@ -5,7 +5,7 @@
 // Game.spawns.Spawn1.submit({body: [MOVE], memory: {role: 'noop',stack:[['runFleeRoom','W7N2']]}, priority: 100})
 'use strict';
 
-module.exports = {
+export default {
 	boosts: [],	// Default boosts
 	priority: function () {
 		// (Optional) Used for census

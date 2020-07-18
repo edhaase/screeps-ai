@@ -1,19 +1,21 @@
-/** os.core.pager.js - Memory paging */
+/** /os/core/pager.js - Memory paging */
 'use strict';
 
 /* global CLAMP, ENV, ENVC, MAKE_CONSTANT, Log, SEGMENT_PROC, SEGMENT_CRON, SEGMENT_STATS */
 /* global MAX_ACTIVE_PAGES, MAX_PAGE_COUNT, PAGE_CACHE, PAGE_REQUESTS, PAGE_WRITES, PAGE_HIT, PAGE_MISS */
+import { ENV, ENVC, MAKE_CONSTANT } from '/os/core/macros';
 
-const Co = require('os.core.co');
-const LazyMap = require('os.ds.lazymap');
-const LRU = require('os.ds.lru');
+import * as Co from '/os/core/co';
+import LazyMap from '/ds/LazyMap';
+import LRU from '/ds/Lru';
+import { Log, LOG_LEVEL } from '/os/core/Log';
 
-const DEFAULT_PAGE_WRITE_RESERVE = 0.20; // 20% (2 of 10 pages)
-const DEFAULT_MAX_ACTIVE_PAGES = 10;
-const DEFAULT_MAX_PAGE_COUNT = 99;
-const DEFAULT_MAX_PAGE_SIZE = 100 * 1024;
-const DEFAULT_PAGE_CACHE_LIMIT = 100;
-const DEFAULT_PAGES = [SEGMENT_PROC, SEGMENT_CRON, SEGMENT_STATS];
+export const DEFAULT_PAGE_WRITE_RESERVE = 0.20; // 20% (2 of 10 pages)
+export const DEFAULT_MAX_ACTIVE_PAGES = 10;
+export const DEFAULT_MAX_PAGE_COUNT = 99;
+export const DEFAULT_MAX_PAGE_SIZE = 100 * 1024;
+export const DEFAULT_PAGE_CACHE_LIMIT = 100;
+export const DEFAULT_PAGES = [SEGMENT_PROC, SEGMENT_CRON, SEGMENT_STATS];
 
 MAKE_CONSTANT(global, 'MAX_ACTIVE_PAGES', ENV('pager.max_active_pages', DEFAULT_MAX_ACTIVE_PAGES));
 MAKE_CONSTANT(global, 'MAX_PAGE_COUNT', ENVC('pager.max_page_count', DEFAULT_MAX_PAGE_COUNT, 0, DEFAULT_MAX_PAGE_COUNT));
@@ -37,7 +39,7 @@ RawMemory.setActiveSegments(ENV('pager.default_pages', DEFAULT_PAGES));
  * Low level access to memory segments as "pages". These are handled purely as strings.
  * Translation occurs elsewhere.
  */
-exports.Pager = class Pager {
+export default class Pager {
 	static resetAll() {
 		for (var i = 0; i <= MAX_PAGE_COUNT; i++) {
 			Pager.write(i, '');
@@ -73,6 +75,8 @@ exports.Pager = class Pager {
 			throw new TypeError(`Expected string, ${typeof value}`);
 		if (value.length > global.MAX_PAGE_SIZE)
 			throw new Error(`Maximum length exceeded ${value.length}/${global.MAX_PAGE_SIZE}`);
+		if (!immediate && value === PAGE_CACHE.get(pageId))
+			return Log.debug(`Skipping page write on page ${pageId} -- data unchanged`, 'Pager');
 		PAGE_CACHE.set(pageId, value);
 		if (immediate) {
 			if (_.size(RawMemory.segments) >= MAX_ACTIVE_PAGES && RawMemory.segments[pageId] === undefined)
@@ -80,8 +84,9 @@ exports.Pager = class Pager {
 			Log.debug(`Writing page ${pageId} on tick ${Game.time}`, 'Pager');
 			RawMemory.segments[pageId] = value;
 			global.PAGE_IO_WRITE++;
-		} else
+		} else {
 			PAGE_WRITES.set(pageId, value);
+		}
 	}
 
 	static invalidate(pageId) {

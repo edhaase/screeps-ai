@@ -1,7 +1,7 @@
-/** os.core.ito.js - Intertick proxy objects */
+/** /os/core/ito.js - Intertick proxy objects */
 'use strict';
 
-const { ActorHasCeased } = require('os.core.errors');
+import { ActorHasCeased } from '/os/core/errors';
 
 class ITOHandler {
 	constructor(id, collectionName = null) {
@@ -56,7 +56,7 @@ class ITOHandler {
 	}
 }
 
-module.exports = {
+export default {
 	make: function (id, collection = null) {
 		return new Proxy({}, new ITOHandler(id, collection));
 	},

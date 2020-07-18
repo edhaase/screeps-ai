@@ -1,12 +1,12 @@
-/** os.core.process.paged.js - Memory paged process simplified */
+/** /os/core/process.paged.js - Memory paged process simplified */
 'use strict';
 
-/* global ENV, ENVC, MAKE_CONSTANT, MAKE_CONSTANTS, PROCESS_NAMESPACE, Log */
+/* global ENV, ENVC, MAKE_CONSTANT, MAKE_CONSTANTS, Log */
 
-const Process = require('os.core.process');
-const { Pager } = require('os.core.pager');
+import Process from '/os/core/process';
+import Pager from '/os/core/pager';
 
-class PagedProcess extends Process {
+export default class PagedProcess extends Process {
 	constructor(opts) {
 		super(opts);
 		this.pager = Pager; // Or PagerTHP
@@ -60,5 +60,3 @@ class PagedProcess extends Process {
 		return `[PagedProcess ${this.pid} ${this.friendlyName}]`;
 	}
 }
-
-module.exports = PagedProcess;

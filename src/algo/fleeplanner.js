@@ -1,7 +1,9 @@
 /** */
 'use strict';
 
-/* global Log, Util */
+import { RLD } from '/lib/util';
+import { Log, LOG_LEVEL } from '/os/core/Log';
+
 const STRUCTURE_MIN_RANGE = { // Range 2 for nuke safety?	
 	[STRUCTURE_SPAWN]: 2,	// Minimum two to prevent blockage and nukes
 	[STRUCTURE_LINK]: 2,	// Minimum two to prevent blockage
@@ -15,7 +17,7 @@ const STRUCTURE_MIN_RANGE = { // Range 2 for nuke safety?
 };
 
 const DEFAULT_ORIGIN_RADIUS = 1;
-const DEFAULT_STUFF_TO_PLAN = Util.RLD([1, STRUCTURE_TERMINAL, CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][8], STRUCTURE_EXTENSION, 3, STRUCTURE_SPAWN, 1, STRUCTURE_OBSERVER, 1, STRUCTURE_STORAGE, 1, STRUCTURE_POWER_SPAWN, 1, STRUCTURE_NUKER, 6, STRUCTURE_TOWER]);
+const DEFAULT_STUFF_TO_PLAN = RLD([1, STRUCTURE_TERMINAL, CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][8], STRUCTURE_EXTENSION, 3, STRUCTURE_SPAWN, 1, STRUCTURE_OBSERVER, 1, STRUCTURE_STORAGE, 1, STRUCTURE_POWER_SPAWN, 1, STRUCTURE_NUKER, 6, STRUCTURE_TOWER]);
 
 /**
  * ES6 class for searching for build locations with PathFinder.search
@@ -29,7 +31,7 @@ const DEFAULT_STUFF_TO_PLAN = Util.RLD([1, STRUCTURE_TERMINAL, CONTROLLER_STRUCT
  * Note: The first structures in the array tend to be towards the center.
  * @todo coroutine iterative planner (each cycle rebuild )
  */
-class FleePlanner {
+export default class FleePlanner {
 	// Single-pass priority queue, two cost matricies, and a stored plan.
 	/**
 	 * Goals should be pre-built.
@@ -198,5 +200,3 @@ class FleePlanner {
 		return `[FleePlanner]`; // Include state?
 	}
 }
-
-module.exports = FleePlanner;

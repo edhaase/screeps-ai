@@ -3,12 +3,12 @@
  */
 'use strict';
 
-const { AbortError } = require('os.core.errors');
+import { AbortError } from '/os/core/errors';
 
 /**
  * Endless polling loop
  */
-exports.forever = function* (co, delay = 0, ...args) {
+export function* forever(co, delay = 0, ...args) {
 	while (true) {
 		yield* co.call(this, ...args);
 		for (var i = delay || 0; i >= 0; i--)
@@ -22,9 +22,9 @@ exports.forever = function* (co, delay = 0, ...args) {
  * @param {*} arr 
  * @param {*} co 
  * 
- * const result = yield* async.map(arr, co);
+ * const result = yield* co.map(arr, co);
  */
-exports.mapSeq = function* mapSeq(arr, co) {
+export function* mapSeq(arr, co) {
 	const output = [];
 	for (const d of arr) {
 		const dx = yield* co(d);
@@ -39,7 +39,7 @@ exports.mapSeq = function* mapSeq(arr, co) {
  * @param {*} arr 
  * @param {*} co 
  */
-exports.mapPar = function* mapPar(arr, co) {
+export function* mapPar(arr, co) {
 	const work = [];
 	for (var pos = 0; pos < arr.length; pos++) {
 		const gen = co(arr[pos]);
@@ -68,9 +68,9 @@ exports.mapPar = function* mapPar(arr, co) {
  * @param {*} arr 
  * @param {*} co 
  * 
- * const result = yield* async.filter([1,2,3], )
+ * const result = yield* co.filter([1,2,3], )
  */
-exports.filterSeq = function* filterSeq(arr, co) {
+export function* filterSeq(arr, co) {
 	const output = [];
 	for (const d of arr) {
 		// if (Game.cpu.getUsed() >)
@@ -85,7 +85,7 @@ exports.filterSeq = function* filterSeq(arr, co) {
  * @param {*} arr 
  * @param {*} co 
  */
-exports.filterPar = function* filterPar(arr, co) {
+export function* filterPar(arr, co) {
 	const results = this.mapPar(arr, co);
 	return results.filter(x => x); // return only truthy values
 };
@@ -95,7 +95,7 @@ exports.filterPar = function* filterPar(arr, co) {
  * @param {*} arr 
  * @param {*} co 
  */
-exports.each = function* each(arr, co, thisArg) {
+export function* each(arr, co, thisArg) {
 	for (const d of arr)
 		yield* co.call(thisArg, d);
 };
@@ -103,7 +103,7 @@ exports.each = function* each(arr, co, thisArg) {
 /**
  * Starts and runs multiple coroutines, returns when all are done.
  */
-exports.concurrent = function* concurrent(arr, limit = 5) {
+export function* concurrent(arr, limit = 5) {
 	const active = [];
 	const pending = arr.slice(0); // clone array
 
@@ -125,17 +125,17 @@ exports.concurrent = function* concurrent(arr, limit = 5) {
 	}
 };
 
-exports.wait = function* wait(fn) {
+export function* wait(fn) {
 	while (!fn())
 		yield;
 };
 
-exports.waitForTick = function* waitForTick(tick) {
+export function* waitForTick(tick) {
 	while (Game.time < tick)
 		yield;
 };
 
-exports.waitForCpu = function* waitForCpu() {
+export function* waitForCpu() {
 	while (Game.cpu.getUsed() > (global.kernel.throttle || Game.cpu.limit))
 		yield;
 };
@@ -145,7 +145,7 @@ exports.waitForCpu = function* waitForCpu() {
  * 
  * @param {*} arr 
  */
-exports.race = function* race(arr, abort = true) {
+export function* race(arr, abort = true) {
 	while (!(yield)) {
 		for (var x of arr) {
 			const { done, value } = x.next();
@@ -167,6 +167,6 @@ exports.race = function* race(arr, abort = true) {
  * 
  * @param {*} arr 
  */
-exports.all = function* all(arr) {
+export function* all(arr) {
 
 };

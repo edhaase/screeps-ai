@@ -1,9 +1,8 @@
 # Info file with credentials
 credentials.js
 .screeps.json
-
-# Build files
-dist/
+.screeps.yml
+build/
 
 # Logs
 logs
@@ -72,7 +71,7 @@ typings/
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 
-# next.js build output
+# next/js build output
 .next
 
 # nuxt.js build output

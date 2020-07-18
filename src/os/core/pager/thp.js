@@ -1,10 +1,10 @@
-/** os.core.pager.thp.js - Transparent huge pages */
+/** /os/core/pager.thp.js - Transparent huge pages */
 'use strict';
 
 /* global MAKE_CONSTANT, ENV */
-
-const Co = require('os.core.co');
-const { Pager } = require('os.core.pager');
+import { ENV, MAKE_CONSTANT } from '/os/core/macros';
+import * as Co from '/os/core/co';
+import Pager from '/os/core/pager';
 
 const DEFAULT_THP_PAGE_SPAN = 3;
 
@@ -14,7 +14,7 @@ MAKE_CONSTANT(global, 'THP_MIN_PAGE_ID', THP_PAGE_SPAN * 2); // Leave 6 pages fr
 MAKE_CONSTANT(global, 'THP_MAX_PAGE_SIZE', MAX_PAGE_SIZE * THP_PAGE_SPAN);
 // MAKE_CONSTANT(global, 'THP_MAX_PAGE_ID', THP_MAX_PAGE_COUNT - 1);
 
-exports.Pager = class THP {
+export default class THP {
 	static *read(pageIds) {
 		if (!Array.isArray(pageIds))
 			throw new TypeError(`Expected array, got ${typeof pageIds}`);

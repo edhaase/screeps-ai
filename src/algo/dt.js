@@ -1,5 +1,3 @@
-/** */
-'use strict';
 /**
  * Distance transform - An image procesing technique.
  * Rosenfeld and Pfaltz 1968 algorithm
@@ -9,9 +7,11 @@
  * Roughly 20-40 cpu without visuals
  *
  * Scores are largest at center of clearance.
- * example: Time.measure( () => Planner.distanceTransform('W5N2', (x,y,r) =>  Game.map.getTerrainAt(x, y,r) == 'wall' || new RoomPosition(x,y,r).hasObstacle() ))
+ * example: Time.measure( () => distanceTransform('W5N2', (x,y,r) =>  Game.map.getTerrainAt(x, y,r) == 'wall' || new RoomPosition(x,y,r).hasObstacle() ))
  */
-exports.distanceTransform = function distanceTransform(roomName, rejector = (x, y, roomName) => false) {
+'use strict';
+
+export default function distanceTransform(roomName, rejector = (x, y, roomName) => false) {
 	var vis = new RoomVisual(roomName);
 	var topDownPass = new PathFinder.CostMatrix();
 	var x, y;
@@ -38,8 +38,8 @@ exports.distanceTransform = function distanceTransform(roomName, rejector = (x, 
 				topDownPass.get(x - 1, y + 1) + 1, topDownPass.get(x + 1, y) + 1);
 			topDownPass.set(x, y, value);
 			// vis.circle(x, y, {radius:value/25});
-			if (value > 0)
-				vis.text(value, x, y);
+			// if (value > 0)
+			//	vis.text(value, x, y);
 		}
 	}
 

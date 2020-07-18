@@ -1,0 +1,23 @@
+servers:
+  local:
+    host: 127.0.0.1
+    port: 21025
+    secure: false
+    username: Enter username here
+    password: Enter password here
+  main:
+    host: screeps.com
+    secure: true
+    username: Enter username here
+    token: Enter token here
+  ptr:
+    host: screeps.com
+    secure: true
+    token: 
+    ptr: true
+  screepsplus:
+    host: screepspl.us
+    secure: true
+    port: 443
+    username:
+    password:

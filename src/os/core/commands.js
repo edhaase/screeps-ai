@@ -3,19 +3,23 @@
 
 /* global MAKE_CONSTANT */
 
-const Inspector = require('os.core.ins.inspector');
+import { MAKE_CONSTANT } from '/os/core/macros';
+
+import * as Inspector from '/os/core/ins/inspector';
 
 const COMMANDS = {};
-exports.register = function register(name, fn, desc = '-', aliases = [], category) {
+export function register(name, fn, desc = '-', aliases = [], category) {
+	if (!Array.isArray(aliases))
+		throw new TypeError(`Expected alias array on ${name}`);
 	MAKE_CONSTANT(global, name, fn);
 	const args = Inspector.getParamStr(fn);
-	COMMANDS[name] = [fn, desc, aliases, category, args];
+	COMMANDS[name] = [fn, desc, aliases || [], category, args];
 	for (const alias of aliases) {
 		MAKE_CONSTANT(global, alias, fn);
 	}
 };
 
-exports.showFull = function () {
+export function showFull() {
 	var body = '';
 	const sorted = _.sortByOrder(Object.entries(COMMANDS), x => x[0], ['asc']);
 	const groups = _.groupBy(sorted, x => x[1][3] || '*');
@@ -31,8 +35,7 @@ exports.showFull = function () {
 	return `<table style='width: 50vw'><thead>${head}<thead><tbody>${body}</tbody></table>`;
 };
 
-
-exports.showBrief = function () {
+export function showBrief() {
 	var body = '';
 	const sorted = _.sortByOrder(Object.entries(COMMANDS), x => x[0], ['asc']);
 	const groups = _.groupBy(sorted, x => x[1][3] || '*');
@@ -48,11 +51,11 @@ exports.showBrief = function () {
 	return `<table style='width: 30vw'><thead>${head}<thead><tbody>${body}</tbody></table>`;
 };
 
-exports.list = function (full = false) {
-	return (full) ? exports.showFull() : exports.showBrief();
+export function list(full = false) {
+	return (full) ? showFull() : showBrief();
 };
 
 /** Load one default command */
-exports.register('help', function (full = false) {
-	return exports.list(full);
+register('help', function (full = false) {
+	return list(full);
 }, 'Show available commands');

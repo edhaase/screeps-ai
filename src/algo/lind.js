@@ -7,7 +7,7 @@
  */
 'use strict';
 
-class LSystem {
+export default class LSystem {
 	constructor(axiom, rules) {
 		this.axiom = axiom;
 		this.rules = rules;

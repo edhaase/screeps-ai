@@ -3,7 +3,9 @@
  */
 'use strict';
 
-module.exports = {
+import { Log, LOG_LEVEL } from '/os/core/Log';
+
+export default {
 	/* eslint-disable consistent-return */
 	run: function () {
 		this.memory.home = undefined;
@@ -21,14 +23,14 @@ module.exports = {
 			&& this.carryTotal <= 0
 			&& !this.isBoosted()
 			&& this.getRecycleWorth() <= 0) {
-			Log.warn(`Creep ${this.name} at ${this.pos} not worth recycling, suiciding`, 'Creep');
+			Log.warn(`${this.name}/${this.pos} not worth recycling -- suiciding`, 'Creep');
 			return this.suicide();
 		}
 		var spawn;
 		if (!this.memory.spawn) {
 			spawn = this.pos.findClosestSpawn();
 			if (!spawn) {
-				Log.notify(`Creep ${this.name} unable to find spawn for recycle. Giving up`);
+				Log.notify(`${this.name}/${this.pos} unable to find spawn for recycle. Giving up`);
 				this.suicide();
 			}
 			this.memory.spawn = spawn.id;

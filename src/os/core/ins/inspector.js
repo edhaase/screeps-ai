@@ -1,4 +1,4 @@
-/** os.core.inspector.js - Prototype inspection */
+/** /os/core/inspector.js - Prototype inspection */
 'use strict';
 
 // @todo usage of code tags in display
@@ -6,7 +6,7 @@
 /**
  * Categorize and group object properties
  */
-exports.getPropertiesByGroups = function getPropertiesByGroups(proto) {
+export function getPropertiesByGroups(proto) {
 	const descriptors = Object.getOwnPropertyDescriptors(proto);
 	const entries = Object.entries(descriptors);
 	const groups = {
@@ -38,7 +38,7 @@ exports.getPropertiesByGroups = function getPropertiesByGroups(proto) {
 	return groups;
 };
 
-exports.findProperty = function (start, prop) {
+export function findProperty(start, prop) {
 	for (var proto = start; proto != null; proto = proto.__proto__) { // Not quite working
 		if (Object.getOwnPropertyDescriptor(proto, prop) !== undefined)
 			return proto.constructor;
@@ -49,8 +49,8 @@ exports.findProperty = function (start, prop) {
 /**
  * Dump a very rough view of an object or prototype
  */
-exports.inspect = function (proto) {
-	return JSON.stringify(exports.getPropertiesByGroups(proto), null, 2);
+export function inspect(proto) {
+	return JSON.stringify(getPropertiesByGroups(proto), null, 2);
 };
 
 /**
@@ -58,7 +58,7 @@ exports.inspect = function (proto) {
  */
 const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
 // const ARGUMENT_NAMES = /([^\s,]+)/g;
-exports.getParamStr = function getParamNames(func) {
+export function getParamStr(func) {
 	const fnStr = func.toString().replace(STRIP_COMMENTS, '');
 	const result = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')')); // .match(ARGUMENT_NAMES);
 	return (result || []);

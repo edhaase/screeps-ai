@@ -1,7 +1,7 @@
-/** os.core.timer.js - Like cron but transient */
+/** /os/core/timer.js - Like cron but transient */
 'use strict';
 
-const PriorityQueue = require('os.ds.pq');
+import PriorityQueue from '/ds/PriorityQueue';
 
 /* const timers = new PriorityQueue([], j => j.next);
 
@@ -12,7 +12,7 @@ function* TimerThread() {
 	}
 } */
 
-class Timer {
+export class Timer {
 	constructor(co, freq, start = Game.time, thisArg) {
 		this.freq = freq;
 		this.next = start;

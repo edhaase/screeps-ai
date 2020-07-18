@@ -1,7 +1,7 @@
-/** os.core.executor.threadpool */
+/** /os/core/executor.threadpool */
 'use strict';
 
-const { Future } = require('os.core.future');
+import Future from '/os/core/future';
 
 const DEFAULT_MAX_THREADS = 4;
 const DEFAULT_IDLE_LIMIT = 5; // Number of ticks without work before a thread exits
@@ -10,7 +10,7 @@ const DEFAULT_IDLE_LIMIT = 5; // Number of ticks without work before a thread ex
  * Takes items for processing and automatically spins up threads
  * to handle, allowing all threads to exit when work is complete.
  */
-class ThreadPoolExecutor {
+export default class ThreadPoolExecutor {
 	/**
 	 * 
 	 * @param {*} process - can take process or kernel
@@ -92,5 +92,3 @@ class ThreadPoolExecutor {
 }
 
 ThreadPoolExecutor.NEXT_ID = 0;
-
-exports.ThreadPoolExecutor = ThreadPoolExecutor;

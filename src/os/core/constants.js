@@ -1,6 +1,8 @@
 /** Constant.js - os constants */
 'use strict';
 
+import { ENV } from './macros';
+
 /* global MAKE_CONSTANT, ENV */
 /* eslint-disable no-magic-numbers */
 
@@ -14,13 +16,12 @@ global.THP_SEGMENT_INTEL = 5; // Intel gathering (Span 3 = Segment 15-17)
 
 global.BUCKET_MAX = ENV('BUCKET_MAX', 10000);
 
-MAKE_CONSTANT(global, 'RUNTIME_ID', Game.time);
-MAKE_CONSTANT(global, 'IS_PTR', !!(Game.shard && Game.shard.ptr));
-MAKE_CONSTANT(global, 'IS_SIM', !!Game.rooms['sim']);
-MAKE_CONSTANT(global, 'IS_MMO', !!(Game.shard && Game.shard.name && Game.shard.name.startsWith('shard')));
+export const RUNTIME_ID = Game.time;
+export const IS_PTR = !!(Game.shard && Game.shard.ptr);
+export const IS_SIM = !!Game.rooms['sim'];;
+export const IS_MMO  = !!(Game.shard && Game.shard.name && Game.shard.name.startsWith('shard'));
 
-MAKE_CONSTANT(global, 'INVADER_USERNAME', 'Invader');
-MAKE_CONSTANT(global, 'SOURCE_KEEPER_USERNAME', 'Source Keeper');
+export const INVADER_USERNAME = 'Invader';
+export const SOURCE_KEEPER_USERNAME = 'Source Keeper';
 
-MAKE_CONSTANT(global, 'PROCESS_NAMESPACE', 'os.prog.');
-MAKE_CONSTANT(global, 'SHARD_TOKEN', (Game.shard && Game.shard.name && Game.shard.name.slice(-1)) || '');
+export const SHARD_TOKEN = (Game.shard && Game.shard.name && Game.shard.name.slice(-1)) || '';

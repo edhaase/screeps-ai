@@ -1,12 +1,15 @@
 /** */
 'use strict';
 
-/* global Log, Util */
+/* global Log */
 
-const DEFAULT_STUFF_TO_PLAN = Util.RLD([1, STRUCTURE_TERMINAL, CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][8], STRUCTURE_EXTENSION, 3, STRUCTURE_SPAWN, 1, STRUCTURE_OBSERVER, 1, STRUCTURE_STORAGE, 1, STRUCTURE_POWER_SPAWN, 1, STRUCTURE_NUKER, 6, STRUCTURE_TOWER]);
-const dt = require('algo.dt').distanceTransform;
+import { RLD } from '/lib/util';
+import { Log, LOG_LEVEL } from '/os/core/Log';
 
-class PakPlanner {
+const DEFAULT_STUFF_TO_PLAN = RLD([1, STRUCTURE_TERMINAL, CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][8], STRUCTURE_EXTENSION, 3, STRUCTURE_SPAWN, 1, STRUCTURE_OBSERVER, 1, STRUCTURE_STORAGE, 1, STRUCTURE_POWER_SPAWN, 1, STRUCTURE_NUKER, 6, STRUCTURE_TOWER]);
+import dt from '/algo/dt';
+
+export default class PakPlanner {
 	constructor(goals, origin, opts = {}) {
 		this.origin = origin;								// Initial point to expand outwards from.
 		this.radius = opts.radius || 5;	// Minimum radius from initial point.
@@ -41,7 +44,7 @@ class PakPlanner {
 	}
 
 	transform() {
-		this.transform = dt(this.origin.roomName,  (x,y) => this.cm.get(x,y) === 255);
+		this.transform = dt(this.origin.roomName, (x, y) => this.cm.get(x, y) === 255);
 		return this;
 	}
 
@@ -51,7 +54,7 @@ class PakPlanner {
 	 * Search, Validate, Commit
 	 */
 	search(structureType, tempGoals) {
-	
+
 		return true;
 	}
 
@@ -65,7 +68,7 @@ class PakPlanner {
 			this.cm.set(pos.x, pos.y, 1);
 		else if (OBSTACLE_OBJECT_TYPES.includes(structureType))
 			this.cm.set(pos.x, pos.y, 255);
-		var entry = { pos, structureType, range: 1};
+		var entry = { pos, structureType, range: 1 };
 		this.goals.push(entry);
 		if (plan)
 			this.plan.push(entry);

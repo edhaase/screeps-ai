@@ -1,15 +1,17 @@
-/** os.core.thread.js */
+/** /os/core/thread.js */
 'use strict';
 
 /* global ENV, ENVC, MM_AVG, Log */
+import { MM_AVG, CLAMP } from '/os/core/math';
+import { TimeLimitExceeded } from '/os/core/errors';
+import Future from '/os/core/future';
+import { ENV, ENVC } from '/os/core/macros';
+import { Log, LOG_LEVEL } from '/os/core/Log';
 
-const { TimeLimitExceeded } = require('os.core.errors');
-const { Future } = require('os.core.future');
+export const THREAD_CONTINUE = { done: false, value: undefined };
+export const DEFAULT_WAIT_TIMEOUT = 100;
 
-const THREAD_CONTINUE = { done: false, value: undefined };
-const DEFAULT_WAIT_TIMEOUT = 100;
-
-class Thread {
+export default class Thread {
 	constructor(co, pid, desc) {
 		this.co = co;
 		this.future = new Future((res, rej) => {
@@ -23,6 +25,8 @@ class Thread {
 		this.maxCpu = -Infinity;
 		this.minTickCpu = Infinity;
 		this.maxTickCpu = -Infinity;
+		this.lastTickSysCpu = 0;
+		this.lastTickUsrCpu = 0;
 		this.state = Thread.STATE_RUNNING;
 		this.desc = desc;
 		this.born = Game.time;
@@ -42,13 +46,13 @@ class Thread {
 		}
 	}
 
-	tick(k) {
+	tick() {
 		const start = Game.cpu.getUsed();
 		try {
 			if (this.pending_error)
 				return this.co.throw(this.pending_error);
 			else
-				return this.co.next(this.pending_deliver || k);
+				return this.co.next(this.pending_deliver);
 		} finally {
 			const delta = Game.cpu.getUsed() - start;
 			this.lastRunUsrTick = Game.time;
@@ -59,8 +63,8 @@ class Thread {
 
 				// Iteration stats
 				this.lastRunCpu = delta;
-				this.minCpu = Math.max(0, Math.min(this.minCpu, delta)); // Already initialized on attach (But why were we getting negative numbers?)
-				this.maxCpu = Math.min(Game.cpu.tickLimit - 1, Math.max(this.maxCpu, delta));
+				this.minCpu = CLAMP(0, delta, this.minCpu); // Already initialized on attach (But why were we getting negative numbers?)
+				this.maxCpu = CLAMP(this.maxCpu, delta, Game.cpu.tickLimit - 1);
 				this.avgUsrCpu = MM_AVG(delta, this.avgUsrCpu);	// Tracks only samples of when a thread actually runs	
 			}
 
@@ -71,36 +75,41 @@ class Thread {
 		}
 	}
 
-	next(k) {
+	next() {
 		try {
-			if (this.lastRunUsrTick !== Game.time)
-				this.lastTickUsrCpu = 0;
-			if (this.wait_timeout !== undefined && Game.time > this.wait_timeout)
-				throw new TimeLimitExceeded(`IO Timeout`); // Don't allow it to be caught
-			if (this.timeout !== undefined && Game.time > this.timeout) // Even pending threads can time out
-				throw new TimeLimitExceeded(`Thread exceeded time limit`); // Don't allow it to be caught
+			// @todo TimeLimitExceeded should be injected so we can resolve it
+			if (this.wait_timeout !== undefined && Game.time > this.wait_timeout) {
+				this.pending_error = new TimeLimitExceeded(`IO Timeout`); // Don't allow it to be caught
+				this.state = Thread.STATE_RUNNING;
+			}
+			if (this.timeout !== undefined && Game.time > this.timeout) { // Even pending threads can time out
+				this.pending_error = new TimeLimitExceeded(`Thread exceeded time limit`); // Don't allow it to be caught
+				this.state = Thread.STATE_RUNNING;
+			}
 			if (this.state === Thread.STATE_PENDING)
 				return THREAD_CONTINUE; // We're waiting for a response.
 			if (this.sleep && Game.time < this.sleep)
 				return THREAD_CONTINUE;
 
-			const result = this.tick(k);
+			const result = this.tick();
 			const { done, value } = result;
 			if (done)
 				this.res(result.value);
+			else if (value == null || value === false || value === true)
+				return result;
 			else if (value instanceof Promise || value instanceof Thread || value instanceof Future) {
 				this.state = Thread.STATE_PENDING;
 				const WAIT_TIMEOUT = ENVC('threads.wait_timeout', DEFAULT_WAIT_TIMEOUT, 0);
-				if (value.timeout)
+				if (value.timeout != null)
 					this.wait_timeout = Game.time + value.timeout;
 				else if (WAIT_TIMEOUT > 0)
 					this.wait_timeout = Game.time + WAIT_TIMEOUT;
 
 				// Do this last, because we might fire before this iteration is done
 				if (value instanceof Future || value instanceof Thread) {
-					Log.debug(`Thread ${this.tid}/${this.desc} yielded future on tick ${Game.time}`, 'Kernel');
+					Log.debug(`Thread ${this.pid}/${this.tid} (${this.desc}) yielded future on tick ${Game.time}`, 'Kernel');
 					value.complete((v, err) => {
-						Log.debug(`Thread ${this.tid} future resolved on tick ${Game.time}`, 'Kernel');
+						Log.debug(`Thread ${this.pid}/${this.tid} (${this.desc}) future resolved on tick ${Game.time}`, 'Kernel');
 						this.state = Thread.STATE_RUNNING;
 						this.pending_deliver = v;
 						this.pending_error = err;
@@ -116,7 +125,12 @@ class Thread {
 						;
 				}
 				return THREAD_CONTINUE; // Lie, we're handling this matter internally.
-			}
+			} /* else {
+				const isArray = Array.isArray(value);
+				const con = value.constructor ? value.constructor.name : 'No constructor'; 
+				const specs = `isArray: ${isArray}, Type: ${typeof value}, Constructor: ${con}`;
+				Log.debug(`Thread ${this.pid}/${this.tid} (${this.desc}) yielded unknown value: ${value} ${specs}`, 'Kernel');
+			} */
 			return result;
 		} catch (e) {
 			this.rej(e);
