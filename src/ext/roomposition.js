@@ -191,6 +191,13 @@ RoomPosition.prototype.hasRampart = function (fn) {
 	return this.hasStructure(STRUCTURE_RAMPART, 0, fn);
 };
 
+RoomPosition.prototype.hasWithdrawAccess = function () {
+	const rampart = this.getStructure(STRUCTURE_RAMPART);
+	if (!rampart)
+		return true;
+	return rampart.my || rampart.isPublic;
+}
+
 RoomPosition.prototype.getConstructionSite = function (structureType = null, range = 0, validator = () => true) {
 	if (range === 0) {
 		return _.find(this.lookFor(LOOK_CONSTRUCTION_SITES), c => (structureType == null || c.structureType === structureType) && validator(c));
@@ -302,6 +309,7 @@ RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = ({ pos }
 		Log.error(ex(mapping));
 		Log.error(ex(opts));
 		Log.error(ex(result));
+		throw new Error(`Unable to find solution`);
 	}
 	if (result.incomplete && opts.maxCost)
 		return { goal: null, cost: result.cost, ops: result.ops, incomplete: true, path: [] };

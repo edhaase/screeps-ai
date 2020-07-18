@@ -67,7 +67,16 @@ global.kernel = kernel; // Publish to global scope for commands
 
 const coro = kernel.loop();
 module.exports.loop = function () {
-	coro.next();
+	try {
+		coro.next();
+	} catch (e) {
+		if (e.message === 'Generator is already running') {
+			Log.error(`Generator is already running, halting cpu`);
+			Game.cpu.halt();
+		} else {
+			throw e;
+		}
+	}
 };
 
 if (ENV('runtime.enable_memhack', true)) {

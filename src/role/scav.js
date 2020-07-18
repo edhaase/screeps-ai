@@ -81,9 +81,9 @@ const getDropoffSite = createUniqueTargetSelector(
 			return ['upgrader', 'builder', 'repair'].includes(sel.getRole()) && sel.memory.stuck > 2;
 		} else if (sel instanceof StructureLink)
 			return false;
-		else if (sel instanceof StructureNuker && (!room.storage || room.storage.stock < 1.0))
+		else if (sel instanceof StructureNuker && (!room.storage || room.storage.stock < 0.25))
 			return false;
-		if (sel.store != null)
+		if (sel instanceof StructureTerminal || sel instanceof StructureStorage) // if (sel.store != null)
 			return false;
 		return true;
 	}),

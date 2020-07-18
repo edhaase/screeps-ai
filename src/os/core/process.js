@@ -38,6 +38,13 @@ class Process {
 		return module.deserialize(opts);
 	}
 
+	get gid() {
+		if (this.ppid)
+			return this.parent.gid;
+		else
+			return this.pid;
+	}
+
 	get children() {
 		return this.kernel.childrenLookupTable.get(this);
 	}

@@ -30,9 +30,9 @@ module.exports = {
 			const goal = this.getTarget(
 				({ room }) => room.find(FIND_MY_STRUCTURES),
 				function (structure) {
-					if (structure.structureType === STRUCTURE_SPAWN && structure.energyPct < 0.95) return true;
+					if (structure.structureType === STRUCTURE_SPAWN && structure.energyPct < 1.0 /* 0.95 */) return true;
 					if (structure.structureType === STRUCTURE_EXTENSION && structure.energy < structure.energyCapacity) return true;
-					if (structure.structureType === STRUCTURE_TOWER && structure.energy < TOWER_ENERGY_COST) return true;
+					if (structure.structureType === STRUCTURE_TOWER && structure.energy < TOWER_ENERGY_COST && structure.room.energyPct >= 1.0) return true;
 					return false;
 				},
 				(candidates) => this.pos.findClosestByPath(candidates)

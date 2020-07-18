@@ -75,7 +75,12 @@ class LogisticsMatrix extends CostMatrix {
 		this.setFixedObstacles(room);
 		this.setDynamicObstacles(room);
 		this.setSKLairs(room);
-		this.setCreeps(room, TILE_UNWALKABLE, () => true, FIND_HOSTILE_CREEPS);
+		// Account for safe mode.
+		// this.setCreeps(room, TILE_UNWALKABLE, () => true, FIND_HOSTILE_CREEPS);
+		for (const c of room.hostiles) {
+			this.set(c.pos.x, c.pos.y, TILE_UNWALKABLE);
+			this.applyInRoomRadius((x, y) => this.set(x, y, 10), c.pos, CREEP_RANGED_ATTACK_RANGE);
+		}
 		this.setCreeps(room, TILE_UNWALKABLE, () => true, FIND_HOSTILE_POWER_CREEPS);
 		this.setCreeps(room, TILE_UNWALKABLE, (c) => c.memory.stuck > 3, FIND_MY_CREEPS);
 		this.setCreeps(room, TILE_UNWALKABLE, (c) => c.memory.stuck > 3, FIND_MY_POWER_CREEPS);
@@ -118,7 +123,7 @@ global.LOGISTICS_MATRIX = new DelegatingLazyMap(
 		}
 		return new PathFinder.CostMatrix;
 	},
-	new LRU({ ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE })
+	new LRU({ name: 'LogisticsMatrix', ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE })
 );
 
 global.FIXED_OBSTACLE_MATRIX = new DelegatingLazyMap(
@@ -130,10 +135,10 @@ global.FIXED_OBSTACLE_MATRIX = new DelegatingLazyMap(
 		}
 		return new PathFinder.CostMatrix;
 	},
-	new LRU({ ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE })
+	new LRU({ name: 'FixedObstacleMatrix', ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE })
 );
 
-global.CONSTRUCTION_MATRIX = new DelegatingLazyMap((roomName) => new ConstructionSiteMatrix(roomName), new LRU({ ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE }));
+global.CONSTRUCTION_MATRIX = new DelegatingLazyMap((roomName) => new ConstructionSiteMatrix(roomName), new LRU({ name: 'ConstructionMatrix', ttl: COST_MATRIX_EXPIRATION, max: COST_MATRIX_CACHE_SIZE }));
 
 module.exports = {
 	CostMatrix: CostMatrix,			// base class

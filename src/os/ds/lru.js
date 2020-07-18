@@ -23,8 +23,9 @@ class LRU {
 	 * @param {number} max - the max. number of entries in the cache
 	 * @param {Object|Iterable} data - the data to initialize the cache with
 	 */
-	constructor({ ttl, max, data = {} }) {
+	constructor({ name, ttl, max, data = {} }) {
 		this.data = new Map();
+		this.name = name;
 		if (max) { this.max = max; }
 		if (ttl) { this.ttl = ttl; }
 		// this.head = undefined
@@ -66,7 +67,7 @@ class LRU {
 		for (curr = this.head; curr; curr = curr.next) {
 			++count;
 			if ((max && max < count) || (now && now > curr.expires)) {
-				Log.debug(`Evicting page ${curr.key}`, 'LRU');
+				Log.debug(`Evicting page ${curr.key} (${this.name})`, 'LRU');
 				this.data.delete(curr.key);
 				this._remove(curr);
 			}

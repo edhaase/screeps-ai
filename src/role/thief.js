@@ -9,6 +9,9 @@ const MIN_WAIT = 1;
 const MAX_WAIT = 7;
 const MAX_OPS = 64000;
 
+const LOOT_ROOMS = {};
+
+
 function canLootRoom(room) {
 	const { controller } = room;
 	if (!controller || controller.my)

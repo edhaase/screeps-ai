@@ -20,18 +20,20 @@ class IntelProc extends Process {
 		}
 
 		const [intelProcess] = global.kernel.getProcessByName('intel');
+		if (!intelProcess)
+			return;
 		yield* this.fetchAllianceData(intelProcess);
-		this.updateKnownPlayers();
+		this.updateKnownPlayers(intelProcess);
 	}
 
-	updateKnownPlayers() {
-		if (!this.intel || !this.intel.alliances)
+	updateKnownPlayers(intelProcess) {
+		if (!intelProcess || !intelProcess.intel || !intelProcess.intel.alliances)
 			return;
-		if (this.intel.players == null)
-			this.intel.players = {};
-		for (const [allianceName, alliance] of Object.entries(this.intel.alliances)) {
+		if (intelProcess.intel.players == null)
+			intelProcess.intel.players = {};
+		for (const [allianceName, alliance] of Object.entries(intelProcess.intel.alliances)) {
 			for (const name of alliance)
-				this.intel.players[name] = allianceName;
+				intelProcess.intel.players[name] = allianceName;
 		}
 	}
 

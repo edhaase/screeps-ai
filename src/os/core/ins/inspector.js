@@ -27,12 +27,12 @@ exports.getPropertiesByGroups = function getPropertiesByGroups(proto) {
 			groups['setters'].push(key);
 		if (!hasValue)
 			continue;
-		const { configurable, value, enumberable, writable } = descriptor;
+		const { configurable, value, enumerable, writable } = descriptor;
 		if (value instanceof Function)
 			groups['functions'].push(key);
 		else if (configurable === false || writable === false)
 			groups['constants'].push(key);
-		if (enumberable === false)
+		if (enumerable === false)
 			groups['hidden'].push(key);
 	}
 	return groups;

@@ -23,7 +23,7 @@ module.exports = {
 	},
 	/* eslint-disable consistent-return */
 	run: function () {
-		const { roomName } = this.memory;	
+		const { roomName } = this.memory;
 		if (roomName && this.pos.roomName !== roomName)
 			return this.moveToRoom(roomName);
 		const { room } = this;
@@ -32,7 +32,7 @@ module.exports = {
 		// @todo gather intel on rooms we pass through along the way
 		// @todo move intel to Game.rooms?
 		// const exits = Game.map.describeExits(this.pos.roomName);
-		const exits = _.omit(Game.map.describeExits(this.pos.roomName), (v, k) => !Game.map.isRoomAvailable(v));
+		const exits = _.omit(Game.map.describeExits(this.pos.roomName), (v, k) => !IS_SAME_ROOM_TYPE(this.pos.roomName, v));
 		this.memory.roomName = _.sample(exits);
 		Log.debug(`${this.name} picked room ${roomName}`, 'Creep');
 		this.say('Arrived!');

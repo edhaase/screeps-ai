@@ -497,6 +497,11 @@ RoomObject.prototype.runWait = function (opts) {
 	}
 };
 
+RoomObject.prototype.runDefer = function (opts) {
+	this.popState(false);
+	this.defer(opts.ticks || opts);
+};
+
 /**
  * Rampart benefits
  */

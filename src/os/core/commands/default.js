@@ -151,14 +151,15 @@ function progress() {
 	if (!stats)
 		return "Stats not available at this time";
 	const ticksTilGCL = (Game.gcl.progressTotal - Game.gcl.progress) / statsProc.stats.gclAverageTick;
-	console.log(`Time till GCL ${(Game.gcl.level + 1)}: ${Time.estimate(ticksTilGCL)} ${Log.progress(Game.gcl.progress, Game.gcl.progressTotal)}`);
+	var str = `Time till GCL ${(Game.gcl.level + 1)}: ${Time.estimate(ticksTilGCL)} ${Log.progress(Game.gcl.progress, Game.gcl.progressTotal)} \n`;
 	_(Game.rooms)
 		.map('controller')
 		.filter('my')
 		.filter(c => c.level < 8)
 		// .each(c => console.log("Room: " + c.room.name + ", RCL: " + (c.level+1) + ", " + c.estimate()))
-		.each(c => console.log(`Room: ${ROOM_LINK(c.room.name)}, RCL: ${(c.level + 1)}, ${c.estimate()} ${Log.progress(c.room.controller.progress, c.room.controller.progressTotal)}, ${_.round(c.memory.rclAvgTick, 2)} e/t`))
+		.each(c => str += `Room: ${ROOM_LINK(c.room.name)}, RCL: ${(c.level + 1)}, ${c.estimate()} ${Log.progress(c.room.controller.progress, c.room.controller.progressTotal)}, ${_.round(c.memory.rclAvgTick, 2)} e/t \n`)
 		.commit();
+	return str;
 }
 
 function stats() {
@@ -189,7 +190,8 @@ function terminals() {
 	const rooms = _.filter(Game.rooms, r => (_.get(r, 'controller.my', false) && r.terminal != null));
 	const te = _.map(rooms, 'terminal');
 	// let terminals = _.map(rooms, r => Game.rooms[r].terminal);
-	const headers = ['res'].concat(_.map(rooms, 'name'));
+	// const headers = ['res'].concat(_.map(rooms, r => ROOM_LINK(r.name)));
+	const headers = ['res'].concat(_.map(rooms, r => r.name));
 	let rows = _.map(RESOURCES_ALL, function (res) {
 		const stored = _.map(te, t => _.get(t, ['store', res], 0));
 		return [`<font color=${RES_COLORS[res]}>${res}</font>`].concat(stored);
@@ -204,7 +206,6 @@ function terminals() {
 }
 
 function storage() {
-	var output = '<table>';
 	// border under headers, alternate color
 	// Game.getObjectById('579faa680700be0674d30ef3').progressTotal - Game.getObjectById('579faa680700be0674d30ef3').progress
 	const rooms = _.filter(Game.rooms, r => (_.get(r, 'controller.my', false) && r.storage != null));
@@ -218,8 +219,24 @@ function storage() {
 	rows = _.filter(rows, r => _.any(r, v => v > 0));
 	const totals = _.map(sts, 'total');
 	rows.unshift(['total'].concat(totals));
-	output += '</table>';
 	console.log(Log.table(headers, rows));
+}
+
+function nukers() {
+	const nks = _.filter(Game.structures, s => s.structureType === STRUCTURE_NUKER);
+	const head = `<th>Room</th><th>Armed</th><th>Ready</th><th>Cooldown</th><th>Energy</th><th>Ghodium</th>`;	
+	const rows = _.map(nks, n => `<tr><td>${n.pos.roomName}</td><td>${n.armed}</td><td><font color="${n.ready?'#00FF00':'#FF0000'}">${n.ready}</font></td><td>${n.cooldown||'-'}</td><td>${~~(100*n.energy/n.energyCapacity)}%</td><td>${n.ghodium} / ${n.ghodiumCapacity}</td></tr>`).join('');
+	const tbl = `<table style='width: 20vw'><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table`;
+	return tbl.replace(/([WE])(\d+)([NS])(\d+)/gi, r => ROOM_LINK(r));
+}
+
+function launchNuke(roomPos)  {
+	if (!roomPos)
+		return `Invalid target`;
+	const nuker = _.find(Game.structures, s => s.structureType === STRUCTURE_NUKER && s.ready && Game.map.getRoomLinearDistance(s.pos.roomName, roomPos.roomName)  && s.isActive());
+	if (!nuker)
+		return `No available nuker`;
+	return nuker.launchNuke(roomPos);
 }
 
 function clearWatches() {
@@ -258,6 +275,8 @@ Cmd.register('spark', spark, 'Create thread for coroutine');
 Cmd.register('startProcess', start, 'Launch a process', ['start']);
 Cmd.register('stop', stop, 'Attempt to gracefully stop a process');
 
+Cmd.register('launchNuke', launchNuke, 'Launch a nuke at a target room');
+
 Cmd.register('events', events, 'Show recent event log for all rooms', [], 'Reporting');
 Cmd.register('pager', pagerReport, 'Show paging report', [], 'Reporting');
 Cmd.register('proc', proc, 'Show process table', ['ps'], 'Reporting');
@@ -265,6 +284,7 @@ Cmd.register('progress', progress, 'Show room and GCL progress', [], 'Reporting'
 Cmd.register('stats', stats, 'Show empire stats for this shard', [], 'Reporting');
 Cmd.register('storage', storage, 'Show storage report', [], 'Reporting');
 Cmd.register('terminals', terminals, 'Show terminal report', [], 'Reporting');
+Cmd.register('nukers', nukers, 'Show armament report', [], 'Reporting');
 Cmd.register('thbyps', thr, 'List threads grouped by process', [], 'Reporting');
 Cmd.register('threads', threadReport, 'Show threads', [], 'Reporting');
 

@@ -69,7 +69,7 @@ module.exports = {
 			structs = _.map(structs, lid => Game.getObjectById(lid));
 			structs = _.compact(structs);
 			if (structs && !_.isEmpty(structs)) {
-				const struct = _.find(structs, l => l.energy < l.energyCapacity);
+				const struct = _.find(structs, l => l.energy < l.energyCapacity && l.my);
 				this.transfer(struct, RESOURCE_ENERGY);
 			}
 		}
@@ -96,7 +96,7 @@ module.exports = {
 						structs = _(this
 							.lookForNear(LOOK_STRUCTURES, true))
 							.map(LOOK_STRUCTURES)
-							.filter(s => s.energy != null)
+							.filter(s => s.energy != null && s.my)
 							.value();
 						if (structs && !_.isEmpty(structs)) {
 							this.memory.structs = _.map(structs, 'id');

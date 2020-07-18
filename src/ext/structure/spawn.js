@@ -120,7 +120,7 @@ StructureSpawn.prototype.processJobs = function () {
 	if (job.memory && job.memory.role)
 		this.initCreep(assignedName, job.memory.role, job);
 	const creep = Game.creeps[assignedName];
-	if (job.memory && job.memory.home && job.memory.home !== this.pos.roomName && Game.map.isRoomAvailable(job.memory.home)) {
+	if (job.memory && job.memory.home && job.memory.home !== this.pos.roomName) { // The rest of this check doesn't make sense && Game.map.isRoomAvailable(job.memory.home)) {
 		if (job.boosts)
 			job.boosts.forEach(b => creep.pushState('BoostSelf', { boost: b }));
 		creep.pushState('MoveToRoom', job.memory.home);
@@ -197,8 +197,10 @@ StructureSpawn.prototype.isIdle = function () {
 StructureSpawn.prototype.submit = function (job) {
 	if (!job.memory)
 		throw new Error("Expected job memory");
-	if (job.body == null && job.memory && job.memory.role)
-		job.body = require(`role.${job.memory.role}`).minBody;
+	if (job.body == null && job.memory && job.memory.role) {
+		const role = require(`role.${job.memory.role}`);
+		job.body = (role.body && role.body(this)) || role.minBody;
+	}
 	if (!_.isArray(job.body) || job.body.length === 0)
 		throw new Error(`${this.pos.roomName} Enqueue failed, bad body: ${job.body}`);
 	if (job.body.length > MAX_CREEP_SIZE)

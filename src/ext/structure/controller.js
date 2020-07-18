@@ -27,6 +27,7 @@
 /* global CREEP_UPGRADE_RANGE */
 
 const { LogicError } = require('os.core.errors');
+const { runCensus } = require('Util');
 
 /**
  * This is the rate we need to maintain to reach RCL 3 before safe mode drops.
@@ -255,13 +256,14 @@ StructureController.prototype.runCensus = function () {
 	var prio = 50;
 
 	/** This is really all we need.. */
-	if (Game.census == null) {
-		const creepsFiltered = _.filter(Game.creeps, c => c.ticksToLive == null || c.ticksToLive > UNIT_BUILD_TIME(c.body));
+	/* if (Game.census == null) {
+		const creepsFiltered = _.reject(Game.creeps, c => c.ticksToLive != null && c.ticksToLive <= UNIT_BUILD_TIME(c.body) + (DEFAULT_SPAWN_JOB_EXPIRE - 1));
 		Game.census = _.groupBy(creepsFiltered, c => `${c.memory.home || c.memory.origin || c.pos.roomName}_${c.memory.role}`);
 		Game.creepsByRoom = _.groupBy(creepsFiltered, c => `${c.memory.home || c.memory.origin || c.pos.roomName}`);
 		// Game.censusFlags = _.groupBy(Game.flags, f => `${f.color}_${f.secondaryColor}`);
 		Log.debug(`Generating census report`, 'Controller');
-	}
+	} */
+	runCensus(); // Get current census
 
 	// Creeps
 	const { roomName } = this.pos;
@@ -306,14 +308,15 @@ StructureController.prototype.runCensus = function () {
 	const avail = income - upkeep;
 	const minimumAvailable = 0.25;
 	const modifier = (!storage || !storage.isActive()) ? 1.0 : Math.max(minimumAvailable, storage.stock);
-	const adjusted = avail * modifier;
+	const adjusted = avail * modifier; // Works, but is this the correct result?
+	// const adjusted = income * modifier;
 
 	// Distribution		
-	const upperRepairLimit = 0.95;
-	const allotedRepair = _.any(this.room.structures, s => s.hits / s.hitsMax < upperRepairLimit) ? Math.floor(adjusted * 0.25) : 0;
+	const upperRepairLimit = 0.97;
+	const allotedRepair = _.any(this.room.structures, s => s.hits / s.hitsMax < upperRepairLimit && CONSTRUCTION_COST[s.structureType]) ? CLAMP(1, Math.floor(adjusted * 0.25)) : 0;
 	const allotedBuild = (sites && sites.length) ? Math.floor(adjusted * 0.70) : 0;
 	const maxAllotedUpgrade = (this.level === MAX_ROOM_LEVEL) ? CONTROLLER_MAX_UPGRADE_PER_TICK : Infinity;
-	const allotedUpgrade = Math.floor(Math.min(adjusted - allotedRepair - allotedBuild, maxAllotedUpgrade));
+	const allotedUpgrade = CLAMP(0, Math.floor(adjusted - allotedRepair - allotedBuild), maxAllotedUpgrade); // Math.floor(Math.min(adjusted - allotedRepair - allotedBuild, maxAllotedUpgrade));
 
 	const remainder = adjusted - allotedRepair - allotedBuild - allotedUpgrade;
 
@@ -383,7 +386,8 @@ StructureController.prototype.runCensus = function () {
 				this.cache.steps = s1pos.getStepsTo({ pos: s2pos, range: 1 }) * 2; // expecting two sources
 				Log.debug(`${this.pos.roomName} steps: ${this.cache.steps}`, 'Controller');
 			}
-			const result = _.attempt(() => require('Unit').requestDualMiner(spawn, this.pos.roomName, totalCapacity, this.cache.steps));
+			const minerpri = (adjusted <= 0) ? PRIORITY_MAX : PRIORITY_MED;
+			const result = _.attempt(() => require('Unit').requestDualMiner(spawn, this.pos.roomName, totalCapacity, this.cache.steps, minerpri));
 			if (result !== false && !(result instanceof Error)) {
 				// Log.warn('Requesting dual miner at ' + roomName + ' from ' + spawn.pos.roomName);
 				dual = true;
@@ -406,10 +410,11 @@ StructureController.prototype.runCensus = function () {
 			Log.debug(`${source} has ${sum} work parts, desired ${source.harvestParts}, spots ${spots}, rem: ${rem}`, 'Controller');
 			if (sum >= source.harvestParts || rem <= 0)
 				return;
+			const minerpri = (adjusted <= 0) ? PRIORITY_MAX : (sum / source.harvestParts);
 			if (this.room.energyCapacityAvailable < 600)
-				require('Unit').requestMiner(assistingSpawn || spawn, source.pos, (sum / source.harvestParts));
+				require('Unit').requestMiner(assistingSpawn || spawn, source.pos, minerpri);
 			else
-				require('Unit').requestMiner(spawn || assistingSpawn, source.pos, (sum / source.harvestParts));
+				require('Unit').requestMiner(spawn || assistingSpawn, source.pos, minerpri);
 		});
 	}
 
@@ -510,11 +515,11 @@ StructureController.prototype.runCensus = function () {
 		// let workDesired = Math.min(Math.floor(allotedUpgrade), CONTROLLER_MAX_UPGRADE_PER_TICK);
 		if (this.level === MAX_ROOM_LEVEL) {
 			const GCL_GOAL = 30;
-			if (pctWork < 0.25 && (this.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || storedEnergy > 700000 || Game.gcl.level < GCL_GOAL))
+			if (pctWork < 0.25) // && (this.ticksToDowngrade < CONTROLLER_EMERGENCY_THRESHOLD || storedEnergy > 700000 || Game.gcl.level < GCL_GOAL))
 				require('Unit').requestUpgrader(spawn, roomName, pctWork, allotedUpgrade);
 		} else {
 			Log.debug(`${this.pos.roomName} Upgraders: ${workAssigned} assigned, ${allotedUpgrade} desired, ${workDiff} diff (${pctWork})`, 'Controller');
-			if (pctWork < 0.25 && upgraders.length < MAX_UPGRADER_COUNT)
+			if (pctWork < 0.5 && upgraders.length < MAX_UPGRADER_COUNT)
 				require('Unit').requestUpgrader(spawn, roomName, pctWork, (allotedUpgrade));
 		}
 	} else if (this.upgradeBlocked) {
@@ -527,16 +532,24 @@ StructureController.prototype.runCensus = function () {
 	// if(_.any(this.room.structures, s => s.hits < s.hitsMax)) {
 	// const desiredRepair = (this.level >= 4 && (storedEnergy > 200000 || terminalEnergy > 60000)) ? 1 : 0;
 	// const desiredRepai
-	if (!repair.length && allotedRepair > 0) {
+	const currentRepair = _.sum(repair, c => c.getBodyParts(WORK));
+	const MAX_REPAIR_CREEPS_PER_ROOM = 2;
+	if (repair.length && allotedRepair <= 0) {
+		_.invoke(repair, 'setRole', 'recycle');
+	} else if (repair.length < MAX_REPAIR_CREEPS_PER_ROOM && currentRepair < allotedRepair) {
+		require('Unit').requestRepair(spawn, roomName, Math.ceil(allotedRepair / MAX_REPAIR_CREEPS_PER_ROOM));
+	}
+
+	/* if (!repair.length && allotedRepair > 0) {
 		require('Unit').requestRepair(spawn, roomName, allotedRepair);
 	} else if (repair.length && allotedRepair <= 0) {
 		_.invoke(repair, 'setRole', 'recycle');
-	}
+	} */
 
 	if (!scientists.length && this.room.terminal && this.room.terminal.isActive())
 		spawn.submit({
 			body: [MOVE, MOVE, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, MOVE],
-			memory: { role: 'scientist', room: this.pos.roomName, msg: '' },
+			memory: { role: 'scientist', home: this.pos.roomName, msg: '' },
 			priority: PRIORITY_MED
 		});
 };
@@ -578,7 +591,6 @@ StructureController.prototype.evacuate = function (condition) {
  */
 StructureController.prototype.updateNeighbors = function () {
 	var exits = Game.map.describeExits(this.pos.roomName);
-	//var avail = _.mapValues(exits, e => Game.map.isRoomAvailable(e));
 	var mine = _.mapValues(exits, e => (Game.rooms[e] && Game.rooms[e].my) || false);
 	// Require vis
 	if (_.all(mine)) {

@@ -6,6 +6,17 @@
 const { AbortError } = require('os.core.errors');
 
 /**
+ * Endless polling loop
+ */
+exports.forever = function* (co, delay = 0, ...args) {
+	while (true) {
+		yield* co.call(this, ...args);
+		for (var i = delay || 0; i >= 0; i--)
+			yield;
+	}
+};
+
+/**
  * Sequential map
  * 
  * @param {*} arr 

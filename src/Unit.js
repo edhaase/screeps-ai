@@ -129,17 +129,17 @@ module.exports = {
 		} else {
 			const [w, c, m] = [0.70 * avail, 0.10 * avail, 0.20 * avail];
 			const [lw, lc, lm] = [0.70 * MAX_CREEP_SIZE, 0.10 * MAX_CREEP_SIZE, 0.20 * MAX_CREEP_SIZE];
-	
+
 			// Optional, distribute remainder of energy to WORK part,
 			// At rcl 2 plus extensions that's 550 energy or 4 WORK, 1 CARRY, 2 MOVE
 			// Without remainder redistribute we'd have 3-1-2
-			Log.debug(`Upgrader energy available: ${avail} = ${w} + ${c} + ${m}`,  'Unit');
+			Log.debug(`Upgrader energy available: ${avail} = ${w} + ${c} + ${m}`, 'Unit');
 			const pc = CLAMP(1, Math.floor(c / BODYPART_COST[CARRY]), lc);
 			const pm = CLAMP(1, Math.floor(m / BODYPART_COST[MOVE]), lm);
 			const rc = c - pc * BODYPART_COST[CARRY];
 			const rm = m - pm * BODYPART_COST[MOVE];
 			const rem = rc + rm;
-			const pw = CLAMP(1, Math.floor( (w+rem) / BODYPART_COST[WORK]), Math.min(lw, workDiff));
+			const pw = CLAMP(1, Math.floor((w + rem) / BODYPART_COST[WORK]), Math.min(lw, workDiff));
 			Log.debug(`Upgrader energy remaining: ${rc} ${rm} = ${rem}`, 'Unit');
 			Log.debug(`Upgrader parts available: ${pw} ${pc} ${pm}`, 'Unit');
 			body = Util.RLD([pw, WORK, pc, CARRY, pm, MOVE]);
@@ -192,7 +192,7 @@ module.exports = {
 		return spawn.submit({ body, memory: { role: 'bulldozer', site: roomName }, priority: PRIORITY_LOW });
 	},
 
-	requestDualMiner: function (spawn, home, totalCapacity, steps) {
+	requestDualMiner: function (spawn, home, totalCapacity, steps, priority = PRIORITY_MED) {
 		const body = require('role.dualminer').body({ totalCapacity, steps });
 		const cost = UNIT_COST(body);
 		if (spawn.room.energyCapacityAvailable < cost) {
@@ -200,7 +200,7 @@ module.exports = {
 			return false;
 		}
 		// var priority = (spawn.pos.roomName === home) ? PRIORITY_MED : 10;
-		return spawn.submit({ body, memory: { role: 'dualminer', home }, priority: PRIORITY_MED });
+		return spawn.submit({ body, memory: { role: 'dualminer', home }, priority });
 	},
 
 	/**
@@ -372,30 +372,59 @@ module.exports = {
 		if (!flag || !(Game.flags[flag] instanceof Flag))
 			throw new TypeError("Expected flag");
 		if (body == null || !body.length) {
-			body = [HEAL, MOVE];
-			const cost = UNIT_COST(body);
-			const avail = Math.floor((spawn.room.energyCapacityAvailable - cost) * 0.98);
 			const r = Math.random();
-			if (spawn.room.energyCapacityAvailable > 1260 && r < 0.10) {
-				body = Arr.repeat([HEAL, RANGED_ATTACK, ATTACK, MOVE, MOVE, MOVE], avail);
-			} else if (r < 0.80) {
-				body = body.concat(Arr.repeat([RANGED_ATTACK, MOVE], avail, MAX_CREEP_SIZE - body.length)); // These don't work
+			if (r < 0.50) {
+				body = module.exports.requestG2Melee(spawn);
 			} else {
-				body = body.concat(Arr.repeat([ATTACK, MOVE], avail, MAX_CREEP_SIZE - body.length));
+				body = [HEAL, MOVE];
+				const cost = UNIT_COST(body);
+				const avail = Math.floor((spawn.room.energyCapacityAvailable - cost) * 0.98);
+
+				if (spawn.room.energyCapacityAvailable > 1260 && r < 0.10) {
+					body = Arr.repeat([HEAL, RANGED_ATTACK, ATTACK, MOVE, MOVE, MOVE], avail);
+				} else if (r < 0.80) {
+					body = body.concat(Arr.repeat([RANGED_ATTACK, MOVE], avail, MAX_CREEP_SIZE - body.length)); // These don't work
+				} else {
+					body = body.concat(Arr.repeat([ATTACK, MOVE], avail, MAX_CREEP_SIZE - body.length));
+				}
 			}
-			// body = body.concat(Arr.repeat([RANGED_ATTACK, MOVE], avail));
 		}
 		if (body.length <= 2)
 			body = [RANGED_ATTACK, MOVE];
 		return spawn.submit({ body, memory: { role: 'guard', site: flag, origin: spawn.pos.roomName }, priority: PRIORITY_HIGH, room });
 	},
 
-	requestG2: function(spawn, en, flag, room) {
+	requestG2Melee(spawn, en) {
 		const energyCapacityAvailable = en || spawn.room.energyCapacityAvailable;
 		Log.debug(`Total: ${energyCapacityAvailable}`);
 		const avail = Math.floor(energyCapacityAvailable * 0.98);
-		const [c,h,m] = [0.40 * avail, 0.40 * avail, 0.20 * avail];
-		const [lc,lh,lm] = [0.40 * MAX_CREEP_SIZE, 0.10 * MAX_CREEP_SIZE, 0.5 * MAX_CREEP_SIZE];
+		const [a, m, h] = [0.30 * avail, 0.50 * avail, 0.20 * avail];
+		const [la, lm, lh] = [0.40 * MAX_CREEP_SIZE, 0.50 * MAX_CREEP_SIZE, 0.10 * MAX_CREEP_SIZE];
+		Log.debug(`${a} ${h} ${m}`);
+		Log.debug(`${la} ${lh} ${lm}`);
+		const pa = CLAMP(1, Math.floor(a / BODYPART_COST[ATTACK]), la);
+		const pm = CLAMP(1, Math.floor(m / BODYPART_COST[MOVE]), lm);
+		const ph = CLAMP(1, Math.floor(h / BODYPART_COST[HEAL]), lh);
+		Log.debug(`${pa} ${ph} ${pm}`);
+		const ra = a - pa * BODYPART_COST[ATTACK];
+		const rm = m - pm * BODYPART_COST[MOVE];
+		const rh = h - ph * BODYPART_COST[HEAL];
+		const rem = ra + rm + rh;
+		const pcw = CLAMP(1, Math.floor((m + rem) / BODYPART_COST[MOVE]), lm);
+		Log.debug(`ra ${ra} rm ${rm} rh ${rh} rem ${rem} pcw ${pcw}`);
+		Log.debug(`[${pa},ATTACK,${pcw},MOVE,${ph},HEAL]`);
+		const body = Util.RLD([pa, ATTACK, pcw, MOVE, ph, HEAL]);
+		const cost = UNIT_COST(body);
+		Log.warn(`Body cost: ${cost}`);
+		return body;
+	},
+
+	requestG2: function (spawn, en, flag, room) {
+		const energyCapacityAvailable = en || spawn.room.energyCapacityAvailable;
+		Log.debug(`Total: ${energyCapacityAvailable}`);
+		const avail = Math.floor(energyCapacityAvailable * 0.98);
+		const [c, h, m] = [0.40 * avail, 0.40 * avail, 0.20 * avail];
+		const [lc, lh, lm] = [0.40 * MAX_CREEP_SIZE, 0.10 * MAX_CREEP_SIZE, 0.5 * MAX_CREEP_SIZE];
 		Log.debug(`${c} ${h} ${m}`);
 		Log.debug(`${lc} ${lh} ${lm}`);
 		const pc = CLAMP(1, Math.floor(c / BODYPART_COST[RANGED_ATTACK]), lc);
@@ -403,12 +432,12 @@ module.exports = {
 		const pm = CLAMP(1, Math.floor(m / BODYPART_COST[MOVE]), lm);
 		Log.debug(`${pc} ${ph} ${pm}`);
 		const rc = c - pc * BODYPART_COST[RANGED_ATTACK];
-		const rm = m - pm * BODYPART_COST[MOVE];	
+		const rm = m - pm * BODYPART_COST[MOVE];
 		const rh = h - ph * BODYPART_COST[HEAL];
 		const rem = rc + rm + rh;
-		const pcw = CLAMP(1, Math.floor( (c+rem) / BODYPART_COST[RANGED_ATTACK]), lc);
+		const pcw = CLAMP(1, Math.floor((c + rem) / BODYPART_COST[RANGED_ATTACK]), lc);
 		Log.debug(`rc ${rc} rm ${rm} rh ${rh} rem ${rem} pcw ${pcw}`);
-		const body = Util.RLD([pcw,RANGED_ATTACK,pm,MOVE,ph,HEAL]);
+		const body = Util.RLD([pcw, RANGED_ATTACK, pm, MOVE, ph, HEAL]);
 		const cost = UNIT_COST(body);
 		Log.warn(`Body cost: ${cost}`);
 	},

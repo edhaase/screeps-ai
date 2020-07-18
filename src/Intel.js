@@ -22,12 +22,14 @@ class Intel {
 		if (Room.getType(room.name) !== 'Room')
 			return;
 		const { controller = {} } = room;
-		const last = (Memory.intel[room.name] && Memory.intel[room.name].tick) || NaN;
+		const prev = Memory.intel[room.name];
+		const last = (prev && prev.tick) || NaN;
 		const intel = {
 			tick: Game.time,
 			sources: room.sources.map(({ id, pos }) => ({ id, pos })) || [],
 			owner: controller.owner && controller.owner.username,
 			reservation: controller.reservation && controller.reservation.username,
+			lastReservation: controller.reservation ? ({user: controller.reservation.username, expire: Game.time + controller.reservation.ticksToEnd}) : (prev && prev.lastReservation),
 			controller: controller.pos,
 			level: controller.level,
 			safeMode: controller.safeMode,
@@ -40,17 +42,27 @@ class Intel {
 		Log.debug(`New intel report for ${room.name} on ${Game.time} (last ${Game.time - last})`, 'Intel');
 	}
 
+	/**
+	 * @todo check reservation history in case neighbor is bad about keeping up the reservation
+	 * 
+	 * @param {*} room 
+	 */
 	static markCandidateForRemoteMining(room) {
-		if (room.my || !Memory.empire)
-			return false;
+		if (room.my || !Memory.empire || !Memory.intel)
+			return false;		
 		const { controller } = room;
 		if (!controller || controller.owner)
 			return false;
+		// Don't take a room actively reserved by a friendly
 		if (controller.reservation && Player.status(controller.reservation.username) >= PLAYER_NEUTRAL && controller.reservation.username !== WHOAMI)
+			return false;
+		// Don't take a room recently reserved by a friendly (in case their remotes lag)
+		const intel = Memory.intel[room.name];
+		if (intel.lastReservation && Player.status(intel.lastReservation.user) >= PLAYER_NEUTRAL && Game.time - intel.lastReservation.expire < 300)
 			return false;
 		if (Room.getType(room.name) === 'SourceKeeper')
 			return false;
-		const exits = _.omit(Game.map.describeExits(room.name), (v, k) => !Game.map.isRoomAvailable(v));
+		const exits = _.omit(Game.map.describeExits(room.name), (v, k) => !IS_SAME_ROOM_TYPE(room.name, v));
 		if (!_.any(exits, exit => Game.rooms[exit] && Game.rooms[exit].my))
 			return false;
 		Log.debug(`Intel wants ${room.name} for remote mining as it's near our empire`, 'Intel');

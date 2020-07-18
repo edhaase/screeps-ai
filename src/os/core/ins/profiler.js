@@ -90,7 +90,7 @@ exports.PropertyIntercept = class PropertyIntercept extends Intercept {
 				CALL_STACK.pop();
 			}
 		};
-		this.patch = { get: patch, enumberable: false };
+		this.patch = { get: patch, enumerable: false };
 	}
 };
 

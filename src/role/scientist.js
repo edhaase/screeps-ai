@@ -22,6 +22,10 @@ const MINIMUM_NEEDED_TO_LOAD = 100;
 // LAB_BOOST_MINERAL: 30,
 
 /**
+ * 
+ */
+
+/**
  * Only spawns if have a terminal with compounds and labs with energy
  * Not critical to economy, but damn useful if available
  */
@@ -39,17 +43,20 @@ module.exports = {
 		this.memory.minRenew = CREEP_LIFE_TIME - RENEW_TICKS(this.body);
 	},
 	run: function () {
-		const { terminal } = this.room;
+		const { storage, terminal } = this.room;
 
-		const spawns = this.room.find(FIND_MY_SPAWNS);
-		const active = _.sortBy(_.filter(spawns, s => s.spawning), 'remainingTime');
-
-		if (this.carryTotal > 0 && terminal) {
-			const resource = _.findKey(this.carry);
-			return this.transferOrMove(terminal, resource);
+		/**
+		 * If we don't have a terminal we can't do _anything_.
+		 */
+		if (!terminal)
+			return this.setRole('recycle');
+		else if (this.carryTotal > 0) { // If our hands are full, unload
+			return this.pushState('Transfer', { res: _.findKey(this.carry), dst: terminal.id });
 		}
 
-		// Cleanup
+		/**
+		 * Start by cleaning up the room.
+		 */
 		const resource = this.pos.findClosestByRange(this.room.resources, { filter: r => r.resourceType !== RESOURCE_ENERGY });
 		if (resource) {
 			return this.pushState('Transfer', { src: resource.id, dst: terminal.id });
@@ -57,33 +64,24 @@ module.exports = {
 		const tombstone = this.pos.findClosestByRange(this.room.tombstones, { filter: t => _.findKey(t.store, (a, k) => a > 0 && k !== RESOURCE_ENERGY) });
 		if (tombstone) {
 			return this.pushState('WithdrawAll', { target: tombstone.id, avoid: [RESOURCE_ENERGY] });
-			// return this.pushState('Transfer', { src: tombstone.id, dst: terminal.id, res: _.findKey(tombstone.store, (a, k) => a > 0 && k !== RESOURCE_ENERGY) });
 		}
-
-		if (this.carryTotal > 0) {
-			this.pushState('Transfer', { res: _.findKey(this.carry), dst: terminal.id });
+		const container = this.pos.findClosestByRange(this.room.structuresByType[STRUCTURE_CONTAINER], { filter: t => _.findKey(t.store, (a, k) => a > 0 && k !== RESOURCE_ENERGY) });
+		if (container) {
+			return this.pushState('WithdrawAll', { target: container.id, avoid: [RESOURCE_ENERGY] });
 		}
+		if (storage && _.findKey(storage.store, (v, k) => k !== RESOURCE_ENERGY))
+			return this.pushState('WithdrawAll', { target: storage.id, avoid: [RESOURCE_ENERGY] });
 
+		/**
+		 * Then handle compounds
+		 */
+		const spawns = this.room.find(FIND_MY_SPAWNS);
 		const labs = this.room.find(FIND_MY_STRUCTURES, { filter: s => s.structureType === STRUCTURE_LAB && s.isActive() });
-		const orderedLabs = _.sortByAll(labs, [l => l.pos.getRangeTo(terminal), 'id']);
-
-		// Idle conditions
-		if (!terminal || !labs || !labs.length)
-			return this.setRole('recycle');
-		if (Math.random() > 0.90 || this.memory.stuck > 15) {
-			return this.pushState("MoveTo", { pos: _.sample(labs).pos, range: 1 });
-		} else if (Math.random() > (this.ticksToLive / this.memory.minRenew))
-			return this.pushState("MoveTo", { pos: _.sample(spawns).pos, range: 1 });
-
-		// If still idle, find work, push states.
-		if (!active || !active.length) {
-			this.say('Wait!');
-			return this.defer(5);
-		}
+		const activeSpawns = _.sortBy(_.filter(spawns, s => s.spawning), 'remainingTime');
 
 		// @todo look at spawn queue as well
 		var current = [];
-		for (const { spawning } of active) {
+		for (const { spawning } of activeSpawns) {
 			const { name, remainingTime } = spawning;
 			if (remainingTime < MINIMUM_TIME_TO_LOAD || current.length >= labs.length)
 				continue;
@@ -97,17 +95,10 @@ module.exports = {
 				if (current.length >= labs.length)
 					break;
 			}
-			Log.debug(`${this.name} wants to support creep ${name} in under ${remainingTime} with ${demand}`, 'Scientist');
+			Log.debug(`${this.name}/${this.pos} wants to support creep ${name} in under ${remainingTime} with ${demand}`, 'Scientist');
 		}
-		if (!current || !current.length) {
-			this.say('Wait!');
-			return this.defer(5);
-		}
-		// Log.warn(`${this.name} wants to load ${current} compounds in ${orderedLabs}!`);
-		// We're all ready to go! Start pushing states for next tick!
-		// @todo loop backwards since this is a push?
-		// @todo better calc amount
 		let amt;
+		const orderedLabs = (current && current.length) ? _.sortByAll(labs, [l => l.pos.getRangeTo(terminal), 'id']) : [];
 		for (var i = 0; i < current.length; i++) {
 			const lab = orderedLabs[i];
 			const compound = current[i];
@@ -119,6 +110,7 @@ module.exports = {
 			if ((terminal.store[compound] || 0) < MINIMUM_NEEDED_TO_LOAD)
 				continue;
 			Log.warn(`${this.name}/${this.pos} Loading ${amt} ${compound} to ${lab} (${lab.mineralAmount}) on tick ${Game.time}`, 'Scientist');
+			this.pushState('Defer', { ticks: 5 }); // After we've loaded everything, take a nap.
 			this.pushState('Transfer', { src: terminal.id, dst: lab.id, res: compound, amt }, false);
 			if (lab.mineralType && lab.mineralType !== compound) {
 				this.pushState('Transfer', { src: lab.id, dst: terminal.id, amt: lab.mineralAmount, res: lab.mineralType }, false);
@@ -126,7 +118,39 @@ module.exports = {
 			}
 			return;
 		}
-		Log.info(`${this.name}/${this.pos} Nothing we can load`, 'Scientist');
+
+		//  @todo there's still a window between when a boosting creep has finished spawning and when
+		// we can actually swap out minerals. So we still need to trigger some sort of wait.
+		if (current && current.length) {
+			this.say('WAIT!');
+			return this.defer(5); // We have labs assigned to boosting, so let's avoid breaking that for now.
+		}
+
+		/**
+		 * If we don't have any creeps to support with boosting, break down resources
+		 */
+		const REACT_TIMES = 3;
+		if (terminal.store.getUsedCapacity('GO') >= TERMINAL_MAINTAIN_RESERVE + LAB_REACTION_AMOUNT) {
+			// if (terminal.store.getUsedCapacity('GO') >= LAB_REACTION_AMOUNT * REACT_TIMES) { // unless ghodium becomes worth more than GO..
+			const src = terminal.pos.findClosestByRange(labs, { filter: s => (s.cooldown || 0) <= LAB_REACTION_AMOUNT && s.isReactionCapable() });
+			if (src) {
+				const [sink1, sink2] = src.getNeighbors();
+				Log.debug(`${this.name}/${this.pos} wants to break down GO`, 'Scientist');
+				this.say('<<<');
+				return this.pushState('Breakdown', { res: 'GO', src: src.id, sink1: sink1.id, sink2: sink2.id });
+			}
+		}
+
+		/**
+		 * If we get here, we probably haven't pushed any states and don't have anything to do.
+		 */
+		Log.info(`${this.name}/${this.pos} Nothing to do`, 'Scientist');
+		this.say('Wait!');
+		// Idle conditions			
+		if (labs && labs.length && (Math.random() > 0.90 || this.memory.stuck > 15)) {
+			return this.pushState("MoveTo", { pos: _.sample(labs).pos, range: 1 });
+		} else if (spawns && spawns.length && (Math.random() > (this.ticksToLive / this.memory.minRenew)))
+			return this.pushState("MoveTo", { pos: _.sample(spawns).pos, range: 1 });
 		this.defer(5);
 	}
 };

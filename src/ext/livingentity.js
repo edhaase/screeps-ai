@@ -134,6 +134,9 @@ class LivingEntity extends RoomObject {
 		if (this.heal)
 			this.heal(this);
 		if (this.hasActiveBodypart && this.hasActiveBodypart(HEAL) && this.hitPct > 0.50) {
+			// @todo if no towers and no creeps we don't need to flee the room.
+			if (this.flee(MINIMUM_SAFE_FLEE_DISTANCE) === ERR_NOT_FOUND)
+				return;
 			if (opts.hits != null) {
 				const diff = this.hits - opts.hits;
 				opts.hma = MM_AVG(diff, opts.hma || 0, 3);
@@ -144,7 +147,7 @@ class LivingEntity extends RoomObject {
 				this.log(`hit move avg: ${opts.hma}`, Log.LEVEL_INFO);
 			}
 			opts.hits = this.hits;
-			this.flee(MINIMUM_SAFE_FLEE_DISTANCE);
+			// Flee was here
 			return;
 		} else if (this.room.controller && !this.room.controller.my && this.room.controller.owner && Player.status(this.room.controller.owner.username) === PLAYER_HOSTILE) {
 			Log.debug(`${this.name}#runHealSelf is fleeing hostile owned room ${this.room.name}`, 'LivingEntity');

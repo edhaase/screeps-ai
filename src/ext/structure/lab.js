@@ -39,11 +39,17 @@ for (const a in REACTIONS) {
 
 /* global BOOST_PARTS */
 global.BOOST_PARTS = {};
-for(const part in BOOSTS) {
-	for(const compound in BOOSTS[part])
+for (const part in BOOSTS) {
+	for (const compound in BOOSTS[part])
 		BOOST_PARTS[compound] = part;
 }
 
+/* global BOOSTS_ALL */
+global.BOOSTS_ALL = [];
+for (const part in BOOSTS) {
+	for (const compound in BOOSTS[part])
+		BOOSTS_ALL.push(compound);
+}
 
 /**
  * Core logic for the lab structure. How does this lab structure
@@ -58,6 +64,16 @@ for(const part in BOOSTS) {
 	if(lab1 && lab2 && lab1.mineralAmount >= LAB_REACTION_AMOUNT && lab2.mineralAmount >= LAB_REACTION_AMOUNT)
 		this.runReaction(lab1, lab2); 
 }; */
+StructureLab.prototype.getNeighbors = function () {
+	const structures = _.map(this.lookForNear(LOOK_STRUCTURES, true, LAB_REACTION_RANGE), LOOK_STRUCTURES);
+	return _.filter(structures, s => s.structureType === STRUCTURE_LAB && s.id !== this.id);
+};
+
+const MIN_LAB_PROVIDERS = 2;
+StructureLab.prototype.isReactionCapable = function () {
+	const n = this.getNeighbors();
+	return !!(n && n.length >= MIN_LAB_PROVIDERS);
+};
 
 const { runReaction, boostCreep } = StructureLab.prototype;
 

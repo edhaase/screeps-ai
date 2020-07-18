@@ -19,7 +19,7 @@ const { createShardLocalUUID } = require('os.core.uuid');
 const { OperationNotPermitted } = require('os.core.errors');
 
 const DEFAULT_HEAP_CHECK_FREQ = 10;
-const DEFAULT_HEAP_WARNING = 0.80;
+const DEFAULT_HEAP_WARNING = 0.85;
 const DEFAULT_HEAP_CRITICAL = 0.95;
 const DEFAULT_SHUTDOWN_GRACE_PERIOD = 10;
 
@@ -117,14 +117,14 @@ class Kernel {
 				Game.cpu.halt();
 			}
 			if (!global.gc) {
-				Log.warn(`Manual gc unavailable (heap ${100 * heapUsage})`, 'Kernel');
+				Log.warn(`Explicit gc unavailable (heap ${100 * heapUsage})`, 'Kernel');
 				continue;
 			}
 			global.gc(true);
 			yield;
 			const heapAfter = this.getHeapUsagePct();
 			if (heapAfter < heapUsage)
-				Log.notify(`Manual gc intervention reduced heap usage from ${heapUsage} to ${heapAfter} on tick ${Game.time}`);
+				Log.notify(`Explicit gc intervention reduced heap usage from ${heapUsage} to ${heapAfter} on tick ${Game.time}`);
 		}
 	}
 

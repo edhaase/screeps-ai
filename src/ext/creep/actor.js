@@ -111,8 +111,8 @@ Creep.prototype.canRenew = function () {
 	if (eca && home && Game.rooms[home].energyCapacityAvailable > eca)
 		return false;
 	return this.spawning === false
-		&& this.ticksToLive < CREEP_LIFE_TIME - Math.floor(600 / this.body.length) // Don't waste our time
-		&& this.ticksToLive > UNIT_BUILD_TIME(this.body)				// Prevent issues with pre-spawning
+		&& this.ticksToLive < CREEP_LIFE_TIME - Math.floor(600 / this.body.length)			// Don't waste our time
+		&& this.ticksToLive > UNIT_BUILD_TIME(this.body) + (DEFAULT_SPAWN_JOB_EXPIRE - 1)	// Prevent issues with pre-spawning
 		&& !unRenewableRoles.includes(this.getRole())				// More time wasting
 		&& !this.isBoosted()										// Don't break our boosts
 		&& !this.hasBodypart(CLAIM)									// Can't renew claimers
@@ -431,7 +431,7 @@ Creep.prototype.build = function (target) {
  * Heal restrictions
  */
 const { heal } = Creep.prototype;
-Creep.prototype.heal = function (target, force = false) {
+Creep.prototype.heal = function (target, force = true) {
 	if (target.hits >= target.hitsMax && !force)
 		return ERR_FULL;
 	if (!target.my && Player.status(target.owner.username) !== PLAYER_ALLY)
@@ -459,6 +459,10 @@ const { repair } = Creep.prototype;
 Creep.prototype.repair = function (target) {
 	if (target.hits >= target.hitsMax)
 		return ERR_FULL;
+	if (!CONSTRUCTION_COST[target.structureType]) {
+		Log.error(`Target ${target} at ${target.pos} can not be repaired, has no construction cost`, "Creep");
+		return ERR_INVALID_TARGET;
+	}
 	if (!target || target.owner && !target.my && Player.status(target.owner.username) !== PLAYER_ALLY) {
 		Log.warn(`Target ${target} at ${((!target) ? 'null' : target.pos)} invalid ownership, unable to repair`, "Creep");
 		return ERR_INVALID_TARGET;
@@ -719,10 +723,44 @@ Creep.prototype.runRenewSelf = function (opts) {
 	return this.pushState('EvadeMove', { pos: alt.pos, range: 1 });
 };
 
-
-Creep.prototype.runBreach = function(opts) {
-	const roomName = opts.roomName || opts;	
+Creep.prototype.runBreach = function (opts) {
+	const roomName = opts.roomName || opts;
 	if (this.pos.roomName !== roomName)
 		return this.pushState('MoveToRoom', roomName);
-	
+
+};
+
+Creep.prototype.runBreakdown = function (opts) {
+	const { terminal } = this.room;
+	const { res, src, sink1, sink2, times = 1 } = opts;
+	const primary = Game.getObjectById(src);
+	const lab1 = Game.getObjectById(sink1);
+	const lab2 = Game.getObjectById(sink2);
+
+	if (!res || !primary || !lab1 || !lab2 || !terminal)
+		return this.popState();
+	const carrying = _.findKey(this.store);
+	if (carrying)
+		return this.pushState("Transfer", { res: carrying, amt: this.store[carrying], dst: terminal.id });
+	if (lab1.mineralType)
+		return this.pushState("Transfer", { res: lab1.mineralType, amt: lab1.mineralAmount, src: lab1.id, dst: terminal.id }, false);
+	if (lab2.mineralType)
+		return this.pushState("Transfer", { res: lab2.mineralType, amt: lab2.mineralAmount, src: lab2.id, dst: terminal.id }, false);
+	if (primary.cooldown > LAB_COOLDOWN) {
+		return this.popState();
+	} else if (primary.cooldown) {
+		// We can do stuff while we wait
+	} else if (primary.mineralType === res) {
+		const status = primary.reverseReaction(lab1, lab2);
+		if (status !== OK)
+			return;
+		opts.times = times - 1;
+	}
+	if (times <= 0) // Order is important
+		return this.popState();
+	const amt = CLAMP(LAB_REACTION_AMOUNT, LAB_REACTION_AMOUNT * times, LAB_MINERAL_CAPACITY);
+	if (primary.mineralType && primary.mineralType !== res)
+		return this.pushState("Transfer", { res: primary.mineralType, amt: primary.mineralAmount, src: primary.id, dst: terminal.id }, false);
+	else if (!primary.mineralType || (primary.mineralAmount || 0) < amt)
+		return this.pushState("Transfer", { res, amt: amt - primary.mineralAmount, src: terminal.id, dst: primary.id });
 };

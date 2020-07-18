@@ -194,20 +194,25 @@ Flag.prototype.hasPendingUnit = function (job) {
 	return spawn.hasJob(job);
 };
 
+Flag.prototype.getInvaderCore = function () {
+	const [core] = this.room.find(FIND_HOSTILE_STRUCTURES, { filter: s => s.structureType === STRUCTURE_INVADER_CORE });
+	return core;
+};
+
 Flag.prototype.runSelfCleanup = function () {
 	if (!this.room)
 		return false;
 	const { controller } = this.room;
 	if (controller && controller.my) {
-		Log.warn(`We own the controller in ${this.pos.roomName}, removing self!`, 'Flag');
+		Log.warn(`${this.name}/${this.pos}: We own the controller in ${this.pos.roomName}, removing self!`, 'Flag');
 		this.remove();
 		return true;
 	} else if (controller && controller.owner) {
-		Log.warn(`Controller owned by ${JSON.stringify(controller.owner)} else, removing self`, 'Flag');
+		Log.warn(`${this.name}/${this.pos}: Controller owned by ${JSON.stringify(controller.owner)} else, removing self`, 'Flag');
 		this.remove();
 		return true;
 	} else if (controller && controller.reservation && Player.status(controller.reservation.username) >= PLAYER_NEUTRAL && controller.reservation.username !== WHOAMI) {
-		Log.warn(`Controller reserved by friendly player ${controller.reservation.username}`, 'Flag');
+		Log.warn(`${this.name}/${this.pos}: Controller reserved by friendly player ${controller.reservation.username}`, 'Flag');
 		this.defer(controller.reservation.ticksToEnd + RESERVATION_STEAL_MARGIN);
 		return true;
 	}
@@ -242,18 +247,28 @@ Flag.prototype.runLogic = function () {
 			if (this.room && this.room.controller && this.room.controller.owner && !this.room.controller.my)
 				return this.remove();
 			const { hostiles } = this.room;
-			if (_.isEmpty(hostiles))
-				return this.defer(_.random(25, 50));
-			// @todo: 1 or more, guard body based on enemy body and boost.
-			const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1 });
-			const unit = this.getAssignedUnit(c => c.getRole() === 'guard' && c.memory.site === this.name && (c.spawning || c.ticksToLive > UNIT_BUILD_TIME(c.body) + cost));
-			if (unit || !spawn)
-				return this.defer(MAX_CREEP_SPAWN_TIME);
-			// @todo: Find correct guard to respond.
-			Log.warn(`Requesting guard to ${this.pos}`, "Flag");
-			// Unit.requestGuard(spawn, this.name, [TOUGH, TOUGH, MOVE, RANGED_ATTACK, MOVE, RANGED_ATTACK, MOVE, MOVE, MOVE, ATTACK, MOVE, ATTACK, MOVE, ATTACK, MOVE, HEAL, MOVE, HEAL]);
-			Unit.requestGuard(spawn, this.name, this.memory.body, this.pos.roomName);
-			return this.defer(DEFAULT_SPAWN_JOB_EXPIRE);
+			if (!_.isEmpty(hostiles)) {				
+				// @todo: 1 or more, guard body based on enemy body and boost.
+				const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1 });
+				const unit = this.getAssignedUnit(c => c.getRole() === 'guard' && c.memory.site === this.name && (c.spawning || c.ticksToLive > UNIT_BUILD_TIME(c.body) + cost));
+				if (unit || !spawn)
+					return this.defer(MAX_CREEP_SPAWN_TIME);
+				// @todo: Find correct guard to respond.
+				Log.warn(`Requesting guard to ${this.pos}`, "Flag");
+				// Unit.requestGuard(spawn, this.name, [TOUGH, TOUGH, MOVE, RANGED_ATTACK, MOVE, RANGED_ATTACK, MOVE, MOVE, MOVE, ATTACK, MOVE, ATTACK, MOVE, ATTACK, MOVE, HEAL, MOVE, HEAL]);
+				Unit.requestGuard(spawn, this.name, this.memory.body, this.pos.roomName);
+				return this.defer(DEFAULT_SPAWN_JOB_EXPIRE);
+			} else if ( this.getInvaderCore() ) {				
+				const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1 });
+				const unit = this.getAssignedUnit(c => c.getRole() === 'attack' && c.memory.dest === this.pos.roomName && (c.spawning || c.ticksToLive > UNIT_BUILD_TIME(c.body) + cost));
+				if (unit || !spawn)
+					return this.defer(MAX_CREEP_SPAWN_TIME);
+				Log.warn(`Requesting attack bulldozer to ${this.pos}`, "Flag");
+				// Unit.requestBulldozer(spawn, this.pos.roomName, 'attack');
+				spawn.submit({memory: {role: 'attack',  dest: this.pos.roomName}});
+				return this.defer(DEFAULT_SPAWN_JOB_EXPIRE);
+			}
+			return this.defer(_.random(25, 50));
 		}
 
 		if (this.secondaryColor === STRATEGY_RESERVE) {
@@ -269,6 +284,8 @@ Flag.prototype.runLogic = function () {
 			const reserver = this.getAssignedUnit(c => c.getRole() === 'reserver' && this.pos.isEqualToPlain(c.memory.site) && (c.spawning || (c.ticksToLive > (2 * size * CREEP_SPAWN_TIME) + cost)));
 			if (reserver)
 				return this.defer(Math.min(reserver.ticksToLive || CREEP_CLAIM_LIFE_TIME, DEFAULT_SPAWN_JOB_EXPIRE));
+			//if (this.room && this.getInvaderCore())
+			//	return this.defer(_.random(25, 50));
 			Log.info(`${this.name} wants to build reserver of size ${size} for room ${this.pos.roomName} with spawn ${spawn}`, 'Flag#Reserve');
 			if (spawn && !spawn.hasJob({ memory: { role: 'reserver', site: this.pos } })) {
 				const prio = clock / MINIMUM_RESERVATION;

@@ -175,7 +175,8 @@ StructureObserver.prototype.getAvailRoomsInRange = function () {
 StructureObserver.prototype.isValidObservationTarget = function (roomName) {
 	if (Game.rooms[roomName] && Game.rooms[roomName].my)
 		return false;
-	return Game.map.isRoomAvailable(roomName);
+	const roomStatus = Game.map.getRoomStatus(roomName);
+	return roomStatus && roomStatus.status !== 'closed';
 };
 
 StructureObserver.prototype.isInRange = function (roomName) {
@@ -214,7 +215,7 @@ StructureObserver.prototype.watch = function () {
 	}
 
 	if (!(Game.time % 250))
-		Log.info(`Observer at ${this.pos} watching room ${watch}`);
+		Log.info(`Observer at ${this.pos} watching room ${watch}`, 'Observer');
 
 	this.observeRoom(watch);
 };

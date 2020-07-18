@@ -38,7 +38,7 @@ module.exports = {
 		const pattern = [MOVE, MOVE, MOVE, WORK, WORK, CARRY];
 		const cost = UNIT_COST(pattern);
 		const al = Math.min(Math.floor(cost * (partLimit / 2)), avail);
-		let	body = Arr.repeat(pattern, al); // 400 energy gets me 2 work parts.
+		let body = Arr.repeat(pattern, al); // 400 energy gets me 2 work parts.
 		if (_.isEmpty(body)) {
 			body = [WORK, CARRY, MOVE, MOVE];
 		}
@@ -57,8 +57,8 @@ module.exports = {
 				return this.move(_.random(0, 8));
 			}
 			const site = this.getTarget(
-				({ room }) => room.find(FIND_MY_CONSTRUCTION_SITES),
-				(s) => s instanceof ConstructionSite,
+				({ room }) => room.find(FIND_CONSTRUCTION_SITES),
+				(s) => s instanceof ConstructionSite && (s.my || s.owner && Player.status(s.owner.username) >= PLAYER_TRUSTED),
 				(sites) => _.max(sites, s => ((s.progressPct || STRUCTURE_BUILD_PRIORITY[s.structureType] || DEFAULT_BUILD_JOB_PRIORITY) ** 2) / this.pos.getRangeTo(s))
 			);
 			if (site) {

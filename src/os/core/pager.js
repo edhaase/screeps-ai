@@ -22,7 +22,7 @@ MAKE_CONSTANT(global, 'PAGE_CACHE_LIMIT', ENV('pager.page_cache_limit', DEFAULT_
 MAKE_CONSTANT(global, 'PAGE_WRITE_RESERVE', ENV('pager.page_write_reserve', DEFAULT_PAGE_WRITE_RESERVE));
 MAKE_CONSTANT(global, 'PAGE_EXPIRATION', ENV('pager.page_expiration'));
 
-MAKE_CONSTANT(global, 'PAGE_CACHE', new LRU({ max: global.PAGE_CACHE_LIMIT, ttl: global.PAGE_EXPIRATION }));
+MAKE_CONSTANT(global, 'PAGE_CACHE', new LRU({ name: 'PageCache', max: global.PAGE_CACHE_LIMIT, ttl: global.PAGE_EXPIRATION }));
 MAKE_CONSTANT(global, 'PAGE_REQUESTS', new LazyMap(() => 0));
 MAKE_CONSTANT(global, 'PAGE_WRITES', new Map());
 global.PAGE_HIT = 0;

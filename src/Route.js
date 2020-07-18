@@ -28,7 +28,7 @@ function getFindRouteOptions(avoid = [], prefer = []) {
 	 */
 	return function routeCallback(roomName, fromRoom) {
 		var score = 1;
-		if (!Game.map.isRoomAvailable(roomName) || avoid.includes(roomName))
+		if (!IS_SAME_ROOM_TYPE(roomName, fromRoom) || avoid.includes(roomName))
 			return Infinity;
 		const parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
 		const isHighway = (parsed[1] % 10 === 0) || (parsed[2] % 10 === 0);
@@ -83,10 +83,10 @@ class Route {
 	}
 }
 
-Route.cache = new LRU({ ttl: ROUTE_EXPIRATION, max: ROUTE_CACHE_SIZE });
+Route.cache = new LRU({ name: 'RouteCache', ttl: ROUTE_EXPIRATION, max: ROUTE_CACHE_SIZE });
 Route.terrain = new DelegatingLazyMap(
 	(roomName) => Intel.scoreTerrain(roomName),
-	new LRU({ tt: ROUTE_EXPIRATION, max: ROUTE_CACHE_SIZE })
+	new LRU({ name: 'RouteTerrainCache', ttl: ROUTE_EXPIRATION, max: ROUTE_CACHE_SIZE })
 );
 
 module.exports = Route;

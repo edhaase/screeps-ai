@@ -30,6 +30,9 @@ module.exports = {
 		// (Optional) Used if no body supplied
 		// Expects conditions..
 	},
+	init: function () {
+
+	},
 	/* eslint-disable consistent-return */
 	run: function () {
 		var threat = this.pos.findClosestByRange(this.room.hostiles);
@@ -39,24 +42,27 @@ module.exports = {
 				this.wander();
 			return;
 		}
-
+		const range = this.pos.getRangeTo(threat);
 		if (this.hasActiveBodypart(RANGED_ATTACK)) {
-			if (this.rangedAttack(threat) === OK) {
+			const status = this.rangedAttack(threat);
+			if (status === ERR_NOT_IN_RANGE) {
+				this.moveTo(threat, {
+					reusePath: 5, ignoreRoads: true, range: CREEP_RANGED_ATTACK_RANGE
+				}); // If the position changes this rebuilds anyways.				
+			} else if (status === OK) {
 				this.flee();
 				this.rangedMassAttack();
 			} else {
-				this.moveTo(threat, {
-					reusePath: 5, ignoreRoads: true, range: CREEP_RANGED_ATTACK_RANGE
-				}); // If the position changes this rebuilds anyways.
+				this.say(`RA ${status}`);
 			}
-		} else {
+		} else if (range > CREEP_RANGED_ATTACK_RANGE || (range > 1 && !this.pos.hasRampart())) {
 			this.moveTo(threat, {
 				reusePath: 5, ignoreRoads: true
 			}); // If the position changes this rebuilds anyways.	
 		}
 		if (this.canAttack && this.attack(threat) === ERR_NOT_IN_RANGE) {
 			if (this.hits < this.hitsMax && this.hasActiveBodypart(HEAL))
-				this.heal(this);
+				this.heal(this);				
 		}
 	}
 };

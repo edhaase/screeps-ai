@@ -514,3 +514,13 @@ global.forEachFn = function forEachFn(proto, cb) {
 global.setConsoleLines = function (lines) {
 	console.log(`<script>document.querySelector('.editor-panel').style.height = "${Math.ceil(lines * 22.5714) + 30}px";</script>`);
 };
+
+global.IS_SAME_ROOM_TYPE = function (roomA, roomB) {
+	if (!roomA || !roomB)
+		return false;
+	const statusA = Game.map.getRoomStatus(roomA);
+	const statusB = Game.map.getRoomStatus(roomB);
+	if (!statusA || !statusB)
+		return false;
+	return statusA.status === statusB.status;
+}

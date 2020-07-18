@@ -24,6 +24,8 @@
  * @todo: Price reduction should stop high enough we can still make back the fee
  * @todo: Fix for placing sell orders below standing buy orders
  * @todo: Account for price of energy
+ * @todo: Prefer selling to allies
+ * @todo: Allow minimum price for sell/buy operations
  */
 'use strict';
 
@@ -59,7 +61,7 @@ StructureTerminal.prototype.NUMBER_FORMATTER = new Intl.NumberFormat();
 
 DEFINE_CACHED_GETTER(StructureTerminal.prototype, 'orders', ({ pos }) => _.filter(Game.market.orders, 'roomName', pos.roomName));
 DEFINE_CACHED_GETTER(StructureTerminal.prototype, 'creditsAvailable', (t) => Math.min(Game.market.credits, t.credits));
-DEFINE_CACHED_GETTER(StructureTerminal.prototype, 'network', ({ id }) => _.filter(Game.structures, s => s.structureType === STRUCTURE_TERMINAL && s.id !== id));
+DEFINE_CACHED_GETTER(StructureTerminal.prototype, 'network', ({ id }) => _.filter(Game.structures, s => s.structureType === STRUCTURE_TERMINAL && s.id !== id && s.isActive()));
 DEFINE_CACHED_GETTER(StructureTerminal.prototype, 'creditsReservedForEnergy', (t) => TERMINAL_MINIMUM_ENERGY * (t.memory.energyPrice || TERMINAL_DEFAULT_ENERGY_PRICE) * (1.0 + MARKET_FEE));
 
 /**
@@ -87,6 +89,7 @@ StructureTerminal.prototype.run = function () {
 			this.updateOrders();
 		this.runAutoSell();
 		this.runAutoBuy();
+
 		// If terminal has no rampart, the room has no spawns, or the controller is in emergency mode SELL
 		// If terminal is empty purchase energy up to TERMINAL_RESOURCE_LIMIT
 		// if(!this.busy) // Regardless of how we got here, if the terminal acted this tick, don't go to sleep.
@@ -192,6 +195,18 @@ StructureTerminal.prototype.moderateEnergy = function () {
 	return true;
 };
 
+StructureTerminal.prototype.shareResource = function (resource, available) {
+	const dest = _.find(Game.rooms, r => r.my && r.controller.level >= 6 && r.terminal && r.terminal.store[resource] <= TERMINAL_MAINTAIN_RESERVE);
+	if (!dest)
+		return false;
+	const need = TERMINAL_MAINTAIN_RESERVE - dest.terminal.store[resource];
+	const amount = Math.min(need, available);
+	if (amount <= 0)
+		return false;
+	Log.info(`${this.pos.roomName} sending ${amount} excess ${resource} to ${dest.name}`, 'Terminal');
+	return this.send(resource, amount, dest.name, 'Supporting the empire') === OK;
+}
+
 /**
  * Sells off resources over a threshold
  * 2016-11-6: Increase per-sale limit, and stop randomly skipping orders. Due to reduced NPC buyers.
@@ -200,7 +215,14 @@ StructureTerminal.prototype.runAutoSell = function (resource = RESOURCE_THIS_TIC
 	if (resource === RESOURCE_ENERGY)
 		return false;
 	const over = this.getOverageAmount(resource);
-	if (over < TERMINAL_MIN_SEND || over < TERMINAL_MINIMUM_AUTOSELL)
+	if (over < TERMINAL_MIN_SEND)
+		return false;
+	// If it's a resource other rooms could want, share!
+	if (resource === RESOURCE_GHODIUM && this.shareResource(RESOURCE_GHODIUM, over))
+		return true;
+	if (resource === RESOURCE_OPS && this.shareResource(RESOURCE_OPS, over))
+		return true;
+	if (over < TERMINAL_MINIMUM_AUTOSELL)
 		return false;
 	if (Math.random() > (over / TERMINAL_MAXIMUM_AUTOSELL))
 		return Log.info(`${this.pos.roomName} Skipping sell operation on ${over} ${resource}`, 'Terminal');
@@ -208,14 +230,18 @@ StructureTerminal.prototype.runAutoSell = function (resource = RESOURCE_THIS_TIC
 	// On first overage sell, place a sell order
 	if (ENABLE_ORDER_MANAGEMENT && this.creditsAvailable > 0 && !_.any(this.orders, o => o.type === ORDER_SELL && o.resourceType === resource)) {
 		// Place order first
-		const orders = this.getAllOrders({ type: ORDER_SELL, resourceType: resource });
 		let price = 0.25;
-		const { roomName } = this.pos;
-		if (!_.isEmpty(orders)) {
-			// let lowest = _.min(orders, 'price');
-			// price = lowest.price;
-			price = _.min(orders, 'price').price;
-
+		const history = Game.market.getHistory(resource);
+		if (history && history.length) {
+			const best = _.max(history, h => h.avgPrice);
+			price = best.avgPrice;
+		} else {
+			const orders = this.getAllOrders({ type: ORDER_SELL, resourceType: resource });
+			if (!_.isEmpty(orders)) {
+				// let lowest = _.min(orders, 'price');
+				// price = lowest.price;
+				price = _.min(orders, 'price').price;
+			}
 		}
 		const amount = CLAMP(0, 100 * Math.floor(1.10 * over / 100), this.store[resource]);
 		const status = this.createSellOrder(resource, price, amount);
@@ -243,6 +269,9 @@ StructureTerminal.prototype.runAutoBuy = function (resource = RESOURCE_THIS_TICK
 		return;
 	if (TERMINAL_MAINTAIN_RESERVE - this.store[resource] <= TERMINAL_PURCHASE_MARGIN)
 		return;
+	// Skip commodites for now
+	if (resource !== 'G' && resource !== RESOURCE_ENERGY && resource !== RESOURCE_POWER && !BOOSTS_ALL.includes(resource))
+		return;
 	this.buyUpTo(resource, TERMINAL_MAINTAIN_RESERVE);
 };
 
@@ -251,7 +280,7 @@ StructureTerminal.prototype.getOverageAmount = function (res) {
 		return 0;
 	const amt = this.store[res] || 0;
 	if (res === RESOURCE_ENERGY)
-		return amt - TERMINAL_RESOURCE_LIMIT;
+		return 100 * Math.floor((amt - TERMINAL_RESOURCE_LIMIT) / 100);
 	const over = Math.max(amt - TERMINAL_AUTOSELL_THRESHOLD, 0);
 	return 100 * Math.floor(over / 100); // round to increments of 100
 };

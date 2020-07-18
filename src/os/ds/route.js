@@ -11,7 +11,7 @@ class Route extends Array {
 	}
 
 	isAvailable() {
-		return _.all(this, rn => Game.map.isRoomAvailable(rn));
+		// return _.all(this, rn => Game.map.isRoomAvailable(rn));
 	}
 }
 

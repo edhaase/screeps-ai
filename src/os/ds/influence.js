@@ -108,7 +108,7 @@ class InfluenceMap {
 				continue;	// @todo check alliance map
 			const exits = _.values(Game.map.describeExits(roomName));
 			for (const exit of exits) {
-				if (!Game.map.isRoomAvailable(exit))
+				if (!IS_SAME_ROOM_TYPE(roomName, exit))
 					continue;
 				if (seen[exit] !== undefined && dist + 1 >= seen[exit])
 					continue;

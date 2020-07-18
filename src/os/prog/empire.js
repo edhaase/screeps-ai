@@ -92,7 +92,7 @@ class EmpireProc extends Process {
 				continue;
 			const exits = _.values(Game.map.describeExits(roomName));
 			for (const exit of exits) {
-				if (!Game.map.isRoomAvailable(exit))
+				if (!IS_SAME_ROOM_TYPE(roomName, exit))
 					continue;
 				if (seen[exit] !== undefined && dist + 1 >= seen[exit])
 					continue;
@@ -131,7 +131,7 @@ class EmpireProc extends Process {
 				continue;
 			const exits = _.values(Game.map.describeExits(roomName));
 			for (const exit of exits) {
-				if (!Game.map.isRoomAvailable(exit) || seen[exit] !== undefined)
+				if (!IS_SAME_ROOM_TYPE(roomName, exit) || seen[exit] !== undefined)
 					continue;
 				seen[exit] = dist + 1;
 				q.push(exit);

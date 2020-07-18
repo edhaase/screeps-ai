@@ -35,8 +35,18 @@ module.exports = {
 		} else
 			spawn = Game.getObjectById(this.memory.spawn);
 
+		const energy = this.carry[RESOURCE_ENERGY] || 0;
+		if (energy > 0 && !this.memory.attemptedUnload) {
+			const { storage, terminal } = this.room;
+			if (storage || terminal) {
+				this.say('Unload!');
+				this.memory.attemptedUnload = true;
+				return this.pushState('Transfer', { res: RESOURCE_ENERGY, amt: this.carry[RESOURCE_ENERGY], dest: (storage && storage.id) || (terminal && terminal.id) });
+			}
+		}
+
 		if (this.pos.isNearTo(spawn)) {
-			if (this.carry[RESOURCE_ENERGY] && this.transfer(spawn, RESOURCE_ENERGY) === OK)
+			if (energy && this.transfer(spawn, RESOURCE_ENERGY) === OK)
 				return;
 			spawn.recycleCreep(this);
 		} else {

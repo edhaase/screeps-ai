@@ -6,9 +6,9 @@
 /** */
 /* global DEFINE_CACHED_GETTER */
 const LRU = require('os.ds.lru');
-const TTL = 500;
+const TTL = CREEP_LIFE_TIME;
 const MAX = 5000;
-const map = new LRU({ ttl: TTL, max: MAX });
+const map = new LRU({ name: 'CreepCache', ttl: TTL, max: MAX });
 const volatile = new WeakMap();
 
 DEFINE_CACHED_GETTER(RoomObject.prototype, 'cache', ro => {
