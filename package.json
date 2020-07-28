@@ -13,7 +13,8 @@
 		"push:all": "",
 		"push:mmo": "npm run push -- --server main",
 		"push:local": "npm run push -- --server local",
-		"push": "rollup -c && screeps-api -b Juggernaut upload build/main.js"
+		"push:ba": "npm run push -- --server botarena",
+		"push": "rollup -c && screeps-api -b default upload build/main.js"
 	},
 	"version": "0.0.1",
 	"devDependencies": {
