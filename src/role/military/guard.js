@@ -34,7 +34,7 @@ export default {
 
 		var flag = Game.flags[site];
 		var threats = this.pos.findInRange(this.room.hostiles, CREEP_RANGED_ATTACK_RANGE);
-		var threat = this.pos.findClosestByRange(this.room.hostiles);
+		var threat = this.pos.findClosestByRange(this.room.hostiles) || this.room.findOne(FIND_HOSTILE_STRUCTURES, { filter: { structureType: STRUCTURE_INVADER_CORE } });
 		var noRoomHealer = !_.any(this.room.find(FIND_MY_CREEPS), c => (c.pos.roomName === this.pos.roomName && c.hasActiveBodypart(HEAL)));
 
 		// Perform combat logic.
