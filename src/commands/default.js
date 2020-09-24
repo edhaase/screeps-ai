@@ -6,4 +6,5 @@ import './inspector';
 import './process';
 import './reports';
 import './rooms';
+import './service';
 import './threat';

@@ -114,6 +114,11 @@ export default class Recon extends Process {
 					const scouts = _.filter(this.scouts, c => c.memory.idle !== false && Game.map.getRoomLinearDistance(roomName, c.pos.roomName, false) <= c.ticksToLive / 50);
 					if (!scouts || !scouts.length) {
 						this.debug(`No idle scouts in range`);
+						if (Game.time >= this.next_scout_spawn_request) {
+							// @todo if we don't have observers, spawn a scout
+							yield* this.considerSpawningAnotherScout(roomName);
+							this.next_scout_spawn_request = Game.time + ENVC('recon.scout_request_freq', DEFAULT_SCOUT_SPAWN_REQUEST_FREQUENCY);
+						}
 						continue;
 					}
 					const scout = _.min(scouts, c => Game.map.getRoomLinearDistance(roomName, c.pos.roomName, false));
@@ -133,6 +138,23 @@ export default class Recon extends Process {
 					yield false;
 				}
 			}
+		}
+	}
+
+	*considerSpawningAnotherScout(destRoomName) {
+		try {
+			const MAX_SCOUTS = ENVC('recon.max_scouts', 10);
+			if (this.scouts && this.scouts.length >= MAX_SCOUTS) {
+				this.debug(`At max scout pop, won't spawn more`);
+				return;
+			}
+			// Allow fetching a facade for a remote process call			
+			const spawn = startService('spawn');
+			spawn.submit({ room: destRoomName, memory: { role: 'scout' }, priority: PRIORITY_LOW });
+			this.debug(`Requesting new scout near ${destRoomName}`);
+		} catch (err) {
+			this.error(err);
+			this.error(err.stack);
 		}
 	}
 
