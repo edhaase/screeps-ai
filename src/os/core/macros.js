@@ -48,6 +48,18 @@ export const DEFINE_GETTER = function (proto, propertyName, fn, enumerable = fal
 };
 
 /**
+ * Marks an existing property as non-enumerable
+ * 
+ * @param {*} proto 
+ * @param {*} propertyName 
+ */
+export const HIDE_PROPERTY = function (proto, propertyName) {
+	const desc = Object.getOwnPropertyDescriptor(proto, propertyName);
+	desc.enumerable = false;
+	return Object.defineProperty(proto, propertyName, desc);
+}
+
+/**
  * 
  * @param {*} roomA 
  * @param {*} roomB 
