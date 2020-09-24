@@ -5,13 +5,14 @@
 
 /* global DEFINE_CACHED_GETTER */
 
-import { FIXED_OBSTACLE_MATRIX } from '/CostMatrix';
+import { STATIC_OBSTACLE_MATRIX } from '/cache/costmatrix/StaticObstacleMatrixCache';
 import { VisibilityError } from '/os/core/errors';
 import { isObstacle } from '/lib/filter';
 import { in_numeric_range } from '/lib/util';
 import EnclosureTestingMatrix from '/ds/costmatrix/EnclosureTestingMatrix';
 import { DEFAULT_ROAD_SCORE } from '../ds/costmatrix/RoomCostMatrix';
 import { Log, LOG_LEVEL } from '/os/core/Log';
+import Path from '/ds/Path';
 
 DEFINE_CACHED_GETTER(RoomPosition.prototype, 'room', rp => Game.rooms[rp.roomName]);
 
@@ -19,7 +20,7 @@ DEFINE_CACHED_GETTER(RoomPosition.prototype, 'room', rp => Game.rooms[rp.roomNam
  * Because isEqualTo expects a room position and that doesn't
  * really make sense. Changing the behavior of that might be worse.
  *
- * @param RoomPosition pos
+ * @param {RoomPosition} pos
  * @return bool
  */
 RoomPosition.prototype.isEqualToPlain = function ({ x, y, roomName } = {}) {
@@ -27,9 +28,9 @@ RoomPosition.prototype.isEqualToPlain = function ({ x, y, roomName } = {}) {
 };
 
 /**
- * @param number x
- * @param number y
- * @param string roomName
+ * @param {number} x
+ * @param {number} y
+ * @param {string} roomName
  * @return bool
  */
 RoomPosition.prototype.isEqualToPlainXY = function (x, y, roomName) {
@@ -145,7 +146,7 @@ RoomPosition.prototype.isEnclosed = function () {
 };
 
 RoomPosition.prototype.search = function (goals, opts) {
-	return PathFinder.search(this, goals, opts);
+	return Path.search(this, goals, opts);
 };
 
 /**
@@ -275,9 +276,9 @@ RoomPosition.prototype.getStepsTo = function (dest, opts = {}) {
 		swampCost: 5
 	});
 	if (!opts.roomCallback)
-		opts.roomCallback = r => FIXED_OBSTACLE_MATRIX.get(r);
+		opts.roomCallback = r => STATIC_OBSTACLE_MATRIX.get(r) || new PathFinder.CostMatrix;
 	try {
-		const { path, incomplete } = PathFinder.search(this, dest, opts);
+		const { path, incomplete } = Path.search(this, dest, opts);
 		if (incomplete)
 			return ERR_NO_PATH;
 		return path.length;
@@ -293,10 +294,11 @@ RoomPosition.prototype.getStepsTo = function (dest, opts = {}) {
  *
  * @param {Object} goals - collection of RoomPositions or targets
  * @param {function} itr - iteratee function, called per goal object
- * @todo: Add cost matrix support
- * @todo: Add maxCost support
- * @todo: replace with roomCallback
- * @todo: maxCost testing
+ * @todo Add cost matrix support
+ * @todo Add maxCost support
+ * @todo replace with roomCallback
+ * @todo maxCost testing
+ * @todo allow routing
  */
 RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = ({ pos }) => ({ pos, range: 1 }), opts = {}) {
 	// Map goals to position/range values
@@ -318,22 +320,18 @@ RoomPosition.prototype.findClosestByPathFinder = function (goals, itr = ({ pos }
 		plainCost: 2,
 		swampCost: 10,
 		maxRooms: 64,
-		roomCallback: r => FIXED_OBSTACLE_MATRIX.get(r)
+		roomCallback: r => STATIC_OBSTACLE_MATRIX.get(r) || new PathFinder.CostMatrix
 	});
-	const result = PathFinder.search(this, mapping, opts);
-	if (!result.path.length) {
-		Log.error('findClosestByPathFinder was unable to find a solution');
-		Log.error(ex(mapping));
-		Log.error(ex(opts));
-		Log.error(ex(result));
-		throw new Error(`Unable to find solution`);
+	const result = Path.search(this, mapping, opts);
+	if (!result.path || !result.path.length) {
+		Log.warn(`findClosestByPathFinder was unable to find a solution originating from ${this}`, 'RoomPosition');
 	}
-	if (result.incomplete && opts.maxCost)
+	if (!result.path || (result.incomplete && opts.maxCost))
 		return { goal: null, cost: result.cost, ops: result.ops, incomplete: true, path: [] };
 	//	throw new Error('Path incomplete');
 	const last = _.last(result.path) || this;
 	// return {goal: null};
-	const goal = _.min(goals, g => last.getRangeTo(g.pos));
+	const goal = _.min(goals, g => last.getRangeTo(g.pos || g));
 	return {
 		goal: (Math.abs(goal) !== Infinity) ? goal : null,
 		cost: result.cost,
@@ -386,8 +384,8 @@ RoomPosition.prototype.findClosestCreep = function () {
 
 RoomPosition.prototype.findPositionNear = function (otherPos, range = 1, opts = {}, offset = 2) {
 	if (!opts.roomCallback)
-		opts.roomCallback = (r) => FIXED_OBSTACLE_MATRIX.get(r);
-	const { path, incomplete } = PathFinder.search(this, { pos: otherPos, range }, opts);
+		opts.roomCallback = (r) => STATIC_OBSTACLE_MATRIX.get(r) || new PathFinder.CostMatrix;
+	const { path, incomplete } = Path.search(this, { pos: otherPos, range }, opts);
 	if (incomplete)
 		throw new Error('Unable to find path');
 	return path[path.length - offset];

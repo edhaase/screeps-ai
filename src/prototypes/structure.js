@@ -3,25 +3,27 @@
  */
 'use strict';
 
-import { Log, LOG_LEVEL } from '/os/core/Log';
+import { Log } from '/os/core/Log';
+import { calcRoadUpkeep } from '/lib/util';
 
 /* global DEFINE_CACHED_GETTER, Log, STACK_TRACE */
 
 DEFINE_CACHED_GETTER(Structure.prototype, 'cost', ({ structureType }) => CONSTRUCTION_COST[structureType]);
-DEFINE_CACHED_GETTER(Structure.prototype, 'energyPct', s => s.energy / s.energyCapacity);
-DEFINE_CACHED_GETTER(Structure.prototype, 'energyCapacityAvailable', s => s.energyCapacity - s.energy);
+DEFINE_CACHED_GETTER(Structure.prototype, 'energyPct', s => s.store.getUsedPct(RESOURCE_ENERGY));
+DEFINE_CACHED_GETTER(Structure.prototype, 'energyCapacityAvailable', s => s.store.getFreeCapacity(RESOURCE_ENERGY)); // s.energyCapacity - s.energy);
 DEFINE_CACHED_GETTER(Structure.prototype, 'hitPct', s => s.hits / s.hitsMax);
 DEFINE_CACHED_GETTER(Structure.prototype, 'storedTotal', s => _.sum(s.store));
 DEFINE_CACHED_GETTER(Structure.prototype, 'storedPct', ({ storedTotal, storeCapacity }) => storedTotal / storeCapacity);
 DEFINE_CACHED_GETTER(Structure.prototype, 'storageCapacityAvailable', ({ storedTotal, storeCapacity }) => storeCapacity - storedTotal);
 DEFINE_CACHED_GETTER(Structure.prototype, 'storedNonEnergyResources', s => s.mineralAmount || (s.store && s.storedTotal - s.store[RESOURCE_ENERGY]) || 0);
 
-DEFINE_CACHED_GETTER(StructureRoad.prototype, 'upkeep', r => ((Game.map.getRoomTerrain(r.pos.roomName).get(r.pos.x, r.pos.y) & TERRAIN_MASK_SWAMP)) ? ROAD_UPKEEP_SWAMP : ROAD_UPKEEP);
+// DEFINE_CACHED_GETTER(StructureRoad.prototype, 'upkeep', r => ((Game.map.getRoomTerrain(r.pos.roomName).get(r.pos.x, r.pos.y) & TERRAIN_MASK_SWAMP)) ? ROAD_UPKEEP_SWAMP : ROAD_UPKEEP);
+DEFINE_CACHED_GETTER(StructureRoad.prototype, 'upkeep', r => calcRoadUpkeep(r));
 DEFINE_CACHED_GETTER(StructureContainer.prototype, 'upkeep', c => c.room.my ? CONTAINER_UPKEEP : REMOTE_CONTAINER_UPKEEP);
 
 /**
  * Monkey patch isActive to cache.
- * @todo: Invalidate periodically?
+ * @todo Invalidate periodically?
  */
 const { isActive } = Structure.prototype;
 Structure.prototype.isActive = function () {

@@ -8,17 +8,12 @@ import * as Intel from '/Intel';
 import { unauthorizedCombatHostile, canProvideEnergy } from '/lib/filter';
 import { CLAMP } from '/os/core/math';
 import { MM_AVG } from '/os/core/math';
-import { TERMINAL_MINIMUM_ENERGY } from '/proto/structure/terminal';
-import { LOGISTICS_MATRIX } from '/CostMatrix';
+import { TERMINAL_MINIMUM_ENERGY } from '/prototypes/structure/terminal';
+import { LOGISTICS_MATRIX } from '/cache/costmatrix/LogisticsMatrixCache';
 import { ICON_PROHIBITED } from '/lib/icons';
 import { Log, LOG_LEVEL } from '/os/core/Log';
-
-/* global Log, Filter, UNIT_BUILD_TIME, DEFINE_CACHED_GETTER */
-/* global LOGISTICS_MATRIX */
-/* global CREEP_BUILD_RANGE, CREEP_RANGED_HEAL_RANGE, CREEP_RANGED_ATTACK_RANGE, CREEP_UPGRADE_RANGE, MINIMUM_SAFE_FLEE_DISTANCE */
-/* global Player, PLAYER_HOSTILE, PLAYER_ALLY */
-/* global TERMINAL_MINIMUM_ENERGY */
-/* global Intel */
+import { PLAYER_STATUS } from '/Player';
+import Path from '/ds/Path';
 
 const ON_ERROR_SLEEP_DELAY = 3;
 const CREEP_AUTOFLEE_HP = 0.90;		// Run away at 90% hp
@@ -66,11 +61,8 @@ Creep.prototype.run = function run() {
 		}
 		this.updateStuck();
 	} catch (e) {
-		// console.log('Exception on creep ' + this.name + ' at ' + this.pos);
-		// console.log(e);
 		Log.error(`Exception on creep ${this.name} at ${this.pos}: ${e}`, "Creep");
 		Log.error(e.stack, "Creep");
-		// console.log(e.stack);
 		this.say("HELP");
 		this.defer(ON_ERROR_SLEEP_DELAY);
 		// this.memory.error = { msg: e.toString(), tick: Game.time, stack: e.stack };
@@ -78,8 +70,8 @@ Creep.prototype.run = function run() {
 };
 
 /**
- * @param String message - String to log out
- * @param Number level - Log level
+ * @param {string} message - String to log out
+ * @param {Number} level - Log level
  */
 Creep.prototype.log = function (message, level = LOG_LEVEL.WARN) {
 	const { x, y, roomName } = this.pos;
@@ -100,7 +92,7 @@ Creep.prototype.isDeferred = function () {
 
 /**
  * Can we renew this creep?
- * @todo: (Optional) (Cpu) Remove body part check and just mark roles with claim parts.
+ * @todo (Optional) (Cpu) Remove body part check and just mark roles with claim parts.
  */
 var unRenewableRoles = ['recycle', 'filler', 'pilot', 'defender', 'upgrader'];
 Creep.prototype.canRenew = function () {
@@ -155,7 +147,7 @@ Creep.prototype.getRole = function () {
 };
 
 /**
- * @param string
+ * @param {string}
  */
 Creep.prototype.setRole = function (role) {
 	if (typeof role !== 'string')
@@ -175,7 +167,7 @@ Creep.prototype.getRepairTarget = function () {
 Creep.prototype.take = function (target, resource = RESOURCE_ENERGY) {
 	var creep = this;
 	var result;
-	if (target instanceof Structure) {
+	if (target instanceof Structure || target instanceof Tombstone || target instanceof Ruin) {
 		result = creep.withdraw(target, resource);
 	} else if (target instanceof Creep) {
 		result = target.transfer(creep, resource);
@@ -272,12 +264,12 @@ Creep.prototype.flee = function (min = MINIMUM_SAFE_FLEE_DISTANCE, all = false, 
 	}
 	if (opts.roomCallback == null)
 		opts.roomCallback = (r) => {
-			if (Intel.hasOwner(r) && Intel.getRoomStatus(r) <= PLAYER_NEUTRAL)
+			if (Intel.hasOwner(r) && Intel.getRoomStatus(r) <= PLAYER_STATUS.NEUTRAL)
 				return false;
 			return LOGISTICS_MATRIX.get(r);
 			// return Game.rooms[r] ? Game.rooms[r].FLEE_MATRIX : ARENA_MATRIX;
 		};
-	const { path, ops, cost, incomplete } = PathFinder.search(this.pos, goals, opts);
+	const { path, ops, cost, incomplete } = Path.search(this.pos, goals, opts);
 	if (!path || path.length <= 0) {
 		this.log(`Unable to flee`, LOG_LEVEL.ERROR);
 		this.say("EEK!");
@@ -296,13 +288,12 @@ Creep.prototype.flee = function (min = MINIMUM_SAFE_FLEE_DISTANCE, all = false, 
 Creep.prototype.getFleePosition = function (targets, range = CREEP_RANGED_ATTACK_RANGE) {
 	if (_.isEmpty(targets))
 		return ERR_NO_PATH;
-	const { path } = PathFinder.search(this.pos,
-		_.map(targets, c => ({ pos: c.pos, range: range })),
-		{
-			flee: true,
-			maxOps: 500,
-			maxRooms: 1
-		});
+	const goals = _.map(targets, c => ({ pos: c.pos, range: range }));
+	const { path } = Path.search(this.pos, goals, {
+		flee: true,
+		maxOps: 500,
+		maxRooms: 1
+	});
 	return (path !== undefined && path.length > 0) ? path[0] : ERR_NO_PATH;
 };
 
@@ -327,7 +318,7 @@ Creep.prototype.dismantle = function (target) {
 	// Friendly structures don't get attacked.
 	if (target instanceof OwnedStructure
 		&& !target.my
-		&& Player.status(target.owner.username) >= PLAYER_TRUSTED) {
+		&& Player.status(target.owner.username) >= PLAYER_STATUS.TRUSTED) {
 		Log.warn("[WARNING] Won't dismantle friendly structure!", "Creep");
 		this.say(ICON_PROHIBITED);
 		return ERR_INVALID_TARGET;
@@ -348,7 +339,7 @@ Creep.prototype.dismantle = function (target) {
 const { attack } = Creep.prototype;
 Creep.prototype.attack = function (target) {
 	// Friendlies are safe.			
-	if (target == null || target.my || (target.owner && Player.status(target.owner.username) >= PLAYER_TRUSTED)) {
+	if (target == null || target.my || (target.owner && Player.status(target.owner.username) >= PLAYER_STATUS.TRUSTED)) {
 		return ERR_INVALID_TARGET;
 	}
 	return attack.call(this, target);
@@ -356,7 +347,7 @@ Creep.prototype.attack = function (target) {
 
 const { rangedAttack } = Creep.prototype;
 Creep.prototype.rangedAttack = function (target) {
-	if (target.my || (target.owner && Player.status(target.owner.username) >= PLAYER_TRUSTED)) {
+	if (target.my || (target.owner && Player.status(target.owner.username) >= PLAYER_STATUS.TRUSTED)) {
 		return ERR_INVALID_TARGET;
 	}
 	return rangedAttack.call(this, target);
@@ -371,7 +362,7 @@ const { build } = Creep.prototype;
 Creep.prototype.build = function (target) {
 	if (!target || !(target instanceof ConstructionSite))
 		return ERR_INVALID_TARGET;
-	if (!target.my && Player.status(target.owner.username) !== PLAYER_ALLY && target.structureType !== STRUCTURE_CONTAINER)
+	if (!target.my && Player.status(target.owner.username) !== PLAYER_STATUS.ALLY && target.structureType !== STRUCTURE_CONTAINER)
 		return ERR_INVALID_TARGET;
 	const status = build.call(this, target);
 	if (status === ERR_INVALID_TARGET && OBSTACLE_OBJECT_TYPES.includes(target.structureType)) {
@@ -389,7 +380,7 @@ const { heal } = Creep.prototype;
 Creep.prototype.heal = function (target, force = true) {
 	if (target.hits >= target.hitsMax && !force)
 		return ERR_FULL;
-	if (!target.my && Player.status(target.owner.username) !== PLAYER_ALLY)
+	if (!target.my && Player.status(target.owner.username) !== PLAYER_STATUS.ALLY)
 		return ERR_INVALID_TARGET;
 	const status = heal.call(this, target);
 	if (status === OK)
@@ -402,7 +393,7 @@ Creep.prototype.heal = function (target, force = true) {
 
 const { rangedHeal } = Creep.prototype;
 Creep.prototype.rangedHeal = function (target) {
-	if (!target.my && Player.status(target.owner.username) !== PLAYER_ALLY)
+	if (!target.my && Player.status(target.owner.username) !== PLAYER_STATUS.ALLY)
 		return ERR_INVALID_TARGET;
 	return rangedHeal.call(this, target);
 };
@@ -418,7 +409,7 @@ Creep.prototype.repair = function (target) {
 		Log.error(`Target ${target} at ${target.pos} can not be repaired, has no construction cost`, "Creep");
 		return ERR_INVALID_TARGET;
 	}
-	if (!target || target.owner && !target.my && Player.status(target.owner.username) !== PLAYER_ALLY) {
+	if (!target || target.owner && !target.my && Player.status(target.owner.username) !== PLAYER_STATUS.ALLY) {
 		Log.warn(`Target ${target} at ${((!target) ? 'null' : target.pos)} invalid ownership, unable to repair`, "Creep");
 		return ERR_INVALID_TARGET;
 	}
@@ -735,3 +726,23 @@ Creep.prototype.runBreakdown = function (opts) {
 	else if (!primary.mineralType || (primary.mineralAmount || 0) < amt)
 		return this.pushState("Transfer", { res, amt: amt - primary.mineralAmount, src: terminal.id, dst: primary.id });
 };
+
+/**
+ * Repair a target untill it's full or we're unable to get energy
+ */
+Creep.prototype.runRepair = function (opts) {
+	const { target, allowMove = false, allowGather = false, allowHarvest = false } = opts;
+	const object = Game.getObjectById(target);
+	if (!object || object.hits >= object.hitsMax)
+		return this.popState();
+	if (this.pos.getRangeTo(object) > CREEP_REPAIR_RANGE && !allowMove)
+		return this.popState();
+	if (this.carry[RESOURCE_ENERGY] <= 0) {
+		if (allowGather)
+			return this.pushState('AcquireEnergy', { allowMove, allowHarvest }, true);
+		else
+			return this.popState();
+	}
+	const status = this.repair(object);
+	Log.debug(`${this.name}/${this.pos} repairing ${object} status ${object}`, 'Creep');
+}

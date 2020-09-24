@@ -33,7 +33,7 @@ import { estimate } from '/lib/time';
 import { CLAMP } from '/os/core/math';
 import { MM_AVG } from '/os/core/math';
 import { INVADER_USERNAME } from '/os/core/constants';
-import { DATE_FORMATTER } from '/lib/time';
+import { DATETIME_FORMATTER } from '/lib/time';
 import { Log, LOG_LEVEL } from '/os/core/Log';
 import { ENV } from '/os/core/macros';
 
@@ -46,9 +46,9 @@ const DESIRED_UPGRADE_RATE = (CONTROLLER_LEVELS[1] + CONTROLLER_LEVELS[2]) / SAF
 // Maximum upgraders:
 // Math.pow((2*CREEP_UPGRADE_RANGE+1),2) - 1; // 48, max 49 work parts = 2352 ept
 
-// @todo: FIND_HOSTILE_STRUCTURES, spawn bulldozer (doesn't have to be very big)
-// @todo: Room goals (bunker raises defenses, expand pushes gcl) 
-// @todo:
+// @todo FIND_HOSTILE_STRUCTURES, spawn bulldozer (doesn't have to be very big)
+// @todo Room goals (bunker raises defenses, expand pushes gcl) 
+// @todo
 /* global.CONTROLLER_STATE_NORMAL = 0;		// Room is operational.
 global.CONTROLLER_STATE_BOOTUP = 1;		// Create tiny units if we need to, just until extensions are fun.
 global.CONTROLLER_STATE_HALT = 2;		// No spawning, load extensions.
@@ -77,6 +77,11 @@ const MINIMUM_REQUIRED_SAFE_MODE = 300;
 DEFINE_CACHED_GETTER(StructureController.prototype, 'progressRemaining', con => con.progressTotal - con.progress);
 DEFINE_CACHED_GETTER(StructureController.prototype, 'age', con => Game.time - con.memory.claimedAt);
 DEFINE_CACHED_GETTER(StructureController.prototype, 'container', con => con.pos.getStructure(STRUCTURE_CONTAINER, CREEP_UPGRADE_RANGE, CREEP_UPGRADE_RANGE, s => _.isEmpty(s.lookForNear(LOOK_SOURCES))));
+
+if (!Memory.audit) {
+	Log.warn(`Initializing audit memory`, 'Memory');
+	Memory.audit = {};
+}
 
 // Game.rooms['E59S39'].visual.rect(33-3,40-3,6,6)
 
@@ -236,11 +241,11 @@ const CENSUS_ROLES = ['builder', 'defender', 'dualminer', 'healer', 'miner', 'pi
  *	 An action function (for spawn or recycle)
  *   A spawn selector (ours, or a better option?)
  *
- * @todo: Priority should not be a role assigned constant. It should be a float between 0 and 1
+ * @todo Priority should not be a role assigned constant. It should be a float between 0 and 1
  * based on current demand.
  *
- * @todo: If no towers, keep guard posted (low priorty over economy though).
- * @todo: If hostiles present, don't request repair creeps
+ * @todo If no towers, keep guard posted (low priorty over economy though).
+ * @todo If hostiles present, don't request repair creeps
  *
  * 2017-02-22: Support for memory-backed census jobs?
  * 2017-02-04: Repair units only spawn if we have a use for them
@@ -277,6 +282,8 @@ StructureController.prototype.runCensus = function () {
 	const healers = census[`${roomName}_healer`] || [];
 	const repair = census[`${roomName}_repair`] || [];
 	const scav = census[`${roomName}_scav`] || [];
+	const gatherers = census[`${roomName}_gather`] || [];
+	const providers = census[`${roomName}_provider`] || [];
 	const bulldozer = census[`${roomName}_bulldozer`] || [];
 	const scouts = census[`${roomName}_scout`] || [];
 	const miners = census[`${roomName}_miner`] || [];
@@ -295,6 +302,7 @@ StructureController.prototype.runCensus = function () {
 	const remote = Math.floor(_.sum(haulers, 'memory.ept')) || 0;
 	const reactor = (this.room.energyAvailable >= SPAWN_ENERGY_START) ? 0 : spawns.length;
 	const overstock = Math.floor((storage && storedEnergy * Math.max(0, storage.stock - 1) || 0) / CREEP_LIFE_TIME);
+	const stock = (!storage || !storage.isActive()) ? 1.0 : storage.stock;
 	const income = base + remote + reactor + overstock + enDecay;
 
 	const upkeepCreeps = _.sum(creeps, 'cpt');
@@ -306,12 +314,13 @@ StructureController.prototype.runCensus = function () {
 	const net = income - (expense + upkeep);
 	const avail = income - upkeep;
 	const minimumAvailable = 0.25;
-	const modifier = (!storage || !storage.isActive()) ? 1.0 : Math.max(minimumAvailable, storage.stock);
+	const modifier = Math.max(minimumAvailable, stock);
 	const adjusted = avail * modifier; // Works, but is this the correct result?
 	// const adjusted = income * modifier;
 
 	// Distribution		
 	const upperRepairLimit = 0.97;
+	// @todo should this value ever be below the infrastructure upkeep?
 	let allotedRepair = _.any(this.room.structures, s => s.hits / s.hitsMax < upperRepairLimit && CONSTRUCTION_COST[s.structureType]) ? CLAMP(1, Math.floor(adjusted * 0.25)) : 0;
 	let allotedBuild = (sites && sites.length) ? Math.floor(adjusted * 0.70) : 0;
 	const maxAllotedUpgrade = (this.level === MAX_ROOM_LEVEL) ? CONTROLLER_MAX_UPGRADE_PER_TICK : Infinity;
@@ -361,8 +370,8 @@ StructureController.prototype.runCensus = function () {
 		// var sourcesByRoom = _.groupBy(sources, 'pos.roomName');
 		var numSources = sources.length;
 		var dual = false;
-		// @todo: If we start adding sources to this list, how is this supposed to work?
-		// @todo: Start requesting dedicated, assigned haulers?
+		// @todo If we start adding sources to this list, how is this supposed to work?
+		// @todo Start requesting dedicated, assigned haulers?
 		const MAX_STORAGE_PCT = 0.90;
 		// if(!this.room.storage || this.room.storage.storedPct < MAX_STORAGE_PCT) {
 		if (numSources === 2 && this.level >= 6) {
@@ -375,7 +384,7 @@ StructureController.prototype.runCensus = function () {
 					const s1pos = new RoomPosition(s1.pos.x, s1.pos.y, s1.pos.roomName);
 					const s2pos = new RoomPosition(s2.pos.x, s2.pos.y, s2.pos.roomName);
 					this.cache.steps = s1pos.getStepsTo({ pos: s2pos, range: 1 }) * 2; // expecting two sources
-					Log.debug(`${this.pos.roomName} steps: ${this.cache.steps}`, 'Controller');
+					Log.debug(`${this.pos.roomName} steps between sources: ${this.cache.steps}`, 'Controller');
 				}
 				const minerpri = (adjusted <= 0) ? PRIORITY_MAX : PRIORITY_MED;
 				const result = _.attempt(() => Unit.requestDualMiner(spawn, this.pos.roomName, totalCapacity, this.cache.steps, minerpri));
@@ -466,32 +475,57 @@ StructureController.prototype.runCensus = function () {
 			Unit.requestScout(spawn, { origin: this.pos.roomName }, 25);
 		}
 
-		const maxScav = (this.level < 3) ? 6 : 4;
-		let scavNeed = CLAMP(2, resDecay, maxScav);
-		const scavHave = scav.length;
-		// @todo: Every tick we can pretty easily get this value. Can we do anything useful with it?
-		if (this.room.energyPct < 0.25)
-			scavNeed += 1;
+		/**
+		 * Providers before scavs now. They work faster and more efficiently,
+		 * so we need less of them.
+		 */
 		const ownedStructures = this.room.structuresMy;
-		// if(scavHave < scavNeed && _.size(this.room.structures) > 1) {
-		// console.log(`scav ${scavHave} / ${scavNeed}`);
-		if (_.size(ownedStructures) <= 1)
-			scavNeed = 1;
-		if (scavHave < scavNeed) {
-			if (scavHave === 0 && pilot.length <= 0) {
-				Log.warn(`${this.pos.roomName} No scavs, creating pilot`, 'Controller');
-				Unit.requestPilot(spawn, roomName);
-				return;
-			}
-			// prio = 100 - Math.ceil(100 * (scavHave / scavNeed));
-			prio = CLAMP(0, Math.ceil(100 * (scavHave / scavNeed)), 75);
-			if (scavHave <= 0 && assistingSpawn)
-				spawn = assistingSpawn;
-			// Log.warn("Short on scavengers at " + this.pos.roomName + ' (prio: ' + prio + ')');		
-			// Log.warn(`Requesting scavenger to ${this.pos.roomName} from ${spawn.pos.roomName} priority ${prio}`);
-			// function(spawn, home=null, canRenew=true, priority=50, hasRoad=true)
-			Unit.requestScav(spawn, roomName, (scavNeed <= 3), prio, (this.level > 2 && roomName === spawn.pos.roomName));
+		const MAX_PROVIDERS = 4;
+		const pHave = providers.length;
+		const pNeed = CLAMP(1, (this.level < 4) ? 4 : 2, MAX_PROVIDERS);
+		if (pHave <= 0 && pilot.length <= 0) {
+			Log.warn(`${this.pos.roomName} No providers, creating pilot`, 'Controller');
+			Unit.requestPilot(spawn, roomName);
+			return;
+		} else if (pHave < pNeed) {
+			const pprio = CLAMP(0, Math.ceil(100 * (pHave / pNeed)), 90);
+			const useSpawn = spawn || assistingSpawn;
+			useSpawn.submit({ memory: { role: 'provider', home: this.pos.roomName }, priority: pprio });
 		}
+
+		if (storage || terminal) {
+			// Switch to gather/provider once we've got a storage up
+			const MAX_GATHERERS = 2;
+			const gHave = gatherers.length;
+			const gNeed = 2;
+			if (gHave < gNeed) {
+				const useSpawn = spawn || assistingSpawn;
+				useSpawn.submit({ memory: { role: 'gather', home: this.pos.roomName }, priority: PRIORITY_MED });
+			}
+		} else {
+			// We're losing some early-game bonus upgraders, so we want to be careful of that.
+			// but honestly they suck at upgrading with only one work part, so we're probably better off
+			// const maxScav = (this.level < 3) ? 6 : 4;
+			const maxScav = 2;
+			let scavNeed = CLAMP(1, resDecay, maxScav);
+			const scavHave = scav.length;
+			// @todo Every tick we can pretty easily get this value. Can we do anything useful with it?
+			// if (this.room.energyPct < 0.15)
+			//	scavNeed += 1;
+			if (_.size(ownedStructures) <= 1)
+				scavNeed = 1;
+			if (scavHave < scavNeed) {
+				// prio = 100 - Math.ceil(100 * (scavHave / scavNeed));
+				prio = CLAMP(0, Math.ceil(100 * (scavHave / scavNeed)), 75);
+				if (scavHave <= 0 && assistingSpawn)
+					spawn = assistingSpawn;
+				// Log.warn("Short on scavengers at " + this.pos.roomName + ' (prio: ' + prio + ')');		
+				// Log.warn(`Requesting scavenger to ${this.pos.roomName} from ${spawn.pos.roomName} priority ${prio}`);
+				// function(spawn, home=null, canRenew=true, priority=50, hasRoad=true)
+				Unit.requestScav(spawn, roomName, (scavNeed <= 3), prio, (this.level > 2 && roomName === spawn.pos.roomName));
+			}
+		}
+
 
 		// const desiredRepair = (this.level >= 4 && (storedEnergy > 200000 || terminalEnergy > 60000)) ? 1 : 0;
 		// const desiredRepai
@@ -508,7 +542,7 @@ StructureController.prototype.runCensus = function () {
 			Unit.requestRepair(spawn, roomName, Math.ceil(allotedRepair / MAX_REPAIR_CREEPS_PER_ROOM));
 		} else {
 			// Excess alloted energy is assigned to upgrade
-			allotedUpgrade = Math.min(maxAllotedUpgrade, allotedUpgrade + (allotedRepair - currentRepair));
+			allotedUpgrade = CLAMP(0, allotedUpgrade + (allotedRepair - currentRepair), maxAllotedUpgrade);
 			allotedRepair = currentRepair;
 		}
 
@@ -530,7 +564,7 @@ StructureController.prototype.runCensus = function () {
 			} else {
 				Log.debug(`${this.pos.roomName} Upgraders: ${workAssigned} assigned, ${allotedUpgrade} desired, ${missingWork} diff (${pctWork})`, 'Controller');
 				// if (pctWork < 0.5 && )
-				if (missingWork >= 5 && upgraders.length < MAX_UPGRADER_COUNT) // minimum amount of extra work we could get out of having another creep
+				if (upgraders.length === 0 || (missingWork >= 5 && upgraders.length < MAX_UPGRADER_COUNT)) // minimum amount of extra work we could get out of having another creep
 					Unit.requestUpgrader(spawn, roomName, pctWork, (allotedUpgrade));
 			}
 		} else if (this.upgradeBlocked) {
@@ -546,12 +580,20 @@ StructureController.prototype.runCensus = function () {
 		}
 	} finally {
 		const remainder = adjusted - allotedRepair - allotedBuild - allotedUpgrade;
-		var report = "";
+		/*  var report = "";
 		report += `\nBase ${_.round(base, 3)} Remote ${_.round(remote, 3)} Reactor ${_.round(reactor, 3)} Over ${_.round(overstock, 3)} Decay: ${enDecay}`;
 		report += `\nUpkeep: ${_.round(upkeep, 3)}, Creep: ${_.round(upkeepCreeps, 3)}, Structure: ${_.round(upkeepStructures, 3)}`;
 		report += `\nIncome: ${_.round(income, 3)}, Overstock: ${_.round(overstock, 3)}, Expense: ${_.round(expense, 3)}, Upkeep: ${_.round(upkeep, 3)}, Net: ${_.round(net, 3)}, Avail ${_.round(avail, 3)}, Banked: ${storedEnergy}, Adjusted ${_.round(adjusted, 3)}`;
 		report += `\nAllotments: ${_.round(allotedUpgrade, 3)} upgrade, ${_.round(allotedRepair, 3)} repair, ${_.round(allotedBuild, 3)} build, ${_.round(remainder, 3)} leftover`;
-		Log.info(`<details><summary>Income/Expense Report (${this.pos.roomName})</summary>${report}</details>`);
+		Log.info(`<details style='display: inline-block'><summary>Income/Expense Report (${this.pos.roomName})</summary>${report}</details>`, 'Controller'); */
+
+		Memory.audit[this.pos.roomName] = {
+			time: Date.now(),
+			local: base + reactor,
+			remote, overstock, decay: enDecay,
+			upkeepCreeps, upkeepStructures,
+			stock, modifier,
+		};
 	}
 }
 
@@ -611,11 +653,11 @@ StructureController.prototype.updateSafeMode = function () {
 };
 
 StructureController.prototype.onSafeModeEnter = function () {
-	Log.notify(`Room ${this.room.name} entering safe mode at ${DATE_FORMATTER.format(Date.now())}!`);
+	Log.notify(`Room ${this.room.name} entering safe mode at ${DATETIME_FORMATTER.format(Date.now())}!`);
 };
 
 StructureController.prototype.onSafeModeExit = function () {
-	Log.notify(`Room ${this.room.name} leaving safe mode at ${DATE_FORMATTER.format(Date.now())}!`);
+	Log.notify(`Room ${this.room.name} leaving safe mode at ${DATETIME_FORMATTER.format(Date.now())}!`);
 };
 
 /** 
@@ -720,7 +762,7 @@ const { activateSafeMode } = StructureController.prototype;
 StructureController.prototype.activateSafeMode = function () {
 	const status = activateSafeMode.call(this);
 	if (status !== OK)
-		Log.error(`${this.pos.roomName} safe mode activation at ${DATE_FORMATTER.format(Date.now())} status ${status}`);
+		Log.error(`${this.pos.roomName} safe mode activation at ${DATETIME_FORMATTER.format(Date.now())} status ${status}`);
 	return status;
 };
 

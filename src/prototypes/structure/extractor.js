@@ -9,7 +9,7 @@
 
 /* global DEFINE_CACHED_GETTER, Log, MAX_CREEP_SPAWN_TIME, TERMINAL_RESOURCE_LIMIT */
 import * as Unit from '/Unit';
-import { TERMINAL_RESOURCE_LIMIT } from '/proto/structure/terminal';
+import { TERMINAL_RESOURCE_LIMIT } from '/prototypes/structure/terminal';
 import { Log, LOG_LEVEL } from '/os/core/Log';
 
 const EXTRACTOR_CONTAINER_FULL = 0.80; // 80%

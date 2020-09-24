@@ -77,7 +77,7 @@ StructureSpawn.prototype.run = function () {
 };
 
 StructureSpawn.prototype.generateName = function (job) {
-	if (ENV('spawn.name_randomize', false) === false)
+	if (ENV('spawn.name_randomize', true) === false)
 		return `${job.memory.role}${this.getNextId()}`;
 	// return `${this.getNextId(36)}${job.memory.role.slice(0,2)}`;
 	return `${this.getNextId(36)}`;

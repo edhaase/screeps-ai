@@ -8,7 +8,6 @@
 import { calcResourceWeight } from "../lib/util";
 
 /* global DEFINE_CACHED_GETTER, DEFINE_GETTER, CREEP_RANGED_ATTACK_RANGE, UNIT_COST */
-/* global Player, PLAYER_TRUSTED, */
 /* global FATIGUE_BASE, FATIGUE_SWAMP, FATIGUE_ROAD */
 
 

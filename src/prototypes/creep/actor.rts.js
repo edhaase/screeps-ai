@@ -6,11 +6,12 @@
 'use strict';
 
 import RouteCache from '/cache/RouteCache';
-import { LOGISTICS_MATRIX } from '/CostMatrix';
+import { LOGISTICS_MATRIX } from '/cache/costmatrix/LogisticsMatrixCache';
 import { ICON_ARROW_BARS, ICON_THREE_RIGHT, ICON_COMPASS } from '/lib/icons';
-import { MINIMUM_TTL_TO_BITCH_ABOUT_PATHING_FAILURES } from '/proto/livingentity';
-import { DEFAULT_ROAD_SCORE } from '../../ds/costmatrix/RoomCostMatrix';
+import { MINIMUM_TTL_TO_BITCH_ABOUT_PATHING_FAILURES } from '/prototypes/livingentity';
+import { DEFAULT_ROAD_SCORE } from '/ds/costmatrix/RoomCostMatrix';
 import { Log, LOG_LEVEL } from '/os/core/Log';
+import Path from '/ds/Path';
 
 global.serializePath = function (arr) {
 	// Keep first room position		
@@ -32,7 +33,7 @@ global.serializePath = function (arr) {
  * If we're going to cache pathfinding, this is probably the place.
  * Expensive or not, must be CPU-efficient before we can release. This includes serialization.
  *
- * @todo: Perhaps let the creep set it's own max ops (some may be more expensive?)
+ * @todo Perhaps let the creep set it's own max ops (some may be more expensive?)
  */
 RoomObject.prototype.getPathTo = function (pos, range = 1, opts = {}) {
 	/* global Route */
@@ -60,7 +61,7 @@ RoomObject.prototype.getPathTo = function (pos, range = 1, opts = {}) {
 		const plainCost = opts.plainCost || this.plainSpeed;
 		const swampCost = opts.swampCost || this.swampSpeed;
 		// These costs only work if road costs 2
-		result = PathFinder.search(this.pos, ({ pos, range }), {
+		result = Path.search(this.pos, ({ pos, range }), {
 			plainCost: (plainCost===2) ? 3 : plainCost, // This is wrong for plainSpeed 2
 			swampCost: (swampCost===2) ? 3 : swampCost,
 			maxCost: this.ticksToLive,
@@ -71,7 +72,7 @@ RoomObject.prototype.getPathTo = function (pos, range = 1, opts = {}) {
 		});
 		//this.room.visual.poly(_.filter(result.path,'roomName',this.pos.roomName));
 		result.route = route;
-		var { path, ops, cost, incomplete } = result;
+		const { path, ops, cost, incomplete } = result;
 		/* if (opts.repathPerRoom !== false && path && path.length) {
 			const [next] = path;
 			const index = _.findIndex(path, p => p.roomName !== next/roomName);
@@ -106,7 +107,7 @@ RoomObject.prototype.routeCallback = function (roomName, fromRoom) {
 /**
  * Pure cache based movement - No serialization
  *
- * @param Object goal - pos and optionally range
+ * @param {Object} goal - pos and optionally range
  *
  * Game.creeps['noop498'].walkTo({pos: new RoomPosition(16,24,'W7N4'), range: 1})
  */

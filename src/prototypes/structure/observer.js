@@ -6,9 +6,11 @@
 /* global DEFINE_MEMORY_BACKED_PROPERTY */
 
 // import * as Intel from '/Intel';
-import { scanRoom, markRoomForCommodityHarvesting, markCandidateForRemoteMining } from '/Intel';
-import Region from '/ds/Region';
 import { Log, LOG_LEVEL } from '/os/core/Log';
+import { scanRoom } from '/Intel';
+import Region from '/ds/Region';
+import { ICON_SATELLITE } from '/lib/icons';
+import { MAP_ICON_SIZE, MAP_ICON_OPACITY } from '/os/core/constants';
 
 DEFINE_MEMORY_BACKED_PROPERTY(StructureObserver.prototype, 'lastRoom', { key: 'last' });
 
@@ -46,7 +48,8 @@ StructureObserver.prototype.run = function () {
 	if (prevRoom) {
 		scanRoom(prevRoom);
 		markCandidateForRemoteMining(prevRoom);
-		markRoomForCommodityHarvesting(prevRoom);
+		markCandidateForCommodityMining(prevRoom);
+		markCandidateForLooting(prevRoom);
 	}
 
 	if (this.memory.nextRoom) {	// OS override
@@ -160,6 +163,8 @@ StructureObserver.prototype.observeRoom = function (nextRoom, force = false) {
 			color: 'white',
 			background: 'black',
 		});
+		if (Game.map.visual) // Leaks so much memory
+			Game.map.visual.text(ICON_SATELLITE, new RoomPosition(25, 25, nextRoom), { opacity: MAP_ICON_OPACITY, fontSize: MAP_ICON_SIZE });
 	} else {
 		Log.warn(`Observer ${this.pos.roomName} unable to observe ${nextRoom} status ${status}`, 'Observer');
 	}

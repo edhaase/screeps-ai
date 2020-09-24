@@ -12,11 +12,12 @@
  *
  * Logic for operating towers/turrets.
  * @todo assign damage during tick, if no valid targets find targets valid to other towers and assist.
- * @todo: fudge the numbers a little (noise function?!)
+ * @todo fudge the numbers a little (noise function?!)
  */
 'use strict';
 
 import { Log, LOG_LEVEL } from '/os/core/Log';
+import { PLAYER_STATUS } from '/Player';
 
 /* global DEFINE_MEMORY_BACKED_PROPERTY */
 DEFINE_MEMORY_BACKED_PROPERTY(StructureTower.prototype, 'range');
@@ -120,7 +121,7 @@ StructureTower.prototype.runAttack = function () {
 // 2016-10-25: Tower repairs don't run if the room is low on energy.
 // 2016-10-15: Switched back to lower, 'reasonable' limit to fix road decay / spawn choke issue.
 // 2016-10-15: Higher limit is applied only if we have the energy to spare.
-// @todo: hits / hitsMax < pct && hits < TOWER_REPAIR  * CONTROLLER[8][TOWER]
+// @todo hits / hitsMax < pct && hits < TOWER_REPAIR  * CONTROLLER[8][TOWER]
 StructureTower.prototype.runRepair = function () {
 	if (Game.time < this.getNextRepairTick())
 		return false;
@@ -159,7 +160,7 @@ StructureTower.prototype.getRepairTarget = function () {
 
 StructureTower.prototype.runHeal = function () {
 	// var weak = this.pos.findClosestByRange(FIND_CREEPS, {filter: c => c.my && c.hitPct < 1});
-	// var weak = _.find(this.room.find(FIND_CREEPS), c => c.hitPct < 1 && (c.my || Player.status(c.owner.username) == PLAYER_ALLY));
+	// var weak = _.find(this.room.find(FIND_CREEPS), c => c.hitPct < 1 && (c.my || Player.status(c.owner.username) == PLAYER_STATUS.ALLY));
 	// if(weak)
 	//	this.heal(weak);
 	// let weak = _.first(this.room.hurtCreeps);

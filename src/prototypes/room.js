@@ -10,12 +10,15 @@
 
 Room.deserializePath = _.memoize(Room.deserializePath);
 
+import { CONSTRUCTION_MATRIX } from '/cache/costmatrix/ConstructionSiteMatrixCache';
 import { shiftWhile } from '/lib/util';
 import { distanceTransformWithController } from '/lib/planner';
 import { isObstacle, unauthorizedHostile, droppedResources } from '/lib/filter';
-import { LOGISTICS_MATRIX } from '/CostMatrix';
-import { TERMINAL_RESOURCE_LIMIT } from '/proto/structure/terminal';
+import { LOGISTICS_MATRIX } from '/cache/costmatrix/LogisticsMatrixCache';
+import { TERMINAL_RESOURCE_LIMIT } from '/prototypes/structure/terminal';
 import { Log, LOG_LEVEL } from '/os/core/Log';
+import { PLAYER_STATUS } from '/Player';
+import { TILE_UNWALKABLE } from '../ds/CostMatrix';
 
 if (!Memory.rooms) {
 	Log.warn('Initializing room memory', 'Memory');
@@ -30,13 +33,14 @@ DEFINE_CACHED_GETTER(Room.prototype, 'structuresMy', r => r.find(FIND_MY_STRUCTU
 DEFINE_CACHED_GETTER(Room.prototype, 'structuresByType', r => _.groupBy(r.structures, 'structureType'));
 DEFINE_CACHED_GETTER(Room.prototype, 'structureCountByType', r => _.countBy(r.structures, 'structureType'));
 DEFINE_CACHED_GETTER(Room.prototype, 'structuresObstacles', r => _.filter(r.structures, s => isObstacle(s)));
+DEFINE_CACHED_GETTER(Room.prototype, 'terrain', r => Game.map.getRoomTerrain(r.name));
 
 DEFINE_CACHED_GETTER(Room.prototype, 'mineral', r => r.find(FIND_MINERALS)[0]);
 DEFINE_CACHED_GETTER(Room.prototype, 'tombstones', r => r.find(FIND_TOMBSTONES));
 DEFINE_CACHED_GETTER(Room.prototype, 'containers', r => r.structuresByType[STRUCTURE_CONTAINER] || []);
 DEFINE_CACHED_GETTER(Room.prototype, 'ruins', r => r.find(FIND_RUINS));
-DEFINE_CACHED_GETTER(Room.prototype, 'hurtCreeps', r => r.find(FIND_CREEPS, { filter: c => c.hitPct < 1 && (c.my || Player.status(c.owner.username) === PLAYER_ALLY) }));
-DEFINE_CACHED_GETTER(Room.prototype, 'hurtPowerCreeps', r => r.find(FIND_POWER_CREEPS, { filter: c => c.hitPct < 1 && (c.my || Player.status(c.owner.username) === PLAYER_ALLY) }));
+DEFINE_CACHED_GETTER(Room.prototype, 'hurtCreeps', r => r.find(FIND_CREEPS, { filter: c => c.hitPct < 1 && (c.my || Player.status(c.owner.username) === PLAYER_STATUS.ALLY) }));
+DEFINE_CACHED_GETTER(Room.prototype, 'hurtPowerCreeps', r => r.find(FIND_POWER_CREEPS, { filter: c => c.hitPct < 1 && (c.my || Player.status(c.owner.username) === PLAYER_STATUS.ALLY) }));
 DEFINE_CACHED_GETTER(Room.prototype, 'nuker', r => r.findOne(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_NUKER } }));
 DEFINE_CACHED_GETTER(Room.prototype, 'observer', r => r.findOne(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_OBSERVER } }));
 DEFINE_CACHED_GETTER(Room.prototype, 'resources', r => r.find(FIND_DROPPED_RESOURCES, { filter: droppedResources }));
@@ -132,11 +136,11 @@ Room.prototype.isBuildQueueEmpty = function () {
 };
 
 /**
- * @param RoomPosition pos
- * @param string structureType
+ * @param {RoomPosition} pos
+ * @param {string} structureType
  *
- * @todo: Account for expiration? sortedLastIndex _kind_ of handles this, but currently cost is more important than expiration.
- * @todo: Need to account for extra cost of building swamp road (Actually it doesn't matter, still cheaper than anything else)
+ * @todo Account for expiration? sortedLastIndex _kind_ of handles this, but currently cost is more important than expiration.
+ * @todo Need to account for extra cost of building swamp road (Actually it doesn't matter, still cheaper than anything else)
  */
 Room.prototype.addToBuildQueue = function ({ x, y }, structureType, expire = DEFAULT_BUILD_JOB_EXPIRE, priority = DEFAULT_BUILD_JOB_PRIORITY) {
 	if (!this.memory.bq)
@@ -157,6 +161,13 @@ Room.prototype.addToBuildQueue = function ({ x, y }, structureType, expire = DEF
 		var q = this.memory.bq;
 		var indx = _.sortedLastIndex(q, task, 'score');
 		q.splice(indx, 0, task);
+
+		// Attempt to mark the cost matrix, in case we re-use this cm
+		if (OBSTACLE_OBJECT_TYPES.includes(structureType)) {
+			const cm = CONSTRUCTION_MATRIX.get(this.name);
+			if (cm)
+				cm.set(x, y, 255);
+		}
 	} catch (e) {
 		Log.error(`Error in addToBuildQueue ${this.name}`, "Room");
 		Log.error(e);

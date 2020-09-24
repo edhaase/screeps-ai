@@ -18,11 +18,13 @@
 
 const ON_ERROR_SLEEP_DELAY = 3;
 
-import * as Intel from '/Intel';
-import { unauthorizedCombatHostile } from '/lib/filter';
-import { LOGISTICS_MATRIX } from '/CostMatrix';
+import { ENV } from '/os/core/macros';
 import { ICON_KEY } from '/lib/icons';
 import { Log, LOG_LEVEL } from '/os/core/Log';
+import { LOGISTICS_MATRIX } from '/cache/costmatrix/LogisticsMatrixCache';
+import { unauthorizedCombatHostile } from '/lib/filter';
+import * as Intel from '/Intel';
+import Path from '/ds/Path';
 
 PowerCreep.prototype.plainSpeed = 1;
 PowerCreep.prototype.swampSpeed = 1; // Allows us to swamp travel automatically
@@ -111,10 +113,9 @@ PowerCreep.prototype.spawnRandom = function () {
 	return status;
 };
 
-PowerCreep.prototype.isPowerDisabled = function (room) {
-	if (!Memory.empire || !Memory.empire.disablePower)
-		return false;
-	return Memory.empire.disablePower.includes(room);
+PowerCreep.prototype.isPowerDisabled = function (roomName) {
+	const disablePower = ENV('empire.disablePower', []) || [];
+	return disablePower.includes(roomName);
 };
 
 /**
@@ -128,7 +129,7 @@ PowerCreep.prototype.runAcquireOps = function (opts) {
 	const need = Math.max(0, opts.amount - (this.carry[RESOURCE_OPS] || 0));
 	if (need <= 0)
 		return this.popState(true);
-	console.log(`need: ${need} ${opts.amount} ${this.carry[RESOURCE_OPS]}`);
+	Log.debug(`need: ${need} ${opts.amount} ${this.carry[RESOURCE_OPS]}`, 'PowerCreep');
 	if (opts.allowTerm) {
 		const terminal = this.room.terminal || this.pos.findClosestTerminal(false);
 		if (terminal && terminal.store[RESOURCE_OPS] > 0) {
@@ -263,7 +264,7 @@ PowerCreep.prototype.flee = function (min = MINIMUM_SAFE_FLEE_DISTANCE, opts = {
 				return false;
 			return LOGISTICS_MATRIX.get(r);
 		};
-	const { path, ops, cost, incomplete } = PathFinder.search(this.pos, goals, opts);
+	const { path, ops, cost, incomplete } = Path.search(this.pos, goals, opts);
 	if (!path || path.length <= 0) {
 		this.say("EEK!");
 		return ERR_NO_PATH;

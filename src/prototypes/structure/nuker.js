@@ -14,7 +14,7 @@
 import { ENVC } from '/os/core/macros';
 import { RLD } from '/lib/util';
 import { INVADER_USERNAME } from '/os/core/constants';
-import { TERMINAL_MAINTAIN_RESERVE } from '/proto/structure/terminal';
+import { TERMINAL_MAINTAIN_RESERVE } from '/prototypes/structure/terminal';
 import NukeGrid from '/ds/NukeGrid';
 import { Log, LOG_LEVEL } from '/os/core/Log';
 

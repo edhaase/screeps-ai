@@ -24,7 +24,7 @@ StructurePowerSpawn.prototype.run = function () {
 		this.processPower();
 };
 
-// @todo: Size to power spawn available capacity.
+// @todo Size to power spawn available capacity.
 // @todo Put in transfer request instead of spawning creep.
 const MINIMUM_STOCK_FOR_POWER_PROCCESSING = 0.50;
 StructurePowerSpawn.prototype.runReload = function () {

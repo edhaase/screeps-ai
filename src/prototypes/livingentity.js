@@ -6,17 +6,14 @@
  */
 'use strict';
 
-/* global Log, Filter, DEFINE_CACHED_GETTER, DEFINE_GETTER */
-/* global LOGISTICS_MATRIX */
-/* global CREEP_RANGED_HEAL_RANGE, CREEP_RANGED_ATTACK_RANGE, MINIMUM_SAFE_FLEE_DISTANCE */
-/* global Player, PLAYER_HOSTILE, PLAYER_ALLY */
-/* global Intel */
 /* eslint-disable consistent-return */
 import * as Intel from '/Intel';
 import { unauthorizedCombatHostile, loadedTower, canProvideEnergy } from '/lib/filter';
 import { MM_AVG } from '/os/core/math';
-import { LOGISTICS_MATRIX } from '/CostMatrix';
+import { LOGISTICS_MATRIX } from '/cache/costmatrix/LogisticsMatrixCache';
 import { Log, LOG_LEVEL } from '/os/core/Log';
+import { PLAYER_STATUS } from '/Player';
+import Path from '/ds/Path';
 
 export const MOVE_STATE_FAILED_ATTEMPTS = 5;
 export const MINIMUM_TTL_TO_BITCH_ABOUT_PATHING_FAILURES = 35;
@@ -59,7 +56,7 @@ class LivingEntity extends RoomObject {
 		const pos = new RoomPosition(25, 25, room);
 		const goals = _.map(hostiles, c => ({ pos: c.pos, range: CREEP_RANGED_ATTACK_RANGE * 2 }));
 		goals.unshift({ pos, range: 25 + range });
-		const { path, incomplete } = PathFinder.search(this.pos, goals, {
+		const { path, incomplete } = Path.search(this.pos, goals, {
 			flee: true,
 			plainCost: this.plainSpeed,
 			swampCost: this.swampSpeed,
@@ -167,7 +164,7 @@ class LivingEntity extends RoomObject {
 			opts.hits = this.hits;
 			// Flee was here
 			return;
-		} else if (this.room.controller && !this.room.controller.my && this.room.controller.owner && Player.status(this.room.controller.owner.username) <= PLAYER_NEUTRAL) {
+		} else if (this.room.controller && !this.room.controller.my && this.room.controller.owner && Player.status(this.room.controller.owner.username) <= PLAYER_STATUS.NEUTRAL) {
 			Log.debug(`${this.name}#runHealSelf is fleeing hostile owned room ${this.room.name}`, 'LivingEntity');
 			return this.pushState('FleeRoom', { room: this.room.name });
 		} else if (this.hitPct < 0.60 && this.room.hostiles && this.room.hostiles.length && _.any(this.room.hostiles, unauthorizedCombatHostile)) {
@@ -222,12 +219,14 @@ class LivingEntity extends RoomObject {
 	 * Random direction or flee?
 	 */
 	scatter() {
-		const { path } = PathFinder.search(this.pos, { pos: this.pos, range: 2 }, {
+		const { path } = Path.search(this.pos, { pos: this.pos, range: 2 }, {
 			flee: true,
 			maxRooms: 1,
 			roomCallback: (r) => LOGISTICS_MATRIX.get(r)
 		});
 		this.room.visual.poly(path);
+		if (!path || !path.length)
+			return Log.warn(`${this.name}/${this.pos} unable to scatter, no path`, 'LivingEntity');
 		return this.move(this.pos.getDirectionTo(path[0]));
 	}
 
@@ -320,10 +319,11 @@ class LivingEntity extends RoomObject {
 	 */
 	runUnload(opts) {
 		const { terminal } = this.room;
-		const res = (opts && opts.res) || opts || _.findKey(this.carry);
+		const res = (opts && opts.res) || _.findKey(this.carry);
 		if (terminal && this.pos.isNearTo(terminal)) {
 			if (!res || this.carry[res] == null || this.carry[res] === 0)
 				return this.popState();
+			Log.info(`${this.name}/${this.pos} sending ${res} to ${terminal}`, 'Creep');
 			this.transfer(terminal, res);
 		} else {
 			// Find the closest terminal and move to it
@@ -360,11 +360,34 @@ class LivingEntity extends RoomObject {
 			opts.avoid = [];
 		const res = target.mineralType || _.findKey(target.store, (v, k) => v > 0 && !opts.avoid.includes(k)) || (target.power > 0 && RESOURCE_POWER) || RESOURCE_ENERGY;
 		const amt = Math.min(this.carryCapacityAvailable, target.mineralAmount || target.power || (target.store && target.store[res]));
-		if (amt <= 0 || !target.pos.hasWithdrawAccess())
+		if (amt <= 0 || !target.pos.hasWithdrawAccess()) {
+			LOOT_TARGETS.delete(opts.target);
 			return this.popState(true);
+		}
 		const status = this.withdraw(target, res, amt);
 		if (status === ERR_NOT_IN_RANGE)
 			return this.pushState('EvadeMove', { pos: target.pos, range: CREEP_WITHDRAW_RANGE });
+	}
+
+	runWithdrawAllFromPos(opts) {
+		const { pos } = opts;
+		const rpos = new RoomPosition(pos.x, pos.y, pos.roomName);
+		if (!rpos || this.carryCapacityAvailable <= 0)
+			return this.popState(true);
+		if (!opts.avoid)
+			opts.avoid = [];
+		if (!this.pos.isNearTo(rpos))
+			return this.pushState('MoveTo', { pos: rpos, range: CREEP_WITHDRAW_RANGE });
+		// const structure = _.find(rpos.getStructures(), s => s.mineralType || _.findKey(s.store, (v, k) => v > 0 && !opts.avoid.includes(k)));
+		// const ruin = _.find(rpos.lookFor(LOOK_RUINS), s => _.findKey(s.store, (v, k) => v > 0 && !opts.avoid.includes(k)));
+		const structure = _.find(rpos.lookFor(LOOK_STRUCTURES), s => LOOT_TARGETS.has(s.id));
+		const ruin = _.find(rpos.lookFor(LOOK_RUINS), s => LOOT_TARGETS.has(s.id));
+		const target = ruin || structure;
+		if (!target)
+			return this.popState(true);
+		return this.runWithdrawAll({
+			target: target.id, avoid: opts.avoid,
+		});
 	}
 
 	/**
@@ -373,7 +396,8 @@ class LivingEntity extends RoomObject {
 	 * If we're not allowed to move, only look for adjacent providers.
 	 */
 	runAcquireEnergy(opts = {}) {
-		const { allowMove = false, allowHarvest = true } = opts;
+		const { allowMove = false, allowHarvest = true, minimum = 0 } = opts;
+		const { allowTerminal = true } = opts;
 		if (this.carryCapacityAvailable <= 0)
 			return this.popState();
 		if (this.hits < this.hitsMax)
@@ -382,7 +406,7 @@ class LivingEntity extends RoomObject {
 		if (allowMove) {
 			target = this.getTarget(
 				({ room }) => [...room.structures, ...room.resources, ...room.tombstones, ...room.ruins],
-				(c) => canProvideEnergy(c) && (!opts.ignoreControllerContainer || c !== c.room.controller.container),
+				(c) => canProvideEnergy(c) && (!opts.ignoreControllerContainer || c !== c.room.controller.container) && (allowTerminal || !(c instanceof StructureTerminal)),
 				(c) => this.pos.findClosestByPath(c)
 			);
 		} else {
@@ -393,7 +417,7 @@ class LivingEntity extends RoomObject {
 					const tombstones = _.map(this.lookForNear(LOOK_TOMBSTONES), LOOK_TOMBSTONES);
 					return [...resources, ...structures, ...tombstones];
 				},
-				(c) => canProvideEnergy(c),
+				(c) => canProvideEnergy(c) && c.store && c.store[RESOURCE_ENERGY] > minimum,
 				(c) => this.pos.findClosestByPath(c)
 			);
 		}
@@ -403,8 +427,11 @@ class LivingEntity extends RoomObject {
 			status = this.pickup(target);
 		else
 			status = this.withdraw(target, RESOURCE_ENERGY);
-		if (status === ERR_NOT_IN_RANGE && allowMove)
-			this.moveTo(target, { range: 1, maxRooms: 1 });
+		if (status === ERR_NOT_IN_RANGE && allowMove) {
+			const moveStatus = this.moveTo(target, { range: 1, maxRooms: 1 });
+			if (moveStatus === ERR_NO_PATH)
+				this.clearTarget();
+		}
 	}
 
 	// Allow terminal, allow multiroom
@@ -444,7 +471,7 @@ DEFINE_CACHED_GETTER(LivingEntity.prototype, 'carryTotal', (c) => _.sum(c.carry)
 DEFINE_CACHED_GETTER(LivingEntity.prototype, 'carryCapacityAvailable', (c) => c.carryCapacity - c.carryTotal);
 DEFINE_GETTER(LivingEntity.prototype, 'hitPct', c => c.hits / c.hitsMax); // Not cached as this can change mid-tick
 DEFINE_CACHED_GETTER(LivingEntity.prototype, 'ttlPct', (c) => c.ticksToLive / c.ticksToLiveMax);
-DEFINE_CACHED_GETTER(LivingEntity.prototype, 'isFriendly', (c) => (c.my === true) || Player.status(c.owner.username) >= PLAYER_TRUSTED);
+DEFINE_CACHED_GETTER(LivingEntity.prototype, 'isFriendly', (c) => (c.my === true) || Player.status(c.owner.username) >= PLAYER_STATUS.TRUSTED);
 
 
 Creep.prototype.__proto__ = LivingEntity.prototype;

@@ -6,14 +6,15 @@
 'use strict';
 
 import * as Itr from '/os/core/itr';
-import { FIXED_OBSTACLE_MATRIX } from '/CostMatrix';
+import { STATIC_OBSTACLE_MATRIX } from '/cache/costmatrix/StaticObstacleMatrixCache';
 import { Log, LOG_LEVEL } from '/os/core/Log';
+import { PLAYER_STATUS } from '/Player';
 
 /* global DEFINE_CACHED_GETTER, Log, */
-/* global Player, PLAYER_ALLY */
+
 
 // Not truly a source of RoomObject, a lot of objects have this property..
-DEFINE_CACHED_GETTER(RoomObject.prototype, 'friendly', (obj) => obj.my || (obj.owner && Player.status(obj.owner.username) === PLAYER_ALLY));
+DEFINE_CACHED_GETTER(RoomObject.prototype, 'friendly', (obj) => obj.my || (obj.owner && Player.status(obj.owner.username) === PLAYER_STATUS.ALLY));
 
 DEFINE_CACHED_GETTER(RoomObject.prototype, 'total', function () {
 	if (this instanceof Resource)
@@ -46,15 +47,16 @@ DEFINE_CACHED_GETTER(Resource.prototype, 'decay', ({ amount }) => Math.ceil(amou
  * The prop parameter is the key used to store the target's id in memory. This
  * optionally allows us to have multiple target locks with different names. 
  *
- * @param function selector - Gets a list of target candidates
- * @param function validator - Check if a target is still valid
- * @param function chooser - Pick the best target from the list
- * @param string prop - Property name in memory to store the target id
+ * @param {Function} selector - Gets a list of target candidates
+ * @param {Function} validator - Check if a target is still valid
+ * @param {Function} chooser - Pick the best target from the list
+ * @param {string} prop - Property name in memory to store the target id
  */
-RoomObject.prototype.getTarget = function (selector, validator = _.identity, chooser = _.first, prop = 'tid') {
+RoomObject.prototype.getTarget = function (selector, validator = _.identity, chooser = _.first, prop = 'tid', fetch = Game.getObjectById) {
 	var target, tid = this.memory[prop];
 	if (tid != null) // Sanity check for cassandra migration
-		target = Game.getObjectById(tid);
+		target = fetch(tid);
+		// target = Game.getObjectById(tid);
 	if (target == null || !validator(target, this)) {
 		this.room.visual.circle(this.pos, { fill: 'red' });
 		var candidates = _.filter(selector.call(this, this), x => validator(x, this));
@@ -99,11 +101,11 @@ RoomObject.prototype.getTargetDeep = function (selector, validator = _.identity,
 /**
  * Similar to getTarget, but ensures no other actor is assigned to this target.
  *
- * @param function selector - Gets a list of target candidates
- * @param function restrictor - Called at start of target selection, expected to return array of invalid targets
- * @param function validator - Check if a target is still valid
- * @param function chooser - Pick the best target from the list
- * @param string prop - Property name in memory to store the target id
+ * @param {Function} selector - Gets a list of target candidates
+ * @param {Function} restrictor - Called at start of target selection, expected to return array of invalid targets
+ * @param {Function} validator - Check if a target is still valid
+ * @param {Function} chooser - Pick the best target from the list
+ * @param {string} prop - Property name in memory to store the target id
  */
 RoomObject.prototype.getUniqueTarget = function (selector, restrictor, validator = _.identity, chooser = _.first, prop = 'tid') {
 	var tid = this.memory[prop];
@@ -141,23 +143,6 @@ RoomObject.prototype.getUniqueTargetItr = function (selector, restrictor, valida
 };
 
 /**
- * Function wrapper version - Should optimize better.
- *
- * @param function selector - Gets a list of target candidates
- * @param function restrictor - Called at start of target selection, expected to return array of invalid targets
- * @param function validator - Check if a target is still valid
- * @param function chooser - Pick the best target from the list
- * @param string prop - Property name in memory to store the target id
- *
- * @return function - Return function to call
- */
-global.createUniqueTargetSelector = function (selector, restrictor, validator = _.identity, chooser = _.first, prop = 'tid') {
-	return function (roomObject) {
-		return RoomObject.prototype.getUniqueTarget.call(roomObject, selector, restrictor, validator, chooser, prop);
-	};
-};
-
-/**
  * Clear target lock for actor
  */
 RoomObject.prototype.clearTarget = function (prop = 'tid') {
@@ -189,10 +174,10 @@ RoomObject.prototype.throttle = function (freq, prop, fn) {
 /**
  * Very, very simplified state machine for actors with memory.
  *
- * @param mixed start - must be in this state to evaluate
- * @param function condition - criteria for switch
- * @param mixed end - what state to transition to
- * @param function onEnter - (optional) function to run when switching
+ * @param {*} start - must be in this state to evaluate
+ * @param {Function} condition - criteria for switch
+ * @param {*} end - what state to transition to
+ * @param {Function} onEnter - (optional) function to run when switching
  *
  * Example:
  *
@@ -456,7 +441,7 @@ RoomObject.prototype.getAdjacentContainer = function () {
 /**
  * Find and cache/store the closest spawn for re-use.
  *
- * @param string prop - key name to store spawn name in (cache or memory)
+ * @param {string} prop - key name to store spawn name in (cache or memory)
  */
 RoomObject.prototype.getClosestSpawn = function (opts = {}, prop = 'memory') {
 	var { spawn } = this[prop];
@@ -467,7 +452,7 @@ RoomObject.prototype.getClosestSpawn = function (opts = {}, prop = 'memory') {
 		if (!goal)
 			return [null, null, null];
 		this[prop].spawn = goal.name;
-		this[prop].steps = path.length;
+		this[prop].steps = (path && path.length) || 0;
 		this[prop].cost = cost;				// est ticks to get there
 		this[prop].resetSpawn = Game.time + CREEP_LIFE_TIME;
 		Log.info(`Assigning spawn ${this[prop].spawn} at steps ${path.length} and cost ${cost} to ${this}`, 'RoomObject');
@@ -539,7 +524,7 @@ RoomObject.prototype.planLink = function (range = 1, adjust = 2) {
 		const pos = origin.findPositionNear(this.pos, range, {
 			plainSpeed: 2,
 			swampSpeed: 5,
-			roomCallback: (r) => FIXED_OBSTACLE_MATRIX.get(r)
+			roomCallback: (r) => STATIC_OBSTACLE_MATRIX.get(r) || new PathFinder.CostMatrix
 		}, adjust);
 		Log.debug(`Adding link to ${pos} for ${this}`, 'Planner');
 		this.room.addToBuildQueue(pos, STRUCTURE_LINK);

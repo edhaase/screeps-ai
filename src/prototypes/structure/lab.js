@@ -3,7 +3,7 @@
  *
  * See: http://support.screeps.com/hc/en-us/articles/207891075-Minerals
  *
- * @todo: Only load amounts rounded to nearest LAB_BOOST_MINERAL amount
+ * @todo Only load amounts rounded to nearest LAB_BOOST_MINERAL amount
  */
 'use strict';
 

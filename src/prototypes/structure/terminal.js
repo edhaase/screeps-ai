@@ -17,15 +17,15 @@
  * https://www.mathway.com/Algebra
  * Terminal transfer costs equal the amount you're sending at 70 rooms linear distance, regardless of the amount you're sending?
  *
- * @todo: Auto purchase compounds only if we have labs (and credits).
+ * @todo Auto purchase compounds only if we have labs (and credits).
  * 		  http://support.screeps.com/hc/en-us/articles/207891075-Minerals
- * @todo: Track credit income/expense at this terminal.
- * @todo: Intel gathering from orders.
- * @todo: Price reduction should stop high enough we can still make back the fee
- * @todo: Fix for placing sell orders below standing buy orders
- * @todo: Account for price of energy
- * @todo: Prefer selling to allies
- * @todo: Allow minimum price for sell/buy operations
+ * @todo Track credit income/expense at this terminal.
+ * @todo Intel gathering from orders.
+ * @todo Price reduction should stop high enough we can still make back the fee
+ * @todo Fix for placing sell orders below standing buy orders
+ * @todo Account for price of energy
+ * @todo Prefer selling to allies
+ * @todo Allow minimum price for sell/buy operations
  */
 'use strict';
 
@@ -35,6 +35,7 @@ import { DATETIME_FORMATTER } from '/lib/time';
 import { in_lowest_increment_of, in_highest_increment_of, to_precision, calc_average, to_fixed } from '/lib/util';
 import { ICON_HIGH_VOLTAGE, ICON_HEART } from '/lib/icons';
 import { Log, LOG_LEVEL } from '/os/core/Log';
+import { findClosestRoomByRange } from '/algorithms/map/closest';
 
 /* global DEFINE_CACHED_GETTER, Log */
 /* global TERMINAL_MINIMUM_ENERGY, TERMINAL_RESOURCE_LIMIT, RESOURCE_THIS_TICK */
@@ -74,7 +75,7 @@ DEFINE_CACHED_GETTER(StructureTerminal.prototype, 'network', ({ id }) => _.filte
 DEFINE_CACHED_GETTER(StructureTerminal.prototype, 'creditsReservedForEnergy', (t) => TERMINAL_MINIMUM_ENERGY * (t.memory.energyPrice || TERMINAL_DEFAULT_ENERGY_PRICE) * (1.0 + MARKET_FEE));
 
 export const MINIMUM_RESOURCE_SELL_PRICE = {
-	[RESOURCE_SILICON]: 2.0
+	[RESOURCE_SILICON]: 1.5
 }
 
 /**
@@ -92,10 +93,14 @@ StructureTerminal.prototype.run = function () {
 		if (!(Game.time % MODERATE_ENERGY_FREQUENCY))
 			this.moderateEnergy();
 
-		if (this.memory.decomission) {
-			const ress = _.keys(_.pick(this.store, (amt, key) => key !== RESOURCE_ENERGY));
+		if (this.memory.decommission) {
+			// @todo set reserve to 0, prefer balancing to selling
+			const ress = _.keys(_.pick(this.store, (amt, key) => key !== RESOURCE_ENERGY && Number.isInteger(amt)));
 			const res = _.sample(ress);
-			if (res)
+			if (!res)
+				return;
+			const dest = findClosestRoomByRange(this.pos.roomName, (rN, r) => r && r.my && r.terminal && r.terminal.isActive() && !r.terminal.memory.decommission);
+			if (!dest || this.send(res, this.store[res], dest) !== OK)
 				this.sell(res, Infinity);
 			return;
 		}
@@ -171,7 +176,7 @@ StructureTerminal.prototype.updateOrders = function () {
 };
 
 /**
- * @todo: min(pctCapacityUsed * distance)
+ * @todo min(pctCapacityUsed * distance)
  */
 StructureTerminal.prototype.moderateEnergy = function () {
 	// If we're not exceeding energy limits, return early.
@@ -218,7 +223,7 @@ StructureTerminal.prototype.moderateEnergy = function () {
 };
 
 StructureTerminal.prototype.shareResource = function (resource, available) {
-	const dest = _.find(Game.rooms, r => r.my && r.controller.level >= 6 && r.terminal && r.terminal.store[resource] < TERMINAL_MAINTAIN_RESERVE && !r.terminal.memory.decommision);
+	const dest = _.find(Game.rooms, r => r.my && r.controller.level >= 6 && r.terminal && r.terminal.store[resource] < TERMINAL_MAINTAIN_RESERVE && !r.terminal.memory.decommission);
 	Log.debug(`${this.pos.roomName} wants to share ${resource} -- found: ${dest}`, 'Terminal');
 	if (!dest)
 		return false;
@@ -257,7 +262,7 @@ StructureTerminal.prototype.runAutoSell = function (resource = RESOURCE_THIS_TIC
 	 */
 	if (ENABLE_ORDER_MANAGEMENT && this.creditsAvailable > 0 && !_.any(this.orders, o => o.type === ORDER_SELL && o.resourceType === resource && o.remainingAmount > 1)) {
 		// Place order first
-		const price = this.get_sell_order_price(resource);
+		const price = this.getSellOrderPrice(resource);
 		// @todo why do we add 10% extra here?
 		const amount = CLAMP(0, in_lowest_increment_of(1.10 * over, 100), this.store[resource]);
 		const status = this.createSellOrder(resource, price, amount);
@@ -271,7 +276,7 @@ StructureTerminal.prototype.runAutoSell = function (resource = RESOURCE_THIS_TIC
 };
 
 const DEFAULT_SELL_PRICE = 0.25;
-StructureTerminal.prototype.get_sell_order_price = function (resource) {
+StructureTerminal.prototype.getSellOrderPrice = function (resource) {
 	const history = Game.market.getHistory(resource);
 	const orders = this.getAllOrders({ resourceType: resource });
 	const [buy, sell] = _.partition(orders, o => o.type === ORDER_BUY)
@@ -337,7 +342,7 @@ StructureTerminal.prototype.isActive = function () {
  * @param {number} amt - amount to buy
  * @param {number} limit - minimum price to consider
  * 
- * @todo: Avoid rooms in cache by opponent.
+ * @todo Avoid rooms in cache by opponent.
  */
 StructureTerminal.prototype.sell = function (resource, amt = Infinity, limit = TERMINAL_MINIMUM_SELL_PRICE, energySaver = false) {
 	var orders = this.getAllOrders({ type: ORDER_BUY, resourceType: resource });
@@ -385,7 +390,7 @@ StructureTerminal.prototype.scoreOrderForSell = function (o, amount = 1000, ener
  * @param {Number} amt - amount to buy
  * @param {Number} maxRange - maximum range of orders to consider
  *
- * @todo: Avoid rooms in cache by opponent.
+ * @todo Avoid rooms in cache by opponent.
  */
 StructureTerminal.prototype.buy = function (res, amount = Infinity, maxRange = Infinity) {
 	if (amount <= 0)
@@ -435,8 +440,8 @@ StructureTerminal.prototype.isFull = function () {
 };
 
 /**
- * @param Object base - Base filter ({ type: ORDER_SELL, resourceType: res })
- * @param Function filter - Secondary filter to pass through
+ * @param {Object} base - Base filter ({ type: ORDER_SELL, resourceType: res })
+ * @param {Function} filter - Secondary filter to pass through
  */
 StructureTerminal.prototype.getAllOrders = function (base, opts = {}) {
 	try {
@@ -514,7 +519,7 @@ StructureTerminal.prototype.send = function (resourceType, amount, destination, 
 		this.busy = true;
 		const room = Game.rooms[destination];
 		if (room && room.my && room.terminal)
-			room.terminal.store[resourceType] += amount;
+			room.terminal.store[resourceType] += amount;		
 	}
 	return status;
 };
@@ -563,7 +568,7 @@ StructureTerminal.prototype.sendAllEnergy = function (dest) {
 
 /**
  * Arbitrage: Exploiting a price 
- * @todo: Probably requres a run state?
+ * @todo Probably requres a run state?
  */
 const TERMINAL_MIN_ARBITRAGE_PROFIT = 0.04;
 StructureTerminal.prototype.findArbitrageOrders = function (resource = RESOURCE_ENERGY, minProfit = TERMINAL_MIN_ARBITRAGE_PROFIT) {

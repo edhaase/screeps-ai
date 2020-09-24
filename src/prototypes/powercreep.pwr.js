@@ -5,7 +5,7 @@
 
 import { Log, LOG_LEVEL } from '/os/core/Log';
 
-import { TERMINAL_RESOURCE_LIMIT } from '/proto/structure/terminal';
+import { TERMINAL_RESOURCE_LIMIT } from '/prototypes/structure/terminal';
 import { ICON_MAP } from '/lib/icons';
 
 /* global PowerCreep, DEFINE_CACHED_GETTER, DEFINE_GETTER, POWER_INFO */
