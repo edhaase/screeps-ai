@@ -2,7 +2,8 @@
 'use strict';
 
 import { RLD } from '/lib/util';
-import { Log, LOG_LEVEL } from '/os/core/Log';
+import { Log } from '/os/core/Log';
+import { CONSTRUCTION_MATRIX } from '/cache/costmatrix/ConstructionSiteMatrixCache';
 
 const STRUCTURE_MIN_RANGE = { // Range 2 for nuke safety?	
 	[STRUCTURE_SPAWN]: 2,	// Minimum two to prevent blockage and nukes
@@ -44,7 +45,7 @@ export default class FleePlanner {
 		this.maxRange = 4;									// Maximum range a structure can be from another.
 
 		this.goals = goals || [{ pos: this.origin, range: this.radius }];
-		this.cm = opts.cm || new PathFinder.CostMatrix;
+		this.cm = opts.cm || CONSTRUCTION_MATRIX.copy(this.origin.roomName) || new PathFinder.CostMatrix;
 		this.plan = [];
 		this.stuffToAdd = opts.stuffToAdd || DEFAULT_STUFF_TO_PLAN;
 		if (opts.shuffle)
@@ -183,7 +184,7 @@ export default class FleePlanner {
 		this.incomplete = false;
 		if (this.finish)
 			this.finish();
-		console.log(`Used ${this.cpu} cpu`);
+		Log.debug(`Used ${this.cpu} cpu`, 'FleePlanner');
 		return this;
 	}
 

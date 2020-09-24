@@ -3,7 +3,7 @@
 
 export default class Lzw {
 	/**
-	 * @param string
+	 * @param {String}
 	 * @returns string
 	 */
 	static encode(s) {

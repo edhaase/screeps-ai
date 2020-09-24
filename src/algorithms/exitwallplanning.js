@@ -1,6 +1,14 @@
+/**
+ * @module
+ */
 
 /**
  * Attempt to obstacle exits. Requires origin point.
+ * 
+ * @param {string} roomName 
+ * @param {*} [opts] 
+ * 
+ * @todo return plan only, we might want to analyze the results before building it
  */
 export function exitPlanner(roomName, opts = {}) {
 	const {

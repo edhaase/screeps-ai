@@ -209,7 +209,7 @@ module.exports = {
 		}
 		// ********************** Visualisierung
 		/* eslint-disable no-constant-condition */
-		if (false) {
+		if (true) {
 			const { visual } = room;
 			for (x = 0; x < 50; x++) {
 				for (y = 0; y < 50; y++) {
@@ -312,4 +312,26 @@ module.exports = {
 		return 'Finished';
 	},
 
+	testTwo: function (roomName) {
+		const room = Game.rooms[roomName];
+		const {controller} = room;
+		const { pos } = room.getOrigin();
+		const { x, y } = pos;
+		const rect_array = [];
+		let cpu = Game.cpu.getUsed();
+		rect_array.push({
+			x1: Math.max(2, x - 15), y1: Math.max(2, y - 15),
+			x2: Math.min(MAX_ROOM_WIDTH - 2, x + 15), y2: Math.min(MAX_ROOM_HEIGHT - 2, y + 15),
+		},
+		{
+			x1: Math.max(2, controller.pos.x - 5), y1: Math.max(2, controller.pos.y- 5),
+			x2: Math.min(MAX_ROOM_WIDTH - 2, controller.pos.x + 5), y2: Math.min(MAX_ROOM_HEIGHT - 2, controller.pos.y + 5),
+		}		
+		);
+		console.log('rect: ' + ex(rect_array));
+		const positions = this.getCutTiles(room, rect_array); // Positions is an array where to build walls/ramparts
+		console.log('Positions returned', positions.length);
+		cpu = Game.cpu.getUsed() - cpu;
+		console.log('Needed', cpu, ' cpu time');
+	}
 };

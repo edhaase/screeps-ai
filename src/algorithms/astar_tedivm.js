@@ -115,7 +115,7 @@ Astar.defaults = {
 /**
  * Perform an A* Search on a graph given a start and end node.
  *
- * @param Room room - room object to search in
+ * @param {Room} room - room object to search in
  * @param {RoomPosition} start - starting RoomPosition
  * @param {RoomPosition} end - ending RoomPosition
  * @param {Object} [options]

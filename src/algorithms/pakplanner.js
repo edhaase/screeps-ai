@@ -7,7 +7,7 @@ import { RLD } from '/lib/util';
 import { Log, LOG_LEVEL } from '/os/core/Log';
 
 const DEFAULT_STUFF_TO_PLAN = RLD([1, STRUCTURE_TERMINAL, CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][8], STRUCTURE_EXTENSION, 3, STRUCTURE_SPAWN, 1, STRUCTURE_OBSERVER, 1, STRUCTURE_STORAGE, 1, STRUCTURE_POWER_SPAWN, 1, STRUCTURE_NUKER, 6, STRUCTURE_TOWER]);
-import dt from '/algo/dt';
+import dt from '/algorithms/dt';
 
 export default class PakPlanner {
 	constructor(goals, origin, opts = {}) {

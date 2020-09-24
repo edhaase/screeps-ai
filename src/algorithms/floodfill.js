@@ -2,7 +2,7 @@
  * Flood fill code
  * https://en.wikipedia.org/wiki/Breadth-first_search
  *
- * @param pos - starting position
+ * @param {RoomPosition} pos - starting position
  *
  * ex: floodFill(controller.pos)
  * ex: floodFill(new RoomPosition(46,19,'E58S41'), {limit: 128, validator: (pos) => Game.map.getTerrainAt(pos) !== 'wall' && !pos.hasObstacle()})

@@ -22,7 +22,7 @@ export default function isRoomEnclosed(start, opts = {}) {
 			|| (opts.avoid && opts.avoid(roomName, EW, NS)))
 			return false;
 		var neighbors = _.values(Game.map.describeExits(roomName));
-		while ((exit = neighbors.shift())) {
+		while ((exit = neighbors.pop())) {
 			if (rooms.includes(exit) || (opts.ignore && opts.ignore(exit)))
 				continue;
 			rooms.push(exit);

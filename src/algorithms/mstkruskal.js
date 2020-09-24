@@ -1,8 +1,8 @@
 const DEFAULT_SWAMP_WEIGHT = 10;
 const DEFAULT_PLAINS_WEIGHT = 2;
 
-import UnionFind from '/algo/unionfind';
-import * as PriorityQueue from '/ds/PriorityQueue';
+import UnionFind from '/algorithms/unionfind';
+import PriorityQueue from '/ds/PriorityQueue';
 
 export default class KruskalMST {
 	// let k = new KruskalMST('W8N6'); k.addDefaultNodes().addDefaultEdges(); k.createMST()
@@ -38,6 +38,7 @@ export default class KruskalMST {
 	draw() {
 		const visual = new RoomVisual(this.roomName);
 		for (const edge of this.edges) {
+			console.log(edge);
 			const [node, edgeNode, weight] = edge;
 			const pos1 = new RoomPosition(node % 50, Math.floor(node / 50), this.roomName);
 			const pos2 = new RoomPosition(edgeNode % 50, Math.floor(edgeNode / 50), this.roomName);
@@ -78,21 +79,37 @@ export default class KruskalMST {
 		return this;
 	}
 
+	addNode(pos) {
+		this.nodes.push(pos.y * 50 + pos.x);
+		return this;
+	}
+
+	addAllEdges() {
+		var x, y;
+		for (y = 1; y < 49; y++) {
+			for (x = 1; x < 49; x++) {
+				const pos = new RoomPosition(x, y, this.roomName);
+				this.addEdges(pos);
+			}
+		}
+	}
+
+	addEdges(pos) {
+		const node = pos.y * 50 + pos.x;
+		const adj = pos.getAdjacentPoints();
+		for (const a of adj) {
+			const weight = this.getWeight(a.x, a.y);
+			if (weight === 255)
+				continue;
+			this.edgeQueue.push([node, (a.y * 50 + a.x), weight]);
+		}
+	}
+
 	addDefaultEdges() {
 		for (const node of this.nodes) {
 			const [y, x] = [Math.floor(node / 50), node % 50];
 			const pos = new RoomPosition(x, y, this.roomName);
-			// const adj = _.shuffle(pos.getAdjacentPoints());
-			const adj = pos.getAdjacentPoints();
-			for (const a of adj) {
-				const weight = this.getWeight(a.x, a.y);
-				if (weight === 255)
-					continue;
-				// const mod = _.random(1,3);
-				// const mod = a.getRangeTo(center);
-				// this.edgeQueue.push([node, (a.y * 50 + a.x), weight+mod]);
-				this.edgeQueue.push([node, (a.y * 50 + a.x), weight]);
-			}
+			this.addEdges(pos);
 		}
 		return this;
 	}

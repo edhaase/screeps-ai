@@ -1,16 +1,21 @@
 /**
+ * @module
+ */
+
+/**
  * Distance transform - An image procesing technique.
  * Rosenfeld and Pfaltz 1968 algorithm
  * @author bames
- *
- * See: http://homepages.inf.ed.ac.uk/rbf/HIPR2/distance.htm
+ * @see: http://homepages.inf.ed.ac.uk/rbf/HIPR2/distance.htm
+ * 
  * Roughly 20-40 cpu without visuals
- *
  * Scores are largest at center of clearance.
- * example: Time.measure( () => distanceTransform('W5N2', (x,y,r) =>  Game.map.getTerrainAt(x, y,r) == 'wall' || new RoomPosition(x,y,r).hasObstacle() ))
+ * @param {string} roomName - Room name to perform transform of
+ * @param {Function} [rejector] - Filter to mark positions as obstructed
+ * 
+ * @example:
+ * 		Time.measure( () => distanceTransform('W5N2', (x,y,r) =>  Game.map.getTerrainAt(x, y,r) == 'wall' || new RoomPosition(x,y,r).hasObstacle() ))
  */
-'use strict';
-
 export default function distanceTransform(roomName, rejector = (x, y, roomName) => false) {
 	var vis = new RoomVisual(roomName);
 	var topDownPass = new PathFinder.CostMatrix();
