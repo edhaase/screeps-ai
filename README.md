@@ -34,8 +34,8 @@ pending work.
 ```
 yield false | undefined; # paused until next tick
 yield true;		 # run again this tick if we have enough cpu
-yield promise;		 # put thread in pending state until promise completes, deliver on next pass
-yield future;		 # similar to yielding a thread, but may resolve within the same tick
+yield promise;	 # put thread in pending state until promise completes, deliver on next pass
+yield future;	 # similar to yielding a thread, but may resolve within the same tick
 ```
 
 ## Segment usage
@@ -46,8 +46,8 @@ yield future;		 # similar to yielding a thread, but may resolve within the same 
 
 ## Development
 
-`grunt watch`
+`npm run build` or `npm run push:local`
 
 ## Publish to MMO
 
-`grunt publish`
+`npm run push:mmo`
