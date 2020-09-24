@@ -3,6 +3,7 @@ credentials.js
 .screeps.json
 .screeps.yml
 build/
+jsdoc/
 
 # Logs
 logs
