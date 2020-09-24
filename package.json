@@ -15,6 +15,7 @@
 		"push:mmo": "npm run push -- --server main",
 		"push:local": "npm run push -- --server local",
 		"push:ba": "npm run push -- --server botarena",
+		"push:ptr": "npm run push -- --server ptr",
 		"push": "rollup -c && screeps-api -b default upload build/main.js"
 	},
 	"version": "0.0.1",
