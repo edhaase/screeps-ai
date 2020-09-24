@@ -7,6 +7,7 @@ import overlay from './overlay';
 import planner from './planner';
 import stats from './stats';
 import spawn from './spawn';
+import expansion from './expansion';
 
 /** Intel */
 import intel_alliances from './intel/alliances';
@@ -27,6 +28,7 @@ const PROGRAMS = {
 	'intel.alliances': intel_alliances,
 	'legacy.rooms': legacy_rooms,
 	fsrecon,
+	expansion,
 	build,
 	cron,
 	demolish,
@@ -44,6 +46,6 @@ const PROGRAMS = {
 	spawn
 };
 
+export default PROGRAMS;
 global.PROGRAMS = PROGRAMS;
 
-export default PROGRAMS;

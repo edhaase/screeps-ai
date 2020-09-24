@@ -1,6 +1,10 @@
-/** /ds/bitset.js */
-'use strict';
+/**
+ * @module
+ */
 
+/**
+ * @class
+ */
 export default class BitSet {
 	/**
 	 * Defaults to 1 unsigned 32 bit int
@@ -15,11 +19,19 @@ export default class BitSet {
 		return [~~(bit / this.width), bit % this.width];
 	}
 
+	/**
+	 * 
+	 * @param {*} bit 
+	 */
 	isset(bit) {
 		const [b, i] = this.calcIndex(bit);
 		return !!(this.store[b] & (1 << i));
 	}
 
+	/**
+	 * 
+	 * @param {*} bit 
+	 */
 	set(bit) {
 		const [b, i] = this.calcIndex(bit);
 		if (b >= this.store.length)
@@ -28,12 +40,20 @@ export default class BitSet {
 		return this;
 	}
 
+	/**
+	 * 
+	 * @param {*} bit 
+	 */
 	unset(bit) {
 		const [b, i] = this.calcIndex(bit);
 		this.store[b] &= ~(1 << i);
 		return this;
 	}
 
+	/**
+	 * 
+	 * @param {*} length 
+	 */
 	resize(length = 1) {
 		const old = this.store;
 		this.store = new Uint32Array(length);
@@ -41,6 +61,9 @@ export default class BitSet {
 		return this;
 	}
 
+	/**
+	 * 
+	 */
 	clear() {
 		this.store = new Uint32Array(0);
 		return this;

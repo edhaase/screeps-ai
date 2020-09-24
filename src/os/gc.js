@@ -39,9 +39,9 @@ export default class GCP {
 				delete Memory.creeps[name]; // Don't set to undefined, if memhack enabled the key will still be iterable
 				try {
 					const role = ROLES[roleName];
-					if (!role || !role.onCleanup)
+					if (!role || !role.cleanup)
 						continue;
-					role.onCleanup(memory, name);
+					role.cleanup(memory, name);
 				} catch (e) {
 					Log.error(e.stack, 'Creep');
 				}

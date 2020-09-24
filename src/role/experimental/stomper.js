@@ -4,6 +4,8 @@
  */
 'use strict';
 
+import { PLAYER_STATUS } from '/Player';
+
 const targeted = new Set();
 
 export default {
@@ -13,7 +15,7 @@ export default {
 		// Flee at 50% hp, or if we're about to lose our only heal part
 		// this.memory.fleeAtHp = Math.max(this.hitsMax * 0.60, BODYPART_MAX_HITS * 1.50);
 	},
-	onCleanup: function (memory, name) {
+	cleanup: function (memory, name) {
 		targeted.delete(memory.cid);
 	},
 	/* eslint-disable consistent-return */
@@ -25,7 +27,7 @@ export default {
 		}
 
 		const sites = _.compact(_.map(Game.rooms, r => r.find(FIND_HOSTILE_CONSTRUCTION_SITES)));
-		const candidates = _.filter(sites, c => Player.status(c.owner.username) !== PLAYER_ALLY && !c.pos.hasRampart() && c.progress > 0 && _.get(c, 'room.controller.safeMode', 0) <= 0);
+		const candidates = _.filter(sites, c => Player.status(c.owner.username) !== PLAYER_STATUS.ALLY && !c.pos.hasRampart() && c.progress > 0 && _.get(c, 'room.controller.safeMode', 0) <= 0);
 		if (!candidates || !candidates.length)
 			return this.defer(5);
 		const target = this.pos.getClosest(candidates, c => !target.has(c.id), 0) || _.sample(candidates);

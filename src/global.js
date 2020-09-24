@@ -55,7 +55,7 @@ global.RENEW_TICKS = (body) => Math.floor(SPAWN_RENEW_RATIO * CREEP_LIFE_TIME / 
 global.DUAL_SOURCE_MINER_SIZE = (steps, cap = SOURCE_ENERGY_CAPACITY) => Math.ceil((cap * 2) / HARVEST_POWER / (ENERGY_REGEN_TIME - steps * 2));
 global.CARRY_PARTS = (capacity, steps) => Math.ceil(capacity / ENERGY_REGEN_TIME * 2 * steps / CARRY_CAPACITY);
 // Max hauler size for 1:1 move, including minimum income
-global.MAX_HAULER_STEPS = (M,C = SOURCE_ENERGY_CAPACITY) => ((CREEP_LIFE_TIME*CARRY_CAPACITY) * (C - M * ENERGY_REGEN_TIME)) / (2 * (BODYPART_COST[CARRY]+BODYPART_COST[MOVE]) * C);
+global.MAX_HAULER_STEPS = (M, C = SOURCE_ENERGY_CAPACITY) => ((CREEP_LIFE_TIME * CARRY_CAPACITY) * (C - M * ENERGY_REGEN_TIME)) / (2 * (BODYPART_COST[CARRY] + BODYPART_COST[MOVE]) * C);
 global.DISMANTLE_RETURN = (workParts) => DISMANTLE_COST * DISMANTLE_POWER * workParts;
 
 global.GCL_LEVEL = (i) => ((i ** GCL_POW) - ((i - 1) ** GCL_POW)) * GCL_MULTIPLY;
@@ -119,7 +119,7 @@ global.FLAG_ECONOMY = COLOR_YELLOW;	// Economy
 /** military flags */
 global.STRATEGY_ATTACK = COLOR_RED;
 global.STRATEGY_DISMANTLE = COLOR_PURPLE;	// Similar to PLAN_DEMOLISH, but no carry. Just take shit apart.
-global.STRATEGY_SCOUT = COLOR_BLUE;	// Assign a scout to this location (memory: auto disable?)
+global.STRATEGY_C = COLOR_BLUE;
 global.STRATEGY_STEAL = COLOR_CYAN;	// (MOVE,CARRY) drains resources
 global.STRATEGY_DEFEND = COLOR_GREEN;	// Maintain a guard post. (melee or ranged though?)
 global.STRATEGY_RESPOND = COLOR_YELLOW;	// Summons specialized guards to respond to threats.

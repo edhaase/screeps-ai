@@ -1,5 +1,5 @@
 /**
- * 
+ * @module
  */
 import { Log, LOG_LEVEL } from '/os/core/Log';
 

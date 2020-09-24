@@ -1,9 +1,8 @@
-/** Process.js - The base process definition */
-'use strict';
-
-/* global ENV, ENVC, MAKE_CONSTANT, MAKE_CONSTANTS, Log */
+/**
+ * @module
+ */
 import { ENVC, MAKE_CONSTANT, MAKE_CONSTANTS } from '/os/core/macros';
-import { OperationNotPermitted } from '/os/core/errors';
+import { OperationNotPermittedError } from '/os/core/errors';
 import { Log, LOG_LEVEL } from '/os/core/Log';
 
 if (!Memory.process) {
@@ -11,6 +10,9 @@ if (!Memory.process) {
 	Memory.process = {};
 }
 
+/**
+ * @classdesc The base process definition
+ */
 export default class Process {
 	constructor(opts) {
 		if (opts.pid == null)
@@ -37,6 +39,9 @@ export default class Process {
 		return new this(opts);
 	}
 
+	/**
+	 * 
+	 */
 	get gid() {
 		if (this.ppid)
 			return this.parent.gid;
@@ -44,19 +49,30 @@ export default class Process {
 			return this.pid;
 	}
 
+	/**
+	 * 
+	 */
 	get children() {
 		return this.kernel.childrenLookupTable.get(this);
 	}
 
+	/**
+	 * 
+	 */
 	get parent() {
 		return this.kernel.process.get(this.ppid) || null;
 	}
 
+	/**
+	 * 
+	 */
 	get threads() {
 		return this.kernel.threadsByProcess.get(this);
 	}
 
-	/** Memory */
+	/**
+	 *  Memory
+	 */
 	get memory() {
 		if (!Memory.process[this.pid])
 			Memory.process[this.pid] = {};
@@ -93,35 +109,81 @@ export default class Process {
 		return _.round(total, CPU_PRECISION);
 	}
 
-	/** Lifecycle */
+	/**
+	 * @abstract
+	 */
 	onStart() { }
+
+	/**
+	 * @abstract
+	 */
 	onExit() { }
+
+	/**
+	 * @abstract
+	 * @param {*} tid 
+	 * @param {*} thread 
+	 */
 	onThreadExit(tid, thread) { }
+
+	/**
+	 * @abstract
+	 * @param {*} pid 
+	 * @param {*} process 
+	 */
 	onChildExit(pid, process) { }
 
+	/**
+	 * 
+	 */
 	onReload() {
 		this.startThread(this.run, undefined, undefined, `${this.friendlyName} main thread`);
 	}
 
+	/**
+	 * Exit the currently running process immediately
+	 */
 	exit() {
-		/** An immediate exit is demanded */
 		this.kernel.killProcess(this.pid);
 	}
 
+	/**
+	 * Attempt to gracefully shutdown a process
+	 */
 	shutdown() {
-		/** A graceful shutdown has been requested */
 		this.kernel.killProcess(this.pid);
 	}
 
-	/** Thread management */
+	/**
+	 * Start a child process
+	 * 
+	 * @param {string} name 
+	 * @param {*} [opts] 
+	 * @param {*} [ppid]
+	 */
 	startProcess(name, opts, ppid = this.pid) {
 		return this.kernel.startProcess(name, opts, ppid);
 	}
 
+	/**
+	 * Start a child thread
+	 * 
+	 * @param {*} co 
+	 * @param {*} [args] 
+	 * @param {*} [prio] 
+	 * @param {*} [desc] 
+	 * @param {*} [thisArg] 
+	 */
 	startThread(co, args = [], prio, desc, thisArg = this) {
 		return this.kernel.startThread(co, args, prio, desc, this.pid, thisArg);
 	}
 
+	/**
+	 * Attach an existing thread
+	 * 
+	 * @param {*} thread 
+	 * @param {*} [priority] 
+	 */
 	attachThread(thread, priority = this.default_thread_prio) {
 		return this.kernel.attachThread(thread, priority);
 	}
@@ -129,14 +191,22 @@ export default class Process {
 	getCurrentThread() {
 		const thread = this.kernel.getCurrentThread(); // Should hopefully always be the same one running
 		if (thread && thread.pid !== this.pid)
-			throw new OperationNotPermitted(`Process ${this.pid} does not have permission to access ${thread.tid} in process ${thread.pid}`);
+			throw new OperationNotPermittedError(`Process ${this.pid} does not have permission to access ${thread.tid} in process ${thread.pid}`);
 		return thread;
 	}
 
+	/**
+	 * Put the current thread to sleep
+	 * @param {number} ticks 
+	 */
 	sleepThread(ticks) {
 		this.getCurrentThread().sleep = Game.time + ticks;
 	}
 
+	/**
+	 * Put the entire process to sleep
+	 * @param {number} ticks 
+	 */
 	sleepProcess(ticks) {
 		this.sleep = Game.time + ticks;
 	}
@@ -146,6 +216,9 @@ export default class Process {
 			yield;
 	}
 
+	/**
+	 * @param {string} title 
+	 */
 	setThreadTitle(title) {
 		return this.getCurrentThread().desc = title;
 	}
@@ -155,10 +228,15 @@ export default class Process {
 		Log.log(level, `${this.pid}/${(this.kernel && this.kernel.ctid) || '-'} ${msg}`, this.friendlyName);
 	}
 
+	/** @param {string} msg */
 	debug(msg) { this.log(LOG_LEVEL.DEBUG, msg); }
+	/** @param {string} msg */
 	info(msg) { this.log(LOG_LEVEL.INFO, msg); }
+	/** @param {string} msg */
 	warn(msg) { this.log(LOG_LEVEL.WARN, msg); }
+	/** @param {string} msg */
 	error(msg) { this.log(LOG_LEVEL.ERROR, msg); }
+	/** @param {string} msg */
 	success(msg) { this.log(LOG_LEVEL.SUCCESS, msg); }
 
 	toString() {

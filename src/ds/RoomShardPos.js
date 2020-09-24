@@ -1,6 +1,10 @@
-/** /ds/roomshardpos.js */
-'use strict';
+/**
+ * @module
+ */
 
+/**
+ * @class
+ */
 export default class RoomShardPos extends RoomPosition {
 	constructor(x, y, roomName, shardName = Game.shard.name) {
 		super(x, y, roomName);

@@ -1,11 +1,12 @@
 /**
- * 
+ * @module
  */
-'use strict';
-
 import RoomCostMatrix from './RoomCostMatrix';
 import { VisibilityError } from  '/os/core/errors';
 
+/**
+ * @class
+ */
 export default class EnclosureTestingMatrix extends RoomCostMatrix {
 	constructor(roomName) {
 		super(roomName);

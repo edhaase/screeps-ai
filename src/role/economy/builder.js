@@ -8,6 +8,7 @@
 import Body from '/ds/Body';
 import { ICON_SHIELD, ICON_BUILD } from '/lib/icons';
 import { Log, LOG_LEVEL } from '/os/core/Log';
+import { PLAYER_STATUS } from '/Player';
 
 var ignoreCreeps = false;
 
@@ -15,7 +16,7 @@ var ignoreCreeps = false;
 
 /**
  * Average cpu
- * @todo: do we want to do a max carry / dist deal?
+ * @todo do we want to do a max carry / dist deal?
  */
 const MINIMUM_DECAY_CYCLES = 20;
 const BUILDER_MAX_FORTIFY_HITS = RAMPART_DECAY_AMOUNT * MINIMUM_DECAY_CYCLES;
@@ -88,7 +89,7 @@ export default {
 			}
 			const site = this.getTarget(
 				({ room }) => room.find(FIND_CONSTRUCTION_SITES),
-				(s) => s instanceof ConstructionSite && (s.my || s.owner && Player.status(s.owner.username) >= PLAYER_TRUSTED),
+				(s) => s instanceof ConstructionSite && (s.my || s.owner && Player.status(s.owner.username) >= PLAYER_STATUS.TRUSTED),
 				(sites) => _.max(sites, s => ((s.progressPct || STRUCTURE_BUILD_PRIORITY[s.structureType] || DEFAULT_BUILD_JOB_PRIORITY) ** 2) / this.pos.getRangeTo(s))
 			);
 			if (site) {

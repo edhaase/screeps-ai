@@ -1,10 +1,13 @@
-/** /os/core/errors.js */
-'use strict';
-
+/**
+ * @module
+ */
 import { ENV } from './macros';
 
-/* global ENV */
-const DEFAULT_STACK_TRACE_LIMIT = 30;
+/**
+ * @constant
+ * @default 30
+ */
+export const DEFAULT_STACK_TRACE_LIMIT = 30;
 
 Error.stackTraceLimit = ENV('stackTraceLimit', DEFAULT_STACK_TRACE_LIMIT);
 
@@ -13,6 +16,9 @@ Error.prototype.toString = function () {
 	return `${toString.apply(this, arguments)} (Tick ${Game.time})`;
 };
 
+/**
+ * @classdesc
+ */
 export class NotOwnerError extends Error {
 	constructor(id) {
 		super();
@@ -20,47 +26,66 @@ export class NotOwnerError extends Error {
 	}
 };
 
+/**
+ * @classdesc
+ */
 export class VisibilityError extends Error {
 	constructor(roomName, filename, ln) {
 		super(`No visibility in room ${roomName}`, filename, ln);
 	}
 };
 
+/**
+ * @classdesc
+ */
 export class NoPathFoundError extends Error {
 	constructor(params, filename, ln) {
 		super(`No path found`, filename, ln);
 	}
 };
 
+/**
+ * @classdesc
+ */
 export class InvalidDirectionError extends Error {
 
-}
+};
 
+/**
+ * @classdesc
+ */
 export class AbortError extends Error {
 	constructor() {
 		super('Operation Aborted');
 	}
 };
 
-/** InterTick object is no longer valid */
-export class ActorHasCeased extends Error {
+/**
+ * @classdesc InterTick object is no longer valid
+ */ 
+export class ActorHasCeasedError extends Error {
 	constructor(actorName) {
 		super();
 		this.actorName = actorName;
 	}
 };
 
-/** Permissions error */
-export class OperationNotPermitted extends Error {
-
-};
-
-export class TimeLimitExceeded extends Error {
+/** 
+ * @classdesc Permissions error
+ */
+export class OperationNotPermittedError extends Error {
 
 };
 
 /**
- * 
+ * @classdesc
+ */
+export class TimeLimitExceededError extends Error {
+
+};
+
+/**
+ * @classdesc
  */
 export class LogicError extends Error {
 	/** No other changes needed here */

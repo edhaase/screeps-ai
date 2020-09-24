@@ -1,14 +1,14 @@
 /**
- * A cache that can exhibit both least recently used (LRU) and max time to live (TTL) eviction policies.
- *
- * Internally the cache is backed by a `Map` but also maintains a linked list of entries to support the eviction policies.
- * Source: https://github.com/ianp/es6-lru-cache
+ * @module
  */
-'use strict';
+import { Log } from '/os/core/Log';
 
-/* global Log */
-import { Log, LOG_LEVEL } from '/os/core/Log';
-
+/**
+ * @classdesc A cache that can exhibit both least recently used (LRU) and max time to live (TTL) eviction policies.
+ * Internally the cache is backed by a `Map` but also maintains a linked list of entries to support the eviction policies.
+ * 
+ * @see https://github.com/ianp/es6-lru-cache
+ */
 export default class LRU {
 
 	// cache entries are objects with

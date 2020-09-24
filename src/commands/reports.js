@@ -3,30 +3,14 @@ import { DATETIME_FORMATTER, estimate } from '/lib/time';
 import { ENV, ROOM_LINK } from '/os/core/macros';
 import { NUMBER_FORMATTER, to_precision, to_fixed } from '/lib/util';
 import { table, html_hsl_span, html_truefalse_span } from '/lib/html';
-import report_census from './reports/census';
 import { Log, LOG_LEVEL } from '/os/core/Log';
 
+import report_audit from './reports/audit';
+import { events } from './reports/events';
+import { proc } from './reports/proc';
+import { market, orders } from './reports/market';
+
 const CMD_CATEGORY = 'Reporting';
-
-function events(sortBy = 'event', order = ['asc']) {
-	const allEvents = _(Game.rooms).map(r => r.events).flatten().value();
-	const lookup = _(global).pick((v, k) => k.startsWith('EVENT_') && !k.startsWith('EVENT_ATTACK_TYPE') && !k.startsWith('EVENT_HEAL_TYPE')).invert().value();
-	const sorted = _.sortByOrder(allEvents, sortBy, order);
-	for (const event of sorted) {
-		event.eventName = lookup[event.event];
-		event.object = Game.getObjectById(event.objectId);
-		if (!event.data)
-			continue;
-		if (event.data.targetId) {
-			event.target = Game.getObjectById(event.data.targetId);
-			delete event.data.targetId;
-		}
-
-	}
-	const head = `<th>Event</th><th>Object</th><th>Pos</t><th>Target</th><th>Data</th>`;
-	const rows = _.map(sorted, r => `<tr><td>${r.eventName || r.event || '-'}</td><td>${r.object || '-'}</td><td>${(r.object && r.object.pos) || '-'}</td><td>${r.target || '-'}</td><td>${JSON.stringify(r.data)}</td></tr>`);
-	return `<table style='width: 70vw'><thead><tr>${head}</tr></thead><tbody>${rows.join('')}</tbody></table`;
-}
 
 function nukers() {
 	const nks = _.filter(Game.structures, s => s.structureType === STRUCTURE_NUKER);
@@ -42,42 +26,6 @@ function pagerReport() {
 	const hitpct = _.round(PAGE_HIT / total, 1);
 	const rows = `<tr><td>${PAGE_HIT} - ${PAGE_MISS} (${hitpct}%)</td><td>${PAGE_IO_WRITE}</td><td>${PAGE_IO_READ}</td> <td>${PAGE_WRITES.size}</td>  <td>${PAGE_REQUESTS.size}</td> <td>${_.size(RawMemory.segments)} [${Object.keys(RawMemory.segments)}]<td>${PAGE_CACHE.size}</td></tr>`;
 	return `<table style='width: 20vw'><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table`;
-}
-
-function proc(sortBy = ENV('commands.proc.default_sort', 'pid'), order = ['asc']) {
-	const sorted = _.sortByOrder([...kernel.process.values()], sortBy, order);
-	if (!sorted || !sorted.length)
-		return "No processes";
-	const headers = [
-		'pid/name', 'ppid/name',
-		['text-align: right', '#threads'],
-		['text-align: right', '<span>totalCpu</span>'],
-		['text-align: right', 'minCpu'],
-		['text-align: right', 'avgUsrCpu'],
-		['text-align: right', 'avgSysCpu'],
-		['text-align: right', 'maxCpu'],
-		['text-align: right', 'age'],
-		['width: 8vw', '<span>title</span>']
-	];
-	const rows = [];
-	for (const r of sorted) {
-		rows.push([
-			`${r.pid}/${r.name}`,
-			`${(r.parent && r.parent.pid) || '-'}/${(r.parent && r.parent.name) || '-'}`,
-			["style='text-align: right'", r.threads.size],
-			["style='text-align: right'", html_hsl_span(r.totalCpu / Game.cpu.limit, to_fixed(r.totalCpu, 3))],
-			["style='text-align: right'", html_hsl_span(r.minCpu / Game.cpu.limit, to_fixed(r.minCpu, 3))],
-			["style='text-align: right'", html_hsl_span(r.avgUsrCpu / Game.cpu.limit, to_fixed(r.avgUsrCpu, 3))],
-			["style='text-align: right'", html_hsl_span(r.avgSysCpu / Game.cpu.limit, to_fixed(r.avgSysCpu, 3))],
-			["style='text-align: right'", html_hsl_span(r.maxCpu / Game.cpu.limit, to_fixed(r.maxCpu, 3))],
-			["style='text-align: right'", Game.time - r.born],
-			`<span>${r.title || '-'}</span>`
-		]);
-	}
-	return table(headers, rows, {
-		tableStyle: 'width: 50vw',
-		trStyle: "tr:nth-child(even) { background-color: #333; }"
-	});
 }
 
 function progress() {
@@ -223,88 +171,6 @@ function nukersInRange(destRoomName) {
 	return `In range: ${in_range_rooms}<br><br>Available: ${available_rooms}`;
 }
 
-/**
- * List of current orders
- */
-function orders() {
-	const headers = [
-		'Tick', 'Resource', 'Active', 'Type',
-		['text-align: right', 'Total'],
-		['text-align: right', 'Remaining'],
-		['text-align: right', 'Completed'],
-		['text-align: right', 'Available'],
-		['text-align: right', 'Unavailable'],
-		'<span>Price</span>',
-		'Room', 'Created', 'Id'
-	];
-	const rows = [];
-	for (const order of Object.values(Game.market.orders)) {
-		const { createdTimestamp, active, type, amount, remainingAmount, resourceType, price, totalAmount, roomName, created, id } = order;
-		rows.push([
-			created,
-			`<span style="padding: 0px; color: ${RES_COLORS[resourceType]}">${resourceType}</span>`,
-			html_truefalse_span(active, active),
-			type,
-			["style='text-align: right'", totalAmount],
-			["style='text-align: right'", remainingAmount],
-			["style='text-align: right'", totalAmount - remainingAmount],
-			["style='text-align: right'", amount],
-			["style='text-align: right'", remainingAmount - amount],
-			`<span>${to_fixed(price, 3)}</span>`,
-			roomName,
-			DATETIME_FORMATTER.format(createdTimestamp),
-			id
-		]);
-	}
-	const sorted = _.sortByOrder(rows, [0], ['desc'])
-	return table(headers, rows, {
-		tableStyle: "width: 90vw; margin-bottom: 5px'",
-		thStyle: "th { width: 1vw }",
-		trStyle: "tr:nth-child(even) { background-color: #333; }"
-	});
-}
-
-/**
- * Transaction report
- */
-function market(type = 'I', ordersOnly = true, sort = [0], sortOrder = ['desc']) {
-	const trx = (type === 'I') ? Game.market.incomingTransactions : Game.market.outgoingTransactions;
-	const headers = ['Tick',
-		'Resource',
-		['text-align: right', 'Amount'],
-		['text-align: right', ' Price'],
-		['text-align: right', 'Total'],
-		'From', 'To', 'Sender', 'Recipient',
-		['width: 8vw', 'Description']
-	];
-	const rows = [];
-	// Log.info(`Outbound transaction from ${from} to ${to} (dist: ${distance}): ${amount} ${resourceType} at ${order.price} for ${to_precision(total, 3)} total (age: ${Game.time - time}) to ${recipient.username} via ${order.type} order`, 'Market');
-	for (const t of trx) {
-		const { time, amount, resourceType, order, from, to, sender, recipient, description } = t;
-		if (ordersOnly && !order)
-			continue;
-		rows.push([
-			time,
-			`<span style="padding: 0px; color: ${RES_COLORS[resourceType]}">${resourceType}</span>`,
-			["style='text-align: right'", amount],
-			["style='text-align: right'", (order && to_fixed(order.price, 3)) || '-'],
-			["style='text-align: right'", (order && to_fixed(amount * order.price, 3)) || '-'],
-			from, to,
-			(sender && sender.username) || '-',
-			(recipient && recipient.username) || '-',
-			_.escape(description) || '-'
-		]);
-	}
-	const sorted = _.sortByOrder(rows, sort, sortOrder);
-	const opts = {
-		tdStyle: "td { padding-right: 7px }",
-		thStyle: "th { width: 1vw; padding-right: 7px }",
-		tableStyle: "width: 60vw; margin-bottom: 5px'",
-		trStyle: "tr:nth-child(even) { background-color: #333; }"
-	}
-	return table(headers, sorted, opts);
-}
-
 // @todo reformat
 global.memLargestKey = function () {
 	return _.max(Object.keys(Memory), k => JSON.stringify(Memory[k]).length);
@@ -319,7 +185,8 @@ global.memStats = function () {
 	return ex(_.mapValues(Memory, (v) => JSON.stringify(v).length));
 };
 
-Cmd.register('census', report_census, 'Show census report for all rooms', [], CMD_CATEGORY);
+Cmd.register('audit', report_audit, 'Show audit report for all rooms', [], CMD_CATEGORY);
+// Cmd.register('census', report_census, 'Show census report for all rooms', [], CMD_CATEGORY);
 Cmd.register('events', events, 'Show recent event log for all rooms', [], CMD_CATEGORY);
 Cmd.register('market', market, 'Show market report', [], CMD_CATEGORY);
 Cmd.register('nukers', nukers, 'Show armament report', [], CMD_CATEGORY);

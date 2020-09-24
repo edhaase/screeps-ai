@@ -1,16 +1,16 @@
-/** /ds/costmatrix.room.js - Cost matrix extensions for specific rooms */
-'use strict';
-
-/* global CLAMP */
-
+/**
+ * @module
+ */
 import { isObstacle } from '/lib/filter';
 import CostMatrix from '../CostMatrix';
+import { PLAYER_STATUS } from '/Player';
+import { TILE_UNWALKABLE } from '/ds/CostMatrix';
 
-export const TILE_UNWALKABLE = 255;
-export const DEFAULT_ROAD_SCORE = 2; /** Set slightly higher than plainCost to avoid road wear and tear */
+export const DEFAULT_ROAD_SCORE = 2; // Set slightly higher than plainCost to avoid road wear and tear
+export const DEFAULT_CONSTRUCTION_SITE_SCORE = 3; // Go around
 
 /**
- * Base class with functional extensions
+ * @classdesc Cost matrix extensions for specific rooms 
  */
 export default class RoomCostMatrix extends CostMatrix {
 	/** @inherits static deserialize */
@@ -35,7 +35,7 @@ export default class RoomCostMatrix extends CostMatrix {
 			if (OBSTACLE_OBJECT_TYPES.includes(itm.structureType))
 				this.set(itm.x, itm.y, TILE_UNWALKABLE);
 			else if (itm.structureType === STRUCTURE_ROAD)
-				this.set(itm.x, itm.y, 1);
+				this.set(itm.x, itm.y, DEFAULT_CONSTRUCTION_SITE_SCORE);
 		}
 	}
 
@@ -60,9 +60,9 @@ export default class RoomCostMatrix extends CostMatrix {
 	}
 
 	// Construction sites? ramparts?
-	setDynamicObstacles(room = this.room, score = TILE_UNWALKABLE) {		
+	setDynamicObstacles(room = this.room, score = TILE_UNWALKABLE) {
 		room
-			.find(FIND_HOSTILE_CONSTRUCTION_SITES, { filter: c => Player.status(c.owner.username) === PLAYER_ALLY })
+			.find(FIND_HOSTILE_CONSTRUCTION_SITES, { filter: c => Player.status(c.owner.username) === PLAYER_STATUS.ALLY })
 			.forEach(s => this.set(s.pos.x, s.pos.y, score));
 		room
 			.find(FIND_MY_CONSTRUCTION_SITES, { filter: c => isObstacle(c) })
@@ -89,7 +89,7 @@ export default class RoomCostMatrix extends CostMatrix {
 				if (!(terrain.get(x, y) & TERRAIN_MASK_WALL))
 					continue;
 				if (_.any(sources, s => s.pos.isNearTo(x, y)))
-					this.set(x,y, TILE_UNWALKABLE);
+					this.set(x, y, TILE_UNWALKABLE);
 				else
 					this.set(x, y, score);
 			}

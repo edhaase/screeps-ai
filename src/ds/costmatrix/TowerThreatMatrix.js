@@ -1,11 +1,12 @@
 /**
- * 
+ * @module
  */
-'use strict';
-
 import RoomCostMatrix from './RoomCostMatrix';
 import { CLAMP } from '/os/core/math';
 
+/**
+ * @class
+ */
 export default class TowerThreatMatrix extends RoomCostMatrix {
 	constructor(room) {
 		if (_.isString(room))

@@ -1,7 +1,7 @@
 /** /os/core/crypto */
 'use strict';
 
-import { xorcrypt } from '/algo/xorcrypt';
+import { xorcrypt } from '/algorithms/xorcrypt';
 import { ENV } from '/os/core/macros';
 import { Log, LOG_LEVEL } from '/os/core/Log';
 

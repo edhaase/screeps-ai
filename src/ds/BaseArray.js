@@ -1,6 +1,10 @@
-/**  */
-'use strict';
+/**
+ * @module
+ */
 
+/**
+ * @class
+ */
 export default class BaseArray extends Array {
 	/**
 	 * 
@@ -12,6 +16,11 @@ export default class BaseArray extends Array {
 			this.splice(i, 1);
 	}
 
+	/**
+	 * 
+	 * @param {*} method 
+	 * @param  {...any} args 
+	 */
 	invoke(method, ...args) {
 		for (const item of this)
 			item[method](...args);
@@ -38,14 +47,23 @@ export default class BaseArray extends Array {
 		return this.cycle(arr, arr.length * n);
 	}
 
+	/**
+	 * 
+	 */
 	freeze() {
 		Object.freeze(this);
 		return this;
 	}
 
+	/**
+	 * @return {this}
+	 */
 	clone() {
 		return new this.constructor(...this);
 	}
 
+	/**
+	 * 
+	 */
 	static get [Symbol.species]() { return Array; }
 }

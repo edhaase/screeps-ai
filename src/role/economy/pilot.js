@@ -1,7 +1,7 @@
 /**
  * role.pilot.js
  *
- * 2017-02-23: Can be spawned from a room other than there dest.
+ * 2017-02-23: Can be spawned from a room other than their dest.
  */
 'use strict';
 

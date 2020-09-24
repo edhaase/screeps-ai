@@ -1,7 +1,7 @@
 /** /os/core/ito.js - Intertick proxy objects */
 'use strict';
 
-import { ActorHasCeased } from '/os/core/errors';
+import { ActorHasCeasedError } from '/os/core/errors';
 
 class ITOHandler {
 	constructor(id, collectionName = null) {
@@ -51,7 +51,7 @@ class ITOHandler {
 	getCurrentGameObject() {
 		const actor = (this.coll) ? Game[this.coll][this.id] : Game.getObjectById(this.id);
 		if (actor == null)
-			throw new ActorHasCeased(this.id);
+			throw new ActorHasCeasedError(this.id);
 		return actor;
 	}
 }

@@ -5,10 +5,10 @@
  */
 'use strict';
 
-const Process = require('/os/core/process');
+import Process from '/os/core/process';
+import { runCensus } from '/lib/util';
 
-
-class HarvestProc extends Process {
+export default class HarvestProc extends Process {
 
 	*run() {
 		// Acquire missing data
@@ -68,5 +68,3 @@ class HarvestProc extends Process {
 	}
 	
 }
-
-module.exports = HarvestProc;

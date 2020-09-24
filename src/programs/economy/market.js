@@ -3,15 +3,15 @@
 
 /* global ENVC, Market, SEGMENT_MARKET, Log */
 
-import * as Co from '/os/core/co';
-import Process from '/os/core/process';
-import PagedProcess from '/os/core/process/paged';
-import { ENVC } from '/os/core/macros';
 import { DATETIME_FORMATTER } from '/lib/time';
-import { in_lowest_increment_of, in_highest_increment_of, NUMBER_FORMATTER } from '/lib/util';
+import { ENVC } from '/os/core/macros';
+import { in_lowest_increment_of, in_highest_increment_of, NUMBER_FORMATTER, to_fixed } from '/lib/util';
 import { Log, LOG_LEVEL } from '/os/core/Log';
-
+import { TERMINAL_TAX } from '/prototypes/structure/terminal';
+import * as Co from '/os/core/co';
 import * as Intel from '/Intel';
+import PagedProcess from '/os/core/process/paged';
+import Process from '/os/core/process';
 
 export const DEFAULT_MARKET_ORDER_CLEANUP_FREQ = 100;
 export const MARKET_HISTORY_FREQUENCY = 16;
@@ -19,7 +19,6 @@ export const EMPIRE_MARKET_RESYNC_FREQUENCY = 4095;
 export const DEFAULT_TERMINAL_CREDIT_RESERVE = 20000;
 export const MARKET_MINIMUM_ACCOUNT_AUTOSELL = 100;
 
-import { TERMINAL_TAX } from '/proto/structure/terminal';
 
 export default class MarketProc extends PagedProcess {
 	constructor(opts) {
@@ -153,7 +152,7 @@ export default class MarketProc extends PagedProcess {
 		if (diff <= 0)
 			Log.notify(`Empire market adjustment reports that we are accurate!`);
 		else
-			Log.notify(`Empire market adjustment ${diff} credits skew (creditsWeThinkWeHave: ${creditsWeThinkWeHave}, creditsWeActuallyHave: ${creditsWeActuallyHave})`); // Did we lose a building?
+			Log.notify(`Empire market adjustment ${to_fixed(diff, 3)} credits skew (creditsWeThinkWeHave: ${creditsWeThinkWeHave}, creditsWeActuallyHave: ${creditsWeActuallyHave})`); // Did we lose a building?
 		this.market.empire.credits = creditsWeActuallyHave;
 	}
 
@@ -168,10 +167,9 @@ export default class MarketProc extends PagedProcess {
 			transaction = outgoing[j];
 			if (transaction.time < limit)
 				break;
-			// if (transaction.to && _.get(Game.rooms, transaction.to + '.controller.my', false) === true)
+			var { from, to, resourceType, amount, order, recipient = {}, time } = transaction;
 			if (transaction.to && Game.rooms[transaction.to] && Game.rooms[transaction.to].my === true)
 				continue;
-			var { from, to, resourceType, amount, order, recipient = {}, time } = transaction;
 			if (recipient && recipient.username && recipient.username === WHOAMI)
 				continue;
 			distance = Game.map.getRoomLinearDistance(from, to, true);
@@ -200,7 +198,7 @@ export default class MarketProc extends PagedProcess {
 			transaction = incoming[i];
 			if (transaction.time < limit)
 				break;
-			var { from, to, resourceType, amount, order, sender = {}, time } = transaction;
+			var { from, to, resourceType, amount, order, sender = {}, time } = transaction;			
 			// if (transaction.from && _.get(Game.rooms, transaction.from + '.controller.my', false) === true)
 			if (transaction.from && Game.rooms[transaction.from] && Game.rooms[transaction.from].my === true)
 				continue;

@@ -25,6 +25,21 @@ global.Route = Route;
 import Region from '/ds/Region';
 global.Region = Region;
 
+import mincut from '/algorithms/mincut';
+global.mincut = mincut;
+
+import '/algorithms/mstkruskal';
+
+/**
+ * Cache matrix caching changes
+ */
+import { STATIC_OBSTACLE_MATRIX } from '/cache/costmatrix/StaticObstacleMatrixCache';
+import { LOGISTICS_MATRIX } from '/cache/costmatrix/LogisticsMatrixCache';
+global.STATIC_OBSTACLE_MATRIX = STATIC_OBSTACLE_MATRIX;
+global.LOGISTICS_MATRIX = LOGISTICS_MATRIX;
+import LogisticsMatrix from '/ds/costmatrix/LogisticsMatrix';
+global.LogisticsMatrix = LogisticsMatrix;
+
 const orgOTS = Object.prototype.toString;
 Object.prototype.toString = function() {
 	const result = orgOTS.apply(this, arguments);

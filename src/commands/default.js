@@ -3,6 +3,7 @@
 
 import './gui';
 import './inspector';
+import './intel';
 import './process';
 import './reports';
 import './rooms';

@@ -1,8 +1,11 @@
-/**  */
-'use strict';
-
+/**
+ * @module
+ */
 import BaseArray from './BaseArray';
 
+/**
+ * @class Flat priority queue
+ */
 export default class PriorityQueue extends BaseArray {
 	constructor(itr = [], scoreFn = _.identity, scorer = _.sortedIndex) {
 		super();

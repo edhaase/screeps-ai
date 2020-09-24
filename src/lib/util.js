@@ -115,8 +115,8 @@ export function shiftWhile(arr, fn, act) {
 
 /** 
  * Run-length encode an array
- * @param [Number]
- * @return [Number]
+ * @param {Number}
+ * @return {Number}
  */
 export function RLE(arr) {
 	if (!arr || !arr.length)
@@ -244,4 +244,16 @@ export function calcResourceWeight(creep, totalCarry = creep.carryTotal) {
 		weight++;
 	}
 	return weight;
+}
+
+export function calcRoadUpkeep(road) {
+	const terrain = road.room.terrain;
+	const { x, y } = road.pos;
+	const spot = terrain.get(x, y);
+	if (spot & TERRAIN_MASK_WALL)
+		return ROAD_UPKEEP_TUNNEL;
+	else if (spot & TERRAIN_MASK_SWAMP)
+		return ROAD_UPKEEP_SWAMP;
+	else
+		return ROAD_UPKEEP;
 }

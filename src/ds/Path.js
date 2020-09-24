@@ -1,20 +1,30 @@
-/** /ds/path.js - PathFinder.search wrapper */
-'use strict';
+/**
+ * @module
+ */
 
 import BaseArray from './BaseArray';
 
-export default class Path extends BaseArray {
+/**
+ * @class
+ */
+export default class Path {
+	constructor(path, ops, cost, incomplete) {
+		this.path = path;
+		this.ops = ops;
+		this.cost = cost;
+		this.incomplete = incomplete;
+	}
+
 	/** Path creation */
 	static search(src, dst, opts) {
+		if (!(src instanceof RoomPosition))
+			throw new TypeError(`Expected parameter 0 of type RoomPosition`);
+		if (!dst)
+			throw new TypeError(`Expected parameter 1 of not-null`);
 		const { path, ops, cost, incomplete } = PathFinder.search(src, dst, opts);
 		if (!path || !path.length)
 			return new Path();
-
-		Object.setPrototypeOf(path, this.prototype);
-		path.ops = ops;
-		path.cost = cost;
-		path.incomplete = incomplete;
-		return path;
+		return new Path(path, ops, cost, incomplete);
 	}
 
 	/** Serialization */
@@ -24,10 +34,6 @@ export default class Path extends BaseArray {
 
 	serialize() {
 
-	}
-
-	toString() {
-		return `[Path ${this.cost} ${this.ops} ${this.incomplete}]`;
 	}
 
 	/** Helpers */
@@ -55,4 +61,7 @@ export default class Path extends BaseArray {
 		return this.filter(rp => _.findWhere(Game.constructionSites, { pos: rp }) == null);
 	}
 
+	toString() {
+		return `[Path ${this.path.length} steps ${this.cost} cost ${this.ops} ops ${this.incomplete ? 'incomplete' : 'complete'}]`;
+	}
 }

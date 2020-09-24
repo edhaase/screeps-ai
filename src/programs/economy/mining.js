@@ -3,9 +3,10 @@
 
 /* global Log, MAX_CREEP_SPAWN_TIME */
 
-const Process = require('/os/core/process');
+import Process from '/os/core/process';
+import { runCensus } from '/lib/util';
 
-class MiningProc extends Process {
+export default class MiningProc extends Process {
 
 	*run() {
 		// Find sources, mine sources
@@ -18,5 +19,3 @@ class MiningProc extends Process {
 	}
 
 }
-
-module.exports = MiningProc;

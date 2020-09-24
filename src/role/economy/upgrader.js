@@ -54,26 +54,6 @@ export default {
 	minBody: [CARRY, MOVE, WORK, WORK],
 	body: function ({ room }) {
 		var body = [];
-		/* if (workDiff <= 0)
-			return ERR_INVALID_ARGS;
-		// energy use is  active work * UPGRADE_CONTROLLER_POWER, so 11 work parts is 11 ept, over half a room's normal production
-		// let max = 2500;
-		// @todo Are we sure we're sizing this right?
-		const avail = Math.max(250, room.energyCapacityAvailable - (SPAWN_ENERGY_CAPACITY * 0.20));
-		if (home && spawn.pos.roomName !== home) {
-			body = Body.repeat([WORK, CARRY, MOVE], avail);
-		} else {
-			var count = Math.min(workDiff, 1 + Math.floor((avail - 300) / BODYPART_COST[WORK])) || 1;
-			let ccarry = 1;
-			if (count > 5) {
-				ccarry += 2;
-				count -= 2;
-			}
-			if (ccarry + count + 3 > MAX_CREEP_SIZE)
-				count = MAX_CREEP_SIZE - (ccarry + 3);
-			body = RLD([ccarry, CARRY, count, WORK, 3, MOVE])
-		}
-		return body; */
 	},
 	init: function (job) {
 		const room = Game.rooms[job.memory.home];
@@ -111,10 +91,13 @@ export default {
 				if (status === ERR_NO_PATH)
 					this.defer(_.random(MIN_WAIT_TIME, MAX_WAIT_TIME));
 			}
-			if (this.take(provider, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE)
+			const status = this.take(provider, RESOURCE_ENERGY);
+			if (status === ERR_NOT_IN_RANGE)
 				this.moveTo(provider, {
 					range: 1, maxRooms: 1, ignoreRoads: this.pos.inRangeTo(controller, CREEP_UPGRADE_RANGE + 1)
 				});
+			else if (status === OK && provider.hitPct < 1.0)
+				return this.pushState('Repair', { target: provider.id, allowMove: false, allowGather: false }, false);
 		} else if (controller && !controller.upgradeBlocked) {
 			if (this.upgradeController(this.room.controller) === ERR_NOT_IN_RANGE)
 				this.moveTo(controller, {

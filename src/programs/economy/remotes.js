@@ -9,6 +9,8 @@ import * as Co from '/os/core/co';
 import Process from '/os/core/process';
 import ThreadPoolExecutor from '/os/core/executor/threadpoolexecutor';
 import reserver from '/role/economy/reserver';
+import { PLAYER_STATUS } from '/Player';
+import { ICON_SATELLITE } from '/lib/icons';
 
 const MAX_REMOTE_SOURCES = Infinity;	// Might as well have a limit.
 const RESERVATION_STEAL_MARGIN = 200;	// Give a player time to reclaim their remote
@@ -38,6 +40,9 @@ const REFRESH_POLL_RATE = 5;
  *  Be aware of SK rooms.
  *  In debug mode, draw visuals of what we're working on.
  *  Find spawns within MAX_SPAWN_DIST_COST
+ *  We can't (and don't need to) reserve SK rooms. 
+ * 
+ *  At 10 e/t mined and container capacity of 2000 we need to pick up every 200 ticks (including walking time)
  * 
  *  Constants: CARRY_PARTS, MAX_HAULER_STEPS
  * 
@@ -77,7 +82,7 @@ export default class RemoteProc extends Process {
 	}
 
 	/**
-	 *
+	 * Add a source to be mined
 	 */
 	insert({ pos, id, energyCapacity }, enqueue = true) {
 		const source = { pos, id, energyCapacity }; // separate out the game object
@@ -223,7 +228,8 @@ export default class RemoteProc extends Process {
 	}
 
 	/**
-	 * This co/thread controls creep spawning for it's various remotes
+	 * This co/thread controls creep spawning for it's various remotes, builds a hauler
+	 * pool for each supporting room
 	 * 
 	 * @param {String} roomName - Name of room spawning
 	 */
@@ -235,20 +241,21 @@ export default class RemoteProc extends Process {
 			yield this.sleepThread(REFRESH_POLL_RATE); // May want to sleep longer.	
 			const sources = this.spawnRooms[spawnRoom];
 			if (!sources || !sources.length)
-				return;
-			if (_.all(sources, s => s.defer > Game.time))	// Busy
-				continue;
+				return; // No work to do, stop running
 			const supporting = _.groupBy(sources, 'pos.roomName');
 			this.setThreadTitle(`Room ${spawnRoom} supporting ${Object.keys(supporting)}`);
-			for (const [rN, s] of Object.entries(supporting)) {
-				const room = Game.rooms[rN];
-				yield* this.mineRoom(spawnRoom, room, s);
+			if (_.all(sources, s => s.defer > Game.time))	// Busy
+				continue;
+			const recon = startService('recon');
+			for (const [roomName, sources] of Object.entries(supporting)) {
+				const sourceRoom = yield recon.request(roomName); // Don't procede until we can see the room
+				yield* this.mineRoom(spawnRoom, sourceRoom, sources);
 			}
 		}
 	}
 
 	/**
-	 * Focus on a specific room
+	 * Focus on one specific room at a time
 	 */
 	*mineRoom(spawnRoom, sourceRoom, sources) {
 		this.setThreadTitle(`Room ${spawnRoom} working on ${sourceRoom}`);
@@ -262,20 +269,24 @@ export default class RemoteProc extends Process {
 				this.warn(`Controller ${controller.pos} owned by ${JSON.stringify(controller.owner)}, removing sources`);
 				this.evict(sources);
 				return;
-			} else if (controller.reservation && Player.status(controller.reservation.username) >= PLAYER_TRUSTED && controller.reservation.username !== WHOAMI) {
+			} else if (controller.reservation && Player.status(controller.reservation.username) >= PLAYER_STATUS.TRUSTED && controller.reservation.username !== WHOAMI) {
 				this.warn(`Controller ${controller.pos} reserved by friendly player ${controller.reservation.username}, deferring operation in this room`);
 				this.defer(sources, (controller.reservation.ticksToEnd || 0) + RESERVATION_STEAL_MARGIN);
 				return;
 			}
-
-			// Can only reserve a room if it has a controller.
-			yield* this.reserveRoom(sourceRoom, spawnRoom); // May fail
 			// if the controller is reserved by a hostile, attack it.
 			// if the controller is reserved by a friendly, defer the room.		
 		}
-
+		if (Memory.routing && Memory.routing.avoid && Memory.routing.avoid.includes(this.pos.roomName)) {
+			this.warn(`${sourceRoom.name}: Routing disabled for this room, won't be able to reach`);
+			this.evict(sources);
+			return;
+		}
 		// if no controller (sector center), just fight over the room?
-
+		if (yield* this.defendRoom(sourceRoom))
+			return;			
+		// Can only reserve a room if it has a controller.
+		yield* this.reserveRoom(sourceRoom, spawnRoom); // May fail
 		// Once the room reservation is taken care of, if it can, proceed
 		// with mining the room. 
 		//for (const source of sources)
@@ -283,8 +294,40 @@ export default class RemoteProc extends Process {
 	}
 
 	/**
+	 * Check if a room needs defending and spawn creeps if neccesary
+	 * @param {Room} room 
+	 * @returns {bool} true if room is waiting for defenders
+	 */
+	*defendRoom(room) {
+		const { hostiles } = room;
+		const core = room.findOne(FIND_HOSTILE_STRUCTURES, { filter: { structureType: STRUCTURE_INVADER_CORE } });
+		if (!core && (!hostiles || !hostiles.length))
+			return false;
+		/* if (!_.isEmpty(hostiles)) {
+			// @todo 1 or more, guard body based on enemy body and boost.
+			const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1 });
+			const unit = this.getAssignedUnit(c => c.getRole() === 'guard' && c.memory.site === this.name && (c.spawning || c.ticksToLive > UNIT_BUILD_TIME(c.body) + cost));
+			if (unit || !spawn)
+				return this.defer(MAX_CREEP_SPAWN_TIME);
+			// @todo Find correct guard to respond.
+			Log.warn(`Requesting guard to ${this.pos}`, "Flag");
+			requestGuard(spawn, this.name, this.pos.roomName);
+			return this.defer(DEFAULT_SPAWN_JOB_EXPIRE);
+		} else if (core) {
+			const [spawn, cost = 0] = this.getClosestSpawn({ plainCost: 1 });
+			const unit = this.getAssignedUnit(c => c.getRole() === 'attack' && c.memory.dest === this.pos.roomName && (c.spawning || c.ticksToLive > UNIT_BUILD_TIME(c.body) + cost));
+			if (unit || !spawn)
+				return this.defer(MAX_CREEP_SPAWN_TIME);
+			Log.warn(`Requesting attack bulldozer to ${this.pos}`, "Flag");
+			spawn.submit({ memory: { role: 'attack', dest: this.pos.roomName } });
+			return this.defer(DEFAULT_SPAWN_JOB_EXPIRE);
+		}  */
+		return true;
+	}
+
+	/**
 	 * @todo needs controller position and step cost
-	 * @todo needs check to see if we can reserver (may not have supporting room)
+	 * @todo needs check to see if we can reserve (may not have supporting room)
 	 */
 	*reserveRoom(roomName) {
 		const cost = 0; // ?

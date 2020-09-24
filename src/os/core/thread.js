@@ -1,16 +1,19 @@
-/** /os/core/thread.js */
-'use strict';
-
+/**
+ * @module
+ */
 /* global ENV, ENVC, MM_AVG, Log */
 import { MM_AVG, CLAMP } from '/os/core/math';
-import { TimeLimitExceeded } from '/os/core/errors';
+import { TimeLimitExceededError } from '/os/core/errors';
 import Future from '/os/core/future';
 import { ENV, ENVC } from '/os/core/macros';
-import { Log, LOG_LEVEL } from '/os/core/Log';
+import { Log } from '/os/core/Log';
 
 export const THREAD_CONTINUE = { done: false, value: undefined };
 export const DEFAULT_WAIT_TIMEOUT = 100;
 
+/**
+ * @classdesc
+ */
 export default class Thread {
 	constructor(co, pid, desc) {
 		this.co = co;
@@ -21,6 +24,7 @@ export default class Thread {
 		this.pid = pid;
 		this.avgUsrCpu = 0;
 		this.avgSysCpu = 0;
+		this.totalCpu = 0;
 		this.minCpu = Infinity;
 		this.maxCpu = -Infinity;
 		this.minTickCpu = Infinity;
@@ -63,6 +67,7 @@ export default class Thread {
 
 				// Iteration stats
 				this.lastRunCpu = delta;
+				this.totalCpu += delta;
 				this.minCpu = CLAMP(0, delta, this.minCpu); // Already initialized on attach (But why were we getting negative numbers?)
 				this.maxCpu = CLAMP(this.maxCpu, delta, Game.cpu.tickLimit - 1);
 				this.avgUsrCpu = MM_AVG(delta, this.avgUsrCpu);	// Tracks only samples of when a thread actually runs	
@@ -77,13 +82,13 @@ export default class Thread {
 
 	next() {
 		try {
-			// @todo TimeLimitExceeded should be injected so we can resolve it
+			// @todo TimeLimitExceededError should be injected so we can resolve it
 			if (this.wait_timeout !== undefined && Game.time > this.wait_timeout) {
-				this.pending_error = new TimeLimitExceeded(`IO Timeout`); // Don't allow it to be caught
+				this.pending_error = new TimeLimitExceededError(`IO Timeout`); // Don't allow it to be caught
 				this.state = Thread.STATE_RUNNING;
 			}
 			if (this.timeout !== undefined && Game.time > this.timeout) { // Even pending threads can time out
-				this.pending_error = new TimeLimitExceeded(`Thread exceeded time limit`); // Don't allow it to be caught
+				this.pending_error = new TimeLimitExceededError(`Thread exceeded time limit`); // Don't allow it to be caught
 				this.state = Thread.STATE_RUNNING;
 			}
 			if (this.state === Thread.STATE_PENDING)
@@ -149,5 +154,3 @@ export default class Thread {
 Thread.STATE_PENDING = 'PENDING';	// Waiting for a promise to resolve
 Thread.STATE_RUNNING = 'RUNNING';	// Running threads
 Thread.STATE_ACTIVE = 'ACTIVE';		// Current running thread
-
-module.exports = Thread;

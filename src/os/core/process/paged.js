@@ -1,11 +1,13 @@
-/** /os/core/process.paged.js - Memory paged process simplified */
-'use strict';
-
+/**
+ * @module
+ */
 /* global ENV, ENVC, MAKE_CONSTANT, MAKE_CONSTANTS, Log */
-
 import Process from '/os/core/process';
 import Pager from '/os/core/pager';
 
+/**
+ * @classdesc Simplified memory-paged process
+ */
 export default class PagedProcess extends Process {
 	constructor(opts) {
 		super(opts);
@@ -15,6 +17,10 @@ export default class PagedProcess extends Process {
 		this.immediate = [];
 	}
 
+	/**
+	 * @callback
+	 * @param {*} pageId 
+	 */
 	onPageCorrupted(pageId) {
 		// Throw error to terminate
 		// Return object to initialize, override to provide array.
@@ -30,7 +36,9 @@ export default class PagedProcess extends Process {
 		return JSON.stringify(value);
 	}
 
-	/** Reloads and parses values */
+	/**
+	 * Read and parse all pages
+	 */
 	*read() {
 		const pages = yield* this.pager.read(this.pageIds);
 		const result = [];
@@ -50,6 +58,9 @@ export default class PagedProcess extends Process {
 		return this.pages;
 	}
 
+	/**
+	 * Write all pages
+	 */
 	write() {
 		for (const indx in this.pages) {
 			this.pager.write(this.pageIds[indx], this.onPageSerialize(this.pages[indx]), !!this.immediate[indx]);

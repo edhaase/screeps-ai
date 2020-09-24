@@ -5,10 +5,9 @@
  */
 'use strict';
 
-import { TERMINAL_MINIMUM_ENERGY } from '/proto/structure/terminal';
-import { FACTORY_MIN_ENERGY, FACTORY_MAX_ENERGY } from '/proto/structure/factory';
-
-/* global Player, PLAYER_HOSTILE, Tombstone */
+import { TERMINAL_MINIMUM_ENERGY } from '/prototypes/structure/terminal';
+import { FACTORY_MIN_ENERGY, FACTORY_MAX_ENERGY } from '/prototypes/structure/factory';
+import { PLAYER_STATUS } from '/Player';
 
 export function isObstacle(thing) {
 	return OBSTACLE_OBJECT_TYPES.includes(thing.structureType)
@@ -19,11 +18,11 @@ export function isObstacle(thing) {
  * Unauthorized hostiles (Structures or creep)
  */
 export function unauthorizedHostile(thing) {
-	return (Player.status(thing.owner.username) <= PLAYER_NEUTRAL) && !thing.my;
+	return (Player.status(thing.owner.username) <= PLAYER_STATUS.NEUTRAL) && !thing.my;
 };
 
 export function unauthorizedCombatHostile(creep) {
-	return (Player.status(creep.owner.username) <= PLAYER_NEUTRAL) && !creep.my && creep.canFight;
+	return (Player.status(creep.owner.username) <= PLAYER_STATUS.NEUTRAL) && !creep.my && creep.canFight;
 };
 
 /**
@@ -48,9 +47,9 @@ export function loadedTower(s) {
  */
 export function canProvideEnergy(thing) {
 	if (thing instanceof Structure && thing.pos.hasWithdrawAccess()) {
-		if (thing.structureType === STRUCTURE_FACTORY && thing.store[RESOURCE_ENERGY] > FACTORY_MIN_ENERGY) return true;
+		if (thing.structureType === STRUCTURE_FACTORY && thing.store[RESOURCE_ENERGY] > FACTORY_MAX_ENERGY) return true;
 		if (thing.structureType === STRUCTURE_LINK && thing.energy > 0) return true;
-		if (thing.structureType === STRUCTURE_CONTAINER && thing.store[RESOURCE_ENERGY] > 10) return true;
+		if (thing.structureType === STRUCTURE_CONTAINER && thing.store[RESOURCE_ENERGY] > 25) return true;
 		if (thing.structureType === STRUCTURE_STORAGE && thing.store[RESOURCE_ENERGY] > 0) return true;
 		if (thing.structureType === STRUCTURE_TERMINAL && thing.store[RESOURCE_ENERGY] > TERMINAL_MINIMUM_ENERGY) return true;
 		if (thing.structureType === STRUCTURE_SPAWN && thing.energyPct > 0.10 && _.inRange(thing.room.energyAvailable, SPAWN_ENERGY_START - CARRY_CAPACITY, SPAWN_ENERGY_START + CARRY_CAPACITY - 5) && thing.isIdle()) return true;
@@ -68,18 +67,19 @@ export function canProvideEnergy(thing) {
  * Returns pct of energy missing
  */
 export function canReceiveEnergy(thing) {
+	// console.log(`can receive energy: ${thing} ${thing.store && thing.store.getUsedPct(RESOURCE_ENERGY)}`);
 	if (thing.my === false)
 		return 0.0;
 	if (thing instanceof Creep && thing.carryTotal === 0) // Only target creeps if they're entirely empty (or we'll never break target)
 		return 1.0;
 	else if (thing instanceof StructureFactory)
 		return Math.max(0, 1.0 - thing.store[RESOURCE_ENERGY] / FACTORY_MAX_ENERGY);
-	else if (thing.energy != null)
-		return (1.0 - thing.energyPct);
+	// else if (thing.energy != null)
+	// return (1.0 - thing.energyPct);
 	else if (thing.stock != null)
 		return Math.max(0, 1.0 - thing.stock);
 	else if (thing.store != null)
-		return (1.0 - thing.storedPct);
+		return (1.0 - thing.store.getUsedPct(RESOURCE_ENERGY));
 	else
 		return 0.0;
 };

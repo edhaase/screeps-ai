@@ -1,6 +1,10 @@
-/**  */
-'use strict';
+/**
+ * @module
+ */
 
+/**
+ * @class
+ */
 export default class LazyWeakMap extends WeakMap {
 	constructor(factory, itr) {
 		super(itr);

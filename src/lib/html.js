@@ -49,6 +49,5 @@ export function table(headers, rows, opts = {}) {
 		tbl += '</tr>';
 	}
 	tbl += '</tbody></table>';
-	// console.log(msg);
 	return tbl.replace(/([WE])(\d+)([NS])(\d+)/gi, r => ROOM_LINK(r));
 }

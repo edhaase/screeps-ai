@@ -11,11 +11,14 @@ import { ENV } from '/os/core/macros';
 import '/os/core/errors';	// Required here to get the stack trace size increase
 import '/global';
 import '/commands/default';
-import '/proto/index';
-import '/os/proto/spawn';
+import '/prototypes/index';
+import '/os/prototypes/spawn';
 
 import Player from '/Player';
 global.Player = Player;
+
+import Path from '/ds/Path';
+global.Path = Path;
 
 import '/experiment/index';
 

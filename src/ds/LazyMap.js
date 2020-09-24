@@ -1,8 +1,12 @@
-/**  */
-'use strict';
+/**
+ * @module
+ */
 
 import BaseMap from './BaseMap';
 
+/**
+ * @class
+ */
 export default class LazyMap extends BaseMap {
 	constructor(factory, itr) {
 		super(itr);

@@ -1,5 +1,11 @@
+/**
+ * @module
+ */
 import LogisticObstacleMatrix from './LogisticObstacleMatrix';
 
+/**
+ * @class
+ */
 export default class ArenaMatrix extends LogisticObstacleMatrix {
 	constructor(roomName) {
 		super(roomName);

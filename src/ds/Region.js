@@ -1,5 +1,9 @@
 /**
- * Defines a map region containing rooms
+ * @module
+ */
+
+/**
+ * @classdesc Defines a map region containing rooms
  */
 export default class Region {
 	/**
@@ -14,6 +18,10 @@ export default class Region {
 		this.bottomRightName = Region.coordToRoomName(...bottomRightCoords);
 	}
 
+	/**
+	 * 
+	 * @param {*} filter 
+	 */
 	*getRoomsInRange(filter) {
 		const [left, top] = this.topLeftCoords;
 		const [right, bottom] = this.bottomRightCoords;
@@ -35,6 +43,10 @@ export default class Region {
 		return this.getRoomsInRange();
 	}
 
+	/**
+	 * 
+	 * @param {*} roomName 
+	 */
 	contains(roomName) {
 		const [wx, wy] = Region.roomNameToCoord(roomName);
 		const [left, top] = this.topLeftCoords;
@@ -42,6 +54,11 @@ export default class Region {
 		return (wx >= left && wx <= right) && (wy >= top && wy <= bottom);
 	}
 
+	/**
+	 * 
+	 * @param {*} wx 
+	 * @param {*} wy 
+	 */
 	static coordToRoomName(wx, wy) {
 		var result = "";
 		result += (wx < 0 ? "W" + String(~wx) : "E" + String(wx));
@@ -49,6 +66,10 @@ export default class Region {
 		return result;
 	}
 
+	/**
+	 * 
+	 * @param {*} roomName 
+	 */
 	static roomNameToCoord(roomName) {
 		var [, h, wx, v, wy] = roomName.match(/^([WE])([0-9]+)([NS])([0-9]+)$/);
 		wx = parseInt(wx);
@@ -58,6 +79,11 @@ export default class Region {
 		return [wx, wy];
 	}
 
+	/**
+	 * 
+	 * @param {*} center 
+	 * @param {*} range 
+	 */
 	static fromCenter(center, range) {
 		const [rx, ry] = Array.isArray(center) ? center : Region.roomNameToCoord(center);
 		const topLeft = [rx - range, ry - range];

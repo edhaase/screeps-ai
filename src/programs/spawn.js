@@ -3,7 +3,7 @@
 
 import Process from '/os/core/process';
 import Future from '/os/core/future';
-import { findClosestRoomByRoute } from '/algo/map/closest';
+import { findClosestRoomByRoute } from '/algorithms/map/closest';
 import { distinct } from '/lib/util';
 
 export default class Spawn extends Process {
@@ -28,7 +28,7 @@ export default class Spawn extends Process {
 	 * @todo actually finish implementation of Future (should it resolve on start of spawn or finished spawning?) 
 	 * 
 	 * @param {*} job 
-	 * @returns Future
+	 * @returns {Future}
 	 */
 	submit(job) {
 		// Let the process best figure out how to handle this request?

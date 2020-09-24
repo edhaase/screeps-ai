@@ -1,8 +1,10 @@
 /**
- * Uniform screep's world position with E0S0 as origin.
+ * @module
  */
-'use strict';
 
+/**
+ * @classdesc Uniform screep's world position with E0S0 as origin.
+ */
 export default class WorldPosition {
 	/** @property int x */
 	/** @property int y */

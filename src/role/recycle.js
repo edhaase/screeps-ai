@@ -52,7 +52,7 @@ export default {
 				return;
 			spawn.recycleCreep(this);
 		} else {
-			this.moveTo(spawn, { reusePath: 10, range: 1 });
+			this.moveTo(spawn, { reusePath: 10, range: 1, allowIncomplete: true });
 			if (this.hits < this.hitsMax)
 				this.heal(this);
 		}

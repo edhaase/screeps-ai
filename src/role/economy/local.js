@@ -64,7 +64,7 @@ export default {
 		switch (this.memory.state) {
 			case STATE_EXT_FILL: {
 
-				if(this.room.energyPct >= 1.0 && )
+				// if(this.room.energyPct >= 1.0 && )
 				break;
 			}
 			case STATE_BALANCE: {

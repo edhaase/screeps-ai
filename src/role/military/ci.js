@@ -19,9 +19,9 @@ export default {
 			const status = this.rangedAttack(primary);
 			if (status === ERR_NOT_IN_RANGE)
 				this.moveTo(primary);
-			
+
 		} else {
 			// No target current in range. Check exit log or nearest exit
 		}
-	
+	}
 };

@@ -65,7 +65,7 @@ export default {
 			 */
 			if (this.ticksToLive <= MINIMUM_TTL_TO_RENEW)
 				return this.pushState('RenewSelf', {});
-			return this.pushState('EvadeMove', { pos: dest, range: 1 });
+			return this.pushState('EvadeMove', { pos: dest, range: 1, allowIncomplete: true });
 		}
 
 		/**
@@ -85,7 +85,7 @@ export default {
 			case OK:
 				break;
 			case ERR_NOT_IN_RANGE:
-				this.pushState('MoveTo', { pos: did.pos, range: 1 });
+				this.pushState('MoveTo', { pos: did.pos, range: 1, allowIncomplete: true });
 				break;
 			default:
 				Log.error(`${this.name}/${this.pos} failed to harvest deposit with status ${status}`);

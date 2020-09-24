@@ -1,5 +1,9 @@
 /**
- * Room Template class
+ * @module
+ */
+
+/**
+ * @classdesc Structure layout template
  */
 export default class Template {
 	constructor(template) {

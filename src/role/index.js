@@ -14,7 +14,7 @@ import healer from './military/healer';
 import miner from './economy/miner';
 import pilot from './economy/pilot';
 import pioneer from './economy/pioneer';
-import probe from './experimental/probe';
+import probe from './military/probe';
 import provider from './economy/provider';
 import reclaimer from './economy/reclaimer';
 import recycle from './recycle';
@@ -29,11 +29,12 @@ import tank from './military/tank';
 import thief from './military/thief';
 import upgrader from './economy/upgrader';
 import charvest from './economy/charvest';
+import gather from './economy/gather';
 
 const ROLES = {
 	attack, assault,
 	builder, bulldozer,
-	claimer, charvest,
+	claimer, charvest, gather,
 	defender, disruptor, dualminer,
 	filler, guard, harvester, hauler, healer, miner,
 	pilot, pioneer, probe, provider, reclaimer, recycle, repair, reserver, scav, scientist,

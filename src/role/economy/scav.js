@@ -3,11 +3,9 @@
  */
 'use strict';
 
-/* global LOGISTICS_MATRIX */
-
 import { canReceiveEnergy, canProvideEnergy, droppedResources } from '/lib/filter';
-import { TERMINAL_MINIMUM_ENERGY, TERMINAL_RESOURCE_LIMIT } from '/proto/structure/terminal';
-import { LOGISTICS_MATRIX } from '/CostMatrix';
+import { TERMINAL_MINIMUM_ENERGY, TERMINAL_RESOURCE_LIMIT } from '/prototypes/structure/terminal';
+import { LOGISTICS_MATRIX } from '/cache/costmatrix/LogisticsMatrixCache';
 import { Log, LOG_LEVEL } from '/os/core/Log';
 
 const STATE_GATHER = 'G';
@@ -39,6 +37,23 @@ const TRANSITIONS = {
 	]
 };
 
+/**
+ * Function wrapper version - Should optimize better.
+ *
+ * @param {Function} selector - Gets a list of target candidates
+ * @param {Function} restrictor - Called at start of target selection, expected to return array of invalid targets
+ * @param {Function} validator - Check if a target is still valid
+ * @param {Function} chooser - Pick the best target from the list
+ * @param {string} prop - Property name in memory to store the target id
+ *
+ * @return function - Return function to call
+ */
+function createUniqueTargetSelector(selector, restrictor, validator = _.identity, chooser = _.first, prop = 'tid') {
+	return function (roomObject) {
+		return RoomObject.prototype.getUniqueTarget.call(roomObject, selector, restrictor, validator, chooser, prop);
+	};
+};
+
 function getAmt(thing) {
 	if (typeof thing === 'string')
 		thing = Game.getObjectById(thing);
@@ -63,7 +78,7 @@ const getPickupSiteWithTerminal = createUniqueTargetSelector(
 		return col;
 	},
 	({ room }) => room.find(FIND_MY_CREEPS, { filter: c => c.getRole() === 'scav' && c.memory.tid }).map(c => c.memory.tid),
-	t => (canProvideEnergy(t) || droppedResources(t) || ((t instanceof StructureContainer) && t.storedTotal > 100)) && !t.isControllerContainer,
+	t => (canProvideEnergy(t) || ((t instanceof StructureContainer) && t.storedTotal > 100)) && !t.isControllerContainer,
 	(candidates, creep) => _.max(candidates, t => Math.min(getAmt(t), creep.carryCapacityAvailable) / creep.pos.getRangeTo(t.pos))
 );
 
@@ -84,7 +99,7 @@ const getDropoffSite = createUniqueTargetSelector(
 	({ room }) => _.filter([...room.structuresMy, room.controller.container, ...room.creeps], function (sel) {
 		if (sel == null)
 			return false;
-		if (canReceiveEnergy(sel) <= 0)
+		if (canReceiveEnergy(sel) <= 0) // Is this redundant?
 			return false;
 		if (sel instanceof Creep) {
 			return ['upgrader', 'builder', 'repair'].includes(sel.getRole()) && sel.memory.stuck > 2;
@@ -170,12 +185,14 @@ export default {
 						goal = terminal;
 					else if (storage && storage.my && storage.storedPct < 0.9 && storage.stock < MAX_OVERSTOCK && storage.isActive())
 						goal = storage;
-					else
+					else if (!controller.upgradeBlocked)
 						goal = controller;
 					// Log.warn(`Failover target ${goal}`);
 					this.setTarget(goal);
 				}
 			}
+			if (!goal)
+				return;
 			/* if (!goal && this.carry[RESOURCE_ENERGY] > 0) {
 				goal = terminal || storage || controller; // 1 work part and high carry means ~800 ticks of sitting around upgrading.
 				Log.warn(`Still no goal set`);

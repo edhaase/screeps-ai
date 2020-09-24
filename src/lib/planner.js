@@ -23,18 +23,20 @@
 /* global DEFAULT_BUILD_JOB_EXPIRE, STRUCTURE_BUILD_PRIORITY */
 /* global CREEP_UPGRADE_RANGE */
 /* global CRITICAL_INFRASTRUCTURE, CONTROLLER_STRUCTURES_LEVEL_FIRST, CONSTRUCTION_MATRIX */
-import { Log, LOG_LEVEL } from '/os/core/Log';
+import { CONSTRUCTION_MATRIX } from '/cache/costmatrix/ConstructionSiteMatrixCache';
 import { DEFAULT_ROAD_SCORE } from '/ds/costmatrix/RoomCostMatrix';
-import LazyMap from '/ds/LazyMap';
+import { Log, LOG_LEVEL } from '/os/core/Log';
 import { RLD } from '/lib/util';
-import { CONSTRUCTION_MATRIX } from '/CostMatrix';
+import LazyMap from '/ds/LazyMap';
+import Path from '/ds/Path';
+
 /* eslint-disable consistent-return */
 
-import FleePlanner from '/algo/fleeplanner';;
+import FleePlanner from '/algorithms/fleeplanner';;
 import { VisibilityError } from '/os/core/errors';
-import dt from '/algo/dt';
+import dt from '/algorithms/dt';
 
-import { exitPlanner } from '/algo/exitwallplanning';
+import { exitPlanner } from '/algorithms/exitwallplanning';
 import Template from '../ds/Template';
 import templates from '/template/index';
 import TemplateVisual from '/visual/template';
@@ -78,7 +80,7 @@ export function canBuild(room, structureType) {
 		+ _.sum(this.find(FIND_MY_CONSTRUCTION_SITES, { filer: s => s.structureType === structureType }));
 	const allowed = CONTROLLER_STRUCTURES[structureType][this.controller.level];
 	return allowed >= count;
-};
+}
 
 Room.prototype.getStructuresWeCanBuild = function () {
 	const { level } = this.controller;
@@ -95,7 +97,7 @@ export function structuresAllowable(roomName) {
 	if (!room)
 		return "You don't have visibility in this room";
 	return _.transform(CONTROLLER_STRUCTURES, (r, v, k) => r[k] = v[room.controller.level]);
-};
+}
 
 
 /**
@@ -106,7 +108,7 @@ export function structuresAllowable(roomName) {
  *
  * Likely to be called by the room controller periodically, or on level up.
  *
- * @param Room room - current room object needed
+ * @param {Room} room - current room object needed
  */
 export function buildRoom(room) {
 	var { level } = room.controller;
@@ -204,7 +206,7 @@ export function buildRoomOldschool(room) {
 			planRoad(room.terminal.pos, { pos: mineral.pos, range: 1 }, { rest: 1, initial: 1, container: true, tunnel: true, stroke: 'blue' });
 	}
 	return OK;
-};
+}
 
 /**
  * Plan for links
@@ -231,7 +233,7 @@ export function buildLinks(origin, level = MINIMUM_LEVEL_FOR_LINKS) {
 		if (status === OK)
 			return;
 	}
-};
+}
 
 /**
  * Places ramparts around controller
@@ -247,7 +249,7 @@ export function buildControllerWall(origin, controller) {
 	const tiles = _.reject(controller.pos.getOpenNeighbors(), p => p.hasStructure(STRUCTURE_RAMPART));
 	Log.debug(`${controller.pos.roomName}: Barricading controller`, 'Planner');
 	tiles.forEach(t => controller.room.addToBuildQueue(t, STRUCTURE_RAMPART));
-};
+}
 
 /**
  * 
@@ -274,7 +276,7 @@ export function drawAvgRange(room) {
 			vis.text(dist, x, y);
 		}
 	}
-};
+}
 
 /**
  * Finds a position in a room to expand outwards from.
@@ -311,9 +313,9 @@ export function distanceTransformWithController(room, maxClearance = 5, obstacle
 		}
 	}
 	vis.circle(maxp, { fill: 'red', opacity: 1.0 });
-	console.log(`Best position: ${maxp} with score ${maxv} and clearance ${maxc}`);
+	Log.info(`Best position: ${maxp} with score ${maxv} and clearance ${maxc}`, 'Planner');
 	return maxp;
-};
+}
 
 /**
  * Like build road, but only builds the tunnel portion
@@ -372,9 +374,9 @@ export function planRoad(fromPos, toGoal, opts = {}) {
 		};
 	}
 	try {
-		const result = PathFinder.search(fromPos, toGoal, {
-			plainCost: DEFAULT_ROAD_SCORE+1, // prefer existing roads
-			swampCost: opts.swampCost || (DEFAULT_ROAD_SCORE+1),
+		const result = Path.search(fromPos, toGoal, {
+			plainCost: DEFAULT_ROAD_SCORE + 1, // prefer existing roads
+			swampCost: opts.swampCost || (DEFAULT_ROAD_SCORE + 1),
 			maxOps: 64000,
 			maxRooms: (fromPos.roomName === (toGoal.roomName || toGoal.pos.roomName)) ? 1 : PATHFINDER_MAX_ROOMS,
 			roomCallback: opts.cmFn,
@@ -404,8 +406,9 @@ export function planRoad(fromPos, toGoal, opts = {}) {
 				if (opts.filter && !opts.filter(p))
 					continue;
 				Game.rooms[p.roomName].addToBuildQueue(p, STRUCTURE_ROAD);
-			} catch (e) {
-				console.log(`(${p})`);
+			} catch (err) {
+				Log.error(`Failed to plan road at position ${JSON.stringify(p)}`, 'Planner');
+				Log.error(`Failed to plan road ${err}`, 'Planner');
 			}
 		}
 	} catch (e) {

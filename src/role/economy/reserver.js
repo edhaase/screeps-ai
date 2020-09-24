@@ -3,8 +3,8 @@
  */
 'use strict';
 
-/* global UNIT_COST */
-/* global Player, PLAYER_HOSTILE */
+import { PLAYER_STATUS } from '/Player';
+
 /* eslint-disable consistent-return */
 
 export default {
@@ -28,7 +28,7 @@ export default {
 	run: function () {
 		const { controller } = this.room;
 		if (!controller || this.pos.roomName !== this.memory.site.roomName)
-			return this.pushState('EvadeMove', { pos: this.memory.site, range: 1 });
+			return this.pushState('EvadeMove', { pos: this.memory.site, range: 1, allowIncomplete: true });
 		this.room.memory.reservation = Game.time + _.get(controller, 'reservation.ticksToEnd', 0);
 		if (this.flee(10) === OK)
 			return;
@@ -36,7 +36,7 @@ export default {
 		let status;
 		if (controller.owner && controller.owner.username && !controller.my)
 			status = this.attackController(controller);
-		else if (controller.reservation && Player.status(controller.reservation.username) <= PLAYER_NEUTRAL)
+		else if (controller.reservation && Player.status(controller.reservation.username) <= PLAYER_STATUS.NEUTRAL)
 			status = this.attackController(controller);
 		else
 			status = this.reserveController(controller);

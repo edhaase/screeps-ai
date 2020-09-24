@@ -1,6 +1,10 @@
-/** /ds/bitvalue.js */
-'use strict';
+/**
+ * @module
+ */
 
+/**
+ * @class
+ */
 export default class BitValue {
 
 	constructor(value) {

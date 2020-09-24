@@ -1,7 +1,7 @@
 /** prog-legacy.js */
 'use strict';
 
-import { ActorHasCeased } from '/os/core/errors';
+import { ActorHasCeasedError } from '/os/core/errors';
 
 import * as Co from '/os/core/co';
 import ITO from '/os/core/ito';
@@ -35,12 +35,20 @@ export default class Legacy extends Process {
 		if (!missed || !missed.length)
 			return;
 		for (const itm of missed) {
-			//if (itm instanceof Structure && !itm.isActive())
-			//	continue;
-			const thread = this.startThread(this.invoker, [itm[iden], col, method], undefined, itm.toString());
-			thread.key = itm[iden];
-			this.table.set(thread.key, thread);
+			try {
+				//if (itm instanceof Structure && !itm.isActive())
+				//	continue;
+				if (itm.ticksToLive && itm.ticksToLive <= 1)
+					continue;
+				const thread = this.startThread(this.invoker, [itm[iden], col, method], undefined, itm.toString());
+				thread.key = itm[iden];
+				this.table.set(thread.key, thread);
+			} catch (err) {
+				this.error(err);
+				this.error(err.stack);
+			}
 			yield true;
+
 		}
 	}
 
@@ -53,7 +61,7 @@ export default class Legacy extends Process {
 				yield false;
 			}
 		} catch (e) {
-			if (!(e instanceof ActorHasCeased))
+			if (!(e instanceof ActorHasCeasedError))
 				throw e;
 			this.debug(`Actor ${id} has ceased, exiting`);
 		}

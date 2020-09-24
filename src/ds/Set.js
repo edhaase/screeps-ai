@@ -1,8 +1,11 @@
-/** /ds/set - Set extensions */
-'use strict';
-
+/**
+ * @module
+ */
 import * as Itr from '/os/core/itr';
 
+/**
+ * @class
+ */
 export default class BaseSet extends Set {
 	/** Take up to N items out and return them as an array */
 	pull(n) {

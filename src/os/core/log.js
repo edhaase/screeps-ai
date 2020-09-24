@@ -1,12 +1,6 @@
 /**
- * Log.js
- *
- * ES6 log class for logging screeps messages with color, where it makes sense.
- * @todo: abbr tag '<abbr title="World Health Organization">WHO</abbr>'
- * @todo: log groups / log levels?
+ * @module
  */
-'use strict';
-
 import { ROOM_LINK } from '/os/core/macros';
 import { ENV } from '/os/core/macros';
 
@@ -18,8 +12,10 @@ export const LOG_LEVEL = {
 	SUCCESS: 4
 };
 
-export const DEFAULT_LOG_LEVEL = ENV('log.default', LOG_LEVEL.WARN);
-
+/**
+ * @classdesc ES6 log class for logging screeps messages with color
+ * @todo abbr tag '<abbr title="World Health Organization">WHO</abbr>'
+ */
 export class Log {
 	constructor() {
 		throw new Error("Log is a static class");
@@ -53,9 +49,9 @@ export class Log {
 	static log(level = LOG_LEVEL.DEBUG, msg, tag) {
 		if (msg == null || msg === '')
 			return;
-		var color = Log.color[level];
 		if (tag && this.getLogLevel(tag) > level)
 			return;
+		const color = Log.color[level];
 		const out = msg.replace(/([WE])(\d+)([NS])(\d+)/gi, r => ROOM_LINK(r));
 		this.toConsole(out, color, tag);
 	}
@@ -71,7 +67,7 @@ export class Log {
 		if (!Memory.logging)
 			Memory.logging = {};
 		if (Memory.logging[tag] == null)
-			return DEFAULT_LOG_LEVEL;
+			return ENV('log.default', LOG_LEVEL.WARN);
 		return Memory.logging[tag];
 	}
 
@@ -89,13 +85,6 @@ export class Log {
 	}
 
 }
-
-/** Log levels */
-LOG_LEVEL.DEBUG = 0;
-LOG_LEVEL.INFO = 1;
-LOG_LEVEL.WARN = 2;
-LOG_LEVEL.ERROR = 3;
-LOG_LEVEL.SUCCESS = 4;
 
 /** Log colors */
 Log.color = {

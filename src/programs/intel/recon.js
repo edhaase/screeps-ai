@@ -1,16 +1,22 @@
-/** os.prog.recon.js - acquires room visibility */
+/**
+ * intel.recon - handles room visibility
+ * 
+ * @todo add support for vision priority
+ * @todo optionally sort requests by distance to owned rooms or scouts
+ */
 'use strict';
 
 /* global ENVC */
 
-import * as Co from '/os/core/co';
-import Process from '/os/core/process';
-import ITO from '/os/core/ito';
 import { ENVC } from '/os/core/macros';
+import { ICON_ANTENNA } from '/lib/icons';
+import { TimeLimitExceededError, ActorHasCeasedError } from '/os/core/errors';
 import Future from '/os/core/future';
-import { TimeLimitExceeded, ActorHasCeased } from '/os/core/errors';
+import ITO from '/os/core/ito';
+import Process from '/os/core/process';
 
 export const DEFAULT_RECON_TIMEOUT = 1000;
+export const DEFAULT_SCOUT_SPAWN_REQUEST_FREQUENCY = 5;
 
 /**
  * @todo request power creep observer boost if available (any observer would work)
@@ -24,6 +30,7 @@ export default class Recon extends Process {
 
 		this.observers = [];
 		this.scouts = [];
+		this.next_scout_spawn_request = Game.time + ENVC('recon.scout_request_freq', DEFAULT_SCOUT_SPAWN_REQUEST_FREQUENCY);
 
 		this.vision_callbacks = {};
 		this.vision_requests = [];
@@ -88,7 +95,7 @@ export default class Recon extends Process {
 					}
 					if (Game.time > timeout) {
 						this.vision_requests.splice(i, 1);
-						this.purge(roomName, new TimeLimitExceeded(`Vision request ${roomName} timed out`));
+						this.purge(roomName, new TimeLimitExceededError(`Vision request ${roomName} timed out`));
 						continue;
 					}
 					const asset = _.find(this.assets, a => (a.lastRoom === roomName || a.memory.nextRoom === roomName) || (a.memory.roomName === roomName && !a.memory.idle));
@@ -127,11 +134,12 @@ export default class Recon extends Process {
 						this.info(`Commandeering scout at ${scout.pos.roomName} to inspect ${roomName} (range ${range}) on tick ${Game.time}`);
 						scout.memory.idle = false;
 						scout.memory.roomName = roomName;
+						scout.say(ICON_ANTENNA, true);
 						this.vision_requests.splice(i, 1);
 						continue; // build a scout
 					}
 				} catch (e) {
-					if (e instanceof ActorHasCeased)
+					if (e instanceof ActorHasCeasedError)
 						return this.warn(`Asset has ceased`);
 					this.error(e);
 					this.error(e.stack);
@@ -193,10 +201,8 @@ export default class Recon extends Process {
 			this.scouts = _.map(scouts, o => ITO.make(o.id));
 			this.assets = [...this.observers, ...this.scouts];
 
-			// @todo if we don't have observers, spawn a scout
-
 			this.setThreadTitle(`Tracking ${this.observers.length} observers and ${this.scouts.length} scouts`);
-			yield this.sleepThread(ENVC('recon.asset_update', 15, 1));
+			yield this.sleepThread(ENVC('recon.asset_update', 5, 1));
 		}
 	}
 

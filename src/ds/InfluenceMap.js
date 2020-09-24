@@ -1,15 +1,21 @@
-/** /ds/influence.js - Influence maps! */
-'use strict';
-
+/**
+ * @module
+ */
 import { hsv2rgb } from '/lib/util';
-import * as Intel from '/Intel';
 import { IS_SAME_ROOM_TYPE } from '/os/core/macros';
+import { NUMBER_FORMATTER, to_precision, to_fixed } from '/lib/util';
+import { PLAYER_STATUS } from '/Player';
+import * as Intel from '/Intel';
 import * as vmap from '/visual/intel-map';
+import LazyMap from '/ds/LazyMap';
 import Region from '/ds/Region';
+import { EXIT_CACHE } from '/cache/ExitCache';
 
 export const DEFAULT_MAX_INFLUENCE_DISTANCE = 7;
 
 /**
+ * @classdesc Describes room level influence on the world map
+ * 
  * Positive and negative influence?
  * Use two maps for accuracy?
  * 
@@ -17,6 +23,8 @@ export const DEFAULT_MAX_INFLUENCE_DISTANCE = 7;
  * or we miss an update.
  * 
  * http://www.gameaipro.com/GameAIPro2/GameAIPro2_Chapter30_Modular_Tactical_Influence_Maps.pdf
+ * 
+ * @todo add methods for finding the frontline (area closest to 0, greatest tension)
  */
 export default class InfluenceMap {
 	constructor() {
@@ -24,6 +32,7 @@ export default class InfluenceMap {
 		this.data = {};
 		this.influences = {};
 		this.max_dist = DEFAULT_MAX_INFLUENCE_DISTANCE;
+		this.iterations = 0;
 		// @todo If we're blocking propagation we should probably consult the ally list.
 		this.blocks_propagation = (r) => Intel.isHostileRoom(r, false);
 	}
@@ -45,10 +54,17 @@ export default class InfluenceMap {
 				copy.data[key] = (copy.data[key] / max);
 			else
 				copy.data[key] = -(copy.data[key] / min);
+			if (copy.data[key] === 0)
+				delete copy.data[key];
 		}
 		return copy;
 	}
 
+	/**
+	 * 
+	 * @param {*} roomName 
+	 * @param {*} score 
+	 */
 	set(roomName, score) {
 		if (!_.isEmpty(this.influences) && !_.any(this.influences, (v, k) => Game.map.getRoomLinearDistance(roomName, k, false) <= this.max_dist))
 			return this; // Only add stuff we're going to care about.
@@ -60,6 +76,11 @@ export default class InfluenceMap {
 		return this;
 	}
 
+	/**
+	 * 
+	 * @param {*} roomName 
+	 * @param {*} score 
+	 */
 	add(roomName, score) {
 		if (!_.isEmpty(this.influences) && !_.any(this.influences, (v, k) => Game.map.getRoomLinearDistance(roomName, k, false) <= this.max_dist))
 			return this; // Only add stuff we're going to care about.
@@ -75,16 +96,14 @@ export default class InfluenceMap {
 		return this.propagateAll();
 	}
 
-	*propagateAll(render) {
+	*propagateAll() {
 		const entries = Object.entries(this.pending);
 		this.pending = {};
+		this.iterations = 0;
 		for (const change of entries) {
 			yield* this.propagate(change);
-			if (render) {
-				yield this.draw(render);
-			}
-
 		}
+		console.log(`INF Map Propegation took ${this.iterations} iterations`);
 		return this;
 	}
 
@@ -94,21 +113,21 @@ export default class InfluenceMap {
 		const q = [origin];
 		const owner = _.get(Memory.intel, [origin, 'owner']);
 		for (const roomName of q) {
-			yield true;
+			if (++this.iterations % 25 === 0)
+				yield true;
 			const dist = seen[roomName] || 0;
 			if (dist >= this.max_range)
 				continue;
 			const inf = delta - (delta * (dist / this.max_dist));
 			if (inf === 0)
 				continue;
-			changes[roomName] = inf;
-			// if (this.blocks_propagation(roomName))	// Can't move through a hostile room directly.
-			//	continue;
-			if (delta > 0 && Memory.intel[roomName] && Memory.intel[roomName].owner && Player.status(Memory.intel[roomName].owner) <= PLAYER_NEUTRAL)
+			if (Math.abs(inf) > (changes[roomName] || 0))
+				changes[roomName] = inf;
+			if (delta > 0 && Memory.intel[roomName] && Memory.intel[roomName].owner && Player.status(Memory.intel[roomName].owner) <= PLAYER_STATUS.NEUTRAL)
 				continue;	// Don't push through owned rooms
 			if (delta < 0 && Memory.intel[roomName] && Memory.intel[roomName].owner && Memory.intel[roomName].owner !== owner)
 				continue;	// @todo check alliance map
-			const exits = _.values(Game.map.describeExits(roomName));
+			const exits = EXIT_CACHE.get(roomName);
 			for (const exit of exits) {
 				if (!IS_SAME_ROOM_TYPE(roomName, exit))
 					continue;
@@ -118,9 +137,8 @@ export default class InfluenceMap {
 				q.push(exit);
 			}
 		}
-
-		for (const [roomName, change] of Object.entries(changes)) {
-			yield true;
+		yield true;
+		for (const [roomName, change] of Object.entries(changes)) {	
 			if (!this.data[roomName])
 				this.data[roomName] = 0.0;
 			// this.data[roomName] += change;
@@ -128,8 +146,20 @@ export default class InfluenceMap {
 		}
 	}
 
-	report() {
-		return _.mapValues(this.data, (v, k) => _.round(v, 3));
+	*blur(drawEachTick = false) {
+		/**
+		 * Starting from each influnencer, spread the influence to nearby rooms and keep the sum
+		 */
+		const seen = {};
+		const edges = [];
+		const influences = {};
+		const q = [];
+		// Set up the initial influence sources and the initial edges
+		for (const [roomName, influence] of Object.entries(this.pending)) {
+			this.seen[roomName] = true;
+			influences[roomName] = influence;
+			q.push(roomName);
+		}
 	}
 
 	bounds() {
@@ -141,38 +171,26 @@ export default class InfluenceMap {
 			ly = Math.min(ly, y);
 			uy = Math.max(uy, y);
 		}
-		console.log(`bounds ${lx} ${ly} ${ux} ${uy}`);
 		return [lx, uy, ux, ly];
 	}
 
-	draw(start) {
-		//if (!this.normals)
-		this.normals = this.normalize();		
-		const renderBehind = (rN, rv, x, y) => rv.text(_.round(this.normals.data[rN], 2), x, y);
-		const renderInFront = (rN, rv, x, y) => rv.text(rN, x, y + 0.75);
+	draw() {
+		if (!this.normals)
+			this.normals = this.normalize();
 		const hue = (x) => 120 * ((1 + x) / 2);
 		const sat = (x) => Math.abs(((1 + x) / 2) - 50) / 50;
-		// 0.5 + (this.normals.data[rN] * -0.5)
-		// -1 = 0 = red
-		// 1.0 = 120 = green
 		const colorFn = (rN) => hsv2rgb(hue(this.normals.data[rN]), sat(this.normals.data[rN]), 1.0);
-		vmap.renderIntelMap(start, this.normals.data, { roomSize: 3, renderBehind, colorFn, renderInFront });
-		return false;
-	}
-
-	table(width = 35) {
-		const [lx, uy, ux, ly] = this.bounds();
-		var row, rows = "";
-		for (var v = ly; v <= uy; v++) {
-			row = "";
-			for (var h = lx; h <= ux; h++) {
-				const name = Region.coordToRoomName(h,v); // COORD_TO_ROOM_NAME(h, v);
-				const score = _.round(this.data[name], 0) || '--';
-				row += `<td>${score}</td>`;
+		if (Game.map.visual) {
+			for (const roomName in this.normals.data) {
+				const room = this.normals.data[roomName];
+				Game.map.visual.rect(new RoomPosition(0, 0, roomName), 50, 50, {
+					fill: colorFn(roomName),
+					opacity: 0.75
+				});
+				Game.map.visual.text(to_fixed(room), new RoomPosition(25, 45, roomName), { opacity: 1.0, fontSize: 12 });
 			}
-			rows += `<tr>${row}</td>`;
 		}
-		return `<table style='width: ${width}vw'>${rows}</table>`;
+		return false;
 	}
 
 	toString() {
@@ -194,7 +212,7 @@ InfluenceMap.test = function (first) {
 		const { owner } = intel;
 		if (!owner || owner === WHOAMI)
 			continue;
-		if (Player.status(owner) > PLAYER_NEUTRAL)
+		if (Player.status(owner) > PLAYER_STATUS.NEUTRAL)
 			continue;
 		const level = intel.level || 8;;
 		im.set(roomName, -100 * (level / 8));

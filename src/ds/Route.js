@@ -1,6 +1,6 @@
-/** /ds/route.js */
-'use strict';
-
+/**
+ * @module
+ */
 import { isHostileRoom, hasOwner } from '/Intel';
 import { IS_SAME_ROOM_TYPE } from '/os/core/macros';
 import { Log, LOG_LEVEL } from '/os/core/Log';
@@ -36,6 +36,9 @@ function getFindRouteOptions(avoid = [], prefer = []) {
 	};
 }
 
+/**
+ * @class
+ */
 export default class Route extends Array {
 	/**
 	 * @param {*} fromRoom 

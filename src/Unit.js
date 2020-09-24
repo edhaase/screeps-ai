@@ -7,7 +7,7 @@
 
 /* global PRIORITY_MIN, PRIORITY_LOW, PRIORITY_MED, PRIORITY_HIGH, PRIORITY_MAX */
 /* global UNIT_COST, DEFAULT_SPAWN_JOB_EXPIRE */
-import { Log, LOG_LEVEL } from '/os/core/Log';
+import { Log } from '/os/core/Log';
 import Body from '/ds/Body';
 import { RLD } from '/lib/util';
 import ROLES from '/role/index';
@@ -114,7 +114,6 @@ export function requestUpgrader(spawn, home, priority = PRIORITY_MED, workDiff) 
 	// energy use is  active work * UPGRADE_CONTROLLER_POWER, so 11 work parts is 11 ept, over half a room's normal production
 	// let max = 2500;
 	// @todo Are we sure we're sizing this right?
-	const { controller } = spawn.room;
 	const avail = Math.max(SPAWN_ENERGY_START, spawn.room.energyCapacityAvailable);
 	if (spawn.pos.roomName !== home) {
 		body = Body.repeat([WORK, CARRY, MOVE, MOVE], avail);
@@ -132,9 +131,10 @@ export function requestUpgrader(spawn, home, priority = PRIORITY_MED, workDiff) 
 		const rm = m - pm * BODYPART_COST[MOVE];
 		const rem = rc + rm;
 		const pw = CLAMP(1, Math.floor((w + rem) / BODYPART_COST[WORK]), Math.min(lw, workDiff));
+		const am = CLAMP(1, pm, Math.ceil(pc + pw / 2));
 		Log.debug(`Upgrader energy remaining: ${rc} ${rm} = ${rem}`, 'Unit');
-		Log.debug(`Upgrader parts available: ${pw} ${pc} ${pm}`, 'Unit');
-		body = RLD([pw, WORK, pc, CARRY, pm, MOVE]);
+		Log.debug(`Upgrader parts available: ${pw} ${pc} ${am}`, 'Unit');
+		body = RLD([pw, WORK, pc, CARRY, am, MOVE]);
 	}
 	// Log.debug(`Workdiff: ${workDiff}, count: ${count}, body: ${body}`);
 	return spawn.submit({ body, memory: { role: 'upgrader', home }, priority });
@@ -159,6 +159,8 @@ export function requestBulldozer(spawn, roomName) {
 export function requestDualMiner(spawn, home, totalCapacity, steps, priority = PRIORITY_MED) {
 	// const body = require('/role/dualminer').body({ totalCapacity, steps });
 	const body = ROLES['dualminer'].body({ totalCapacity, steps });
+	if (!body || !body.length)
+		return false;
 	const cost = UNIT_COST(body);
 	if (spawn.room.energyCapacityAvailable < cost) {
 		Log.warn(`${spawn}/${spawn.pos} body of creep dualminer is too expensive for spawn`, 'Controller');
@@ -200,9 +202,9 @@ export function requestScav(spawn, home = null, canRenew = true, priority = PRIO
 	body.unshift(WORK);
 	body.unshift(MOVE);
 	if (!body || body.length <= 3) {
-		console.log("Unable to build scav");
+		Log.warn(`Unable to build scav for room ${home}`, 'Unit');
 	} else {
-		return spawn.submit({ body, memory, priority, home });
+		return spawn.submit({ body, memory, priority });
 	}
 };
 
@@ -313,43 +315,24 @@ export function requestHealer(spawn, roomName, priority = PRIORITY_MED) {
 	return spawn.submit({ body, memory: { role: 'healer', home: roomName }, priority });
 };
 
-// Unit.requestGuard(Game.spawns.Spawn1, 'Guard2', Unit.repeat([MOVE,ATTACK],3000).sort())
-// [MOVE,MOVE,RANGED_ATTACK,MOVE,MOVE,HEAL,HEAL]	
-// Unit.requestGuard(Game.spawns.Spawn1, 'Guard', [TOUGH,TOUGH,MOVE,MOVE,RANGED_ATTACK,MOVE,HEAL,HEAL,HEAL])
-// Unit.requestGuard(Game.spawns.Spawn1, 'Guard', [TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,ATTACK,MOVE,ATTACK,MOVE,MOVE,ATTACK,ATTACK,HEAL,HEAL,HEAL,HEAL])
-// Unit.requestGuard(Game.spawns.Spawn1, 'Guard', [TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,RANGED_ATTACK,RANGED_ATTACK,MOVE,MOVE,HEAL,HEAL,HEAL])
-// Unit.requestGuard(Game.spawns.Spawn1, 'Guard', Util.RLD([13,MOVE,4,RANGED_ATTACK,3,HEAL]))
-// Unit.requestGuard(Game.spawns.Spawn1, 'Test', [MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,HEAL,MOVE,ATTACK,MOVE,ATTACK])
-// Unit.requestGuard(Game.spawns.Spawn4, 'Guard2', [TOUGH,TOUGH,MOVE,MOVE,RANGED_ATTACK,RANGED_ATTACK,MOVE,MOVE,HEAL,HEAL,HEAL])
-// Unit.requestGuard(Game.spawns.Spawn4, 'Guard2', [MOVE,ATTACK,MOVE,ATTACK,MOVE,ATTACK,MOVE,ATTACK,MOVE,ATTACK,MOVE,ATTACK,MOVE,ATTACK])
-// Unit.requestGuard(Game.spawns.Spawn2, 'Flag31', Util.RLD([10,TOUGH,20,MOVE,10,ATTACK]))
-// Unit.requestGuard(Game.spawns.Spawn8, 'Flag38', Util.RLD([5,TOUGH,10,MOVE,6,ATTACK]))
-// Unit.requestGuard(Game.spawns.Spawn4, 'Guard2', Util.RLD([5,TOUGH,20,MOVE,5,RANGED_ATTACK,2,HEAL]))
-// requestGuard: function(spawn, flag, body=[MOVE,MOVE,RANGED_ATTACK,HEAL]) {
-export function requestGuard(spawn, flag, body, room) {
+export function requestGuard(spawn, flag, room) {
 	if (!flag || !(Game.flags[flag] instanceof Flag))
 		throw new TypeError("Expected flag");
-	if (body == null || !body.length) {
-		const r = Math.random();
-		if (r < 0.50) {
-			body = requestG2Melee(spawn);
-		} else {
-			body = [HEAL, MOVE];
-			const cost = UNIT_COST(body);
-			const avail = Math.floor((spawn.room.energyCapacityAvailable - cost) * 0.98);
+/*	var body = [HEAL, MOVE];
+	const cost = UNIT_COST(body);
+	const avail = Math.floor((spawn.room.energyCapacityAvailable - cost) * 0.98);
 
-			if (spawn.room.energyCapacityAvailable > 1260 && r < 0.10) {
-				body = Body.repeat([HEAL, RANGED_ATTACK, ATTACK, MOVE, MOVE, MOVE], avail);
-			} else if (r < 0.80) {
-				body = body.concat(Body.repeat([RANGED_ATTACK, MOVE], avail, MAX_CREEP_SIZE - body.length)); // These don't work
-			} else {
-				body = body.concat(Body.repeat([ATTACK, MOVE], avail, MAX_CREEP_SIZE - body.length));
-			}
-		}
+ 	if (spawn.room.energyCapacityAvailable > 1260 && r < 0.10) {
+		body = Body.repeat([HEAL, RANGED_ATTACK, ATTACK, MOVE, MOVE, MOVE], avail);
+	} else if (r < 0.80) {
+		body = body.concat(Body.repeat([RANGED_ATTACK, MOVE], avail, MAX_CREEP_SIZE - body.length)); // These don't work
+	} else {
+		body = body.concat(Body.repeat([ATTACK, MOVE], avail, MAX_CREEP_SIZE - body.length));
 	}
 	if (body.length <= 2)
 		body = [RANGED_ATTACK, MOVE];
-	return spawn.submit({ body, memory: { role: 'guard', site: flag, origin: spawn.pos.roomName }, priority: PRIORITY_HIGH, room });
+	return spawn.submit({ body, memory: { role: 'guard', site: flag, origin: spawn.pos.roomName }, priority: PRIORITY_HIGH, room });  */
+	return spawn.submit({ memory: { role: 'guard', site: flag, origin: spawn.pos.roomName }, priority: PRIORITY_HIGH, room }); 
 };
 
 export function requestG2Melee(spawn, en) {

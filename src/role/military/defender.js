@@ -3,12 +3,12 @@
  *
  * Local room guard
  *
- * @todo: support ranged attack for crippling enemies
- * @todo: request fire support from towers?
- * @todo: intercept
- * @todo: mass attack
- * @todo: heal friendlies
- * @todo: kite?
+ * @todo support ranged attack for crippling enemies
+ * @todo request fire support from towers?
+ * @todo intercept
+ * @todo mass attack
+ * @todo heal friendlies
+ * @todo kite?
  */
 'use strict';
 

@@ -9,6 +9,11 @@
  */
 'use strict';
 
+import { CLAMP } from '/os/core/math';
+import { Log } from '/os/core/Log';
+import { RLD } from '/lib/util';
+import Body from '/ds/Body';
+
 /* global CREEP_RANGED_ATTACK_RANGE, CREEP_RANGED_HEAL_RANGE */
 
 const IDLE_DISTANCE = 3;
@@ -18,9 +23,31 @@ export default {
 	priority: function () {
 		// (Optional)
 	},
-	body: function() {
-		// (Optional) Used if no body supplied
-		// Expects conditions..
+	body: function (spawn, job) {
+		// 
+		// const body = Body.ratio([0.40, RANGED_ATTACK, 0.40, HEAL, 0.20, MOVE], [0.40, 0.10, 0.5])
+
+		const energyCapacityAvailable = spawn.room.energyCapacityAvailable;
+		Log.debug(`Total: ${energyCapacityAvailable}`, 'Creep');
+		const avail = Math.floor(energyCapacityAvailable * 0.98);
+		const [c, h, m] = [0.40 * avail, 0.40 * avail, 0.20 * avail];
+		const [lc, lh, lm] = [0.40 * MAX_CREEP_SIZE, 0.10 * MAX_CREEP_SIZE, 0.5 * MAX_CREEP_SIZE];
+		Log.debug(`${c} ${h} ${m}`, 'Creep');
+		Log.debug(`${lc} ${lh} ${lm}`, 'Creep');
+		const pc = CLAMP(1, Math.floor(c / BODYPART_COST[RANGED_ATTACK]), lc);
+		const ph = CLAMP(1, Math.floor(h / BODYPART_COST[HEAL]), lh);
+		const pm = CLAMP(1, Math.floor(m / BODYPART_COST[MOVE]), lm);
+		Log.debug(`${pc} ${ph} ${pm}`, 'Creep');
+		const rc = c - pc * BODYPART_COST[RANGED_ATTACK];
+		const rm = m - pm * BODYPART_COST[MOVE];
+		const rh = h - ph * BODYPART_COST[HEAL];
+		const rem = rc + rm + rh;
+		const pcw = CLAMP(1, Math.floor((c + rem) / BODYPART_COST[RANGED_ATTACK]), lc);
+		const am = CLAMP(1, pm, Math.ceil((pcw + ph) / 2));
+		Log.debug(`rc ${rc} rm ${rm} rh ${rh} rem ${rem} pcw ${pcw}`, 'Creep');
+		const body = RLD([pcw, RANGED_ATTACK, pm, MOVE, ph, HEAL]);
+		// const cost = UNIT_COST(body);
+		return body;
 	},
 	init: function () {
 		// this.pushState('MoveTo', {pos: Game.flags[this.memory.site].pos, range: 3});
@@ -51,14 +78,14 @@ export default {
 					this.flee(CREEP_RANGED_ATTACK_RANGE);
 			} else if (this.canRanged && this.pos.inRangeTo(threat, CREEP_RANGED_ATTACK_RANGE)) {
 				// We're ranged and in range, shoot them in the face.
-				if(threats && threats.length > 1)
+				if (threats && threats.length > 1)
 					this.rangedMassAttack();
 				else
 					this.rangedAttack(threat);
-				// @todo: or massAttack?
+				// @todo or massAttack?
 				if (this.canAttack && !threat.canAttack)
 					this.moveTo(threat, { range: 1 });
-				else if(threat.canAttack)
+				else if (threat.canAttack)
 					this.flee(CREEP_RANGED_ATTACK_RANGE);
 				// if (this.hits < this.hitsMax) // Allow overheal
 				this.heal(this, true);

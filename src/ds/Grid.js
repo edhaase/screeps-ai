@@ -1,8 +1,11 @@
 /**
- * Grid class - For mapping an x,y position to a value 
+ * @module
  */
-'use strict';
 
+/**
+ * @class
+ * @classdesc Grid class - For mapping an x,y position to a value 
+ */
 export default class Grid {
 	constructor() {
 		this.arr = [];

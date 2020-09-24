@@ -11,7 +11,7 @@
 /* global RECIPES, BOOST_PARTS, REACTION_TIME */
 /* glboal TERMINAL_MAINTAIN_RESERVE */
 /* eslint-disable consistent-return */
-import { TERMINAL_MAINTAIN_RESERVE } from '/proto/structure/terminal';
+import { TERMINAL_MAINTAIN_RESERVE, TERMINAL_AUTOSELL_THRESHOLD } from '/prototypes/structure/terminal';
 import { ICON_SLEEP } from '/lib/icons';
 import { Log, LOG_LEVEL } from '/os/core/Log';
 
@@ -135,9 +135,25 @@ export default {
 		}
 
 		/**
+		 * Breakdown GO if we need G
+		 */
+		const stored_go = terminal.store['GO'] || 0;
+		const stored_g = terminal.store['G'] || 0;
+		if (stored_go > 100 && (stored_go >= TERMINAL_MAINTAIN_RESERVE + LAB_REACTION_AMOUNT || stored_g < TERMINAL_AUTOSELL_THRESHOLD)) {
+			// if (terminal.store.getUsedCapacity('GO') >= LAB_REACTION_AMOUNT * REACT_TIMES) { // unless ghodium becomes worth more than GO..
+			const src = terminal.pos.findClosestByRange(labs, { filter: s => (s.cooldown || 0) <= LAB_REACTION_AMOUNT && s.isReactionCapable() });
+			if (src) {
+				const [sink1, sink2] = src.getNeighbors();
+				Log.debug(`${this.name}/${this.pos} wants to break down GO`, 'Scientist');
+				this.say('<<<');
+				return this.pushState('Breakdown', { res: 'GO', src: src.id, sink1: sink1.id, sink2: sink2.id });
+			}
+		}
+
+		/**
 		 * If we don't have any creeps to support with boosting, break down resources
 		 */
-		const BREAKDOWN_RESOURCES = ['GO', 'KO', 'ZH'];
+		const BREAKDOWN_RESOURCES = ['KO', 'ZH'];
 		for (const bdr of BREAKDOWN_RESOURCES) {
 			if (terminal.store.getUsedCapacity(bdr) >= TERMINAL_MAINTAIN_RESERVE + LAB_REACTION_AMOUNT) {
 				// if (terminal.store.getUsedCapacity('GO') >= LAB_REACTION_AMOUNT * REACT_TIMES) { // unless ghodium becomes worth more than GO..

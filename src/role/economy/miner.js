@@ -34,12 +34,12 @@ export default {
 		const { harvestParts } = job;
 		// First try the optimal body
 		const workParts = Math.ceil(harvestParts) + 1;
-		const moveParts = (workParts + 1) / 2;
+		const moveParts = Math.ceil(workParts / 2);
 		const ideal = Body.rld([1, CARRY, workParts, WORK, moveParts, MOVE]);
 		const cost = ideal.cost();
 		const eca = spawn.room.energyCapacityAvailable;
-		Log.debug(`Miner body wants ${[1, CARRY, workParts, WORK, moveParts, MOVE]} at ${cost} / ${eca}`);
-		if (cost <= eca)
+		Log.debug(`Miner body wants ${[1, CARRY, workParts, WORK, moveParts, MOVE]} at ${cost} / ${eca}`, 'Creep');
+		if (workParts > 1 && cost <= eca)
 			return ideal;
 		// Otherwise, find one that fits
 		return _.find(MINING_BODIES, b => UNIT_COST(b) <= spawn.room.energyCapacityAvailable);
@@ -47,7 +47,7 @@ export default {
 	init: function () {
 		if (this.hasBodypart(CARRY))
 			this.pushState("EnsureStructure", { pos: this.memory.dest, structureType: STRUCTURE_CONTAINER, range: CREEP_HARVEST_RANGE, allowBuild: true, allowMove: false, minLevel: 2 });
-		this.pushState("EvadeMove", { pos: this.memory.dest, range: CREEP_HARVEST_RANGE });
+		this.pushState("EvadeMove", { pos: this.memory.dest, range: CREEP_HARVEST_RANGE, allowIncomplete: true });
 		this.pushState("EvadeMove", { pos: this.memory.dest, range: CREEP_HARVEST_RANGE + 2, allowIncomplete: true });
 		this.pushState('EvalOnce', { script: 'this.notifyWhenAttacked(false)' });
 	},
@@ -114,11 +114,11 @@ export default {
 			case ERR_NOT_ENOUGH_RESOURCES:
 				if (source.ticksToRegeneration >= this.ticksToLive)
 					return this.setRole('recycle');
-				if (source.hasEffect(PWR_REGEN_SOURCE))
-					return this.defer(5);
+				// if (source.hasEffect(PWR_REGEN_SOURCE))
+				//	return this.defer(5);
 				// Log.info(`${this.name}/${this.pos} reporting site empty for ${source.ticksToRegeneration} ticks!`, 'Mining');
-				// this.defer(source.ticksToRegeneration);
-				this.defer(period);
+				// this.defer(source.ticksToRegeneration);				
+				this.defer(Math.min(period, source.ticksToRegeneration));
 				break;
 			case ERR_NOT_IN_RANGE:
 				this.moveTo(source, { range: CREEP_HARVEST_RANGE });

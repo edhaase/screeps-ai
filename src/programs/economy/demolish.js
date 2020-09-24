@@ -77,9 +77,8 @@ export default class DemolishProc extends Process {
 				this.setThreadTitle('Asset Tracking - Pending spawn');
 				this.info(`Requesting new bulldozer to ${this.room} on tick ${Game.time}`);
 
-				// Allow fetching a facade for a remote process call
-				const [spawn] = kernel.getProcessByName('spawn');
-
+				// Allow fetching a facade for a remote process call				
+				const spawn = startService('spawn');
 				// Call the spawning process. This may be a cross process facade. We may get back a Future
 				// we can yield, if want to wait for confirmation.
 				spawn.submit({ memory: { role: 'bulldozer', home: this.room }, priority: PRIORITY_LOW });
@@ -93,7 +92,7 @@ export default class DemolishProc extends Process {
 	*updateRoom() {
 		try {
 			this.memory.lastUpdate = Game.time;
-			const [recon] = kernel.getProcessByName('recon');
+			const recon = startService('recon');			
 			const room = yield recon.request(this.room);
 			const targets = room.find(FIND_STRUCTURES, { filter: s => bulldozer_rejector_filter(s) && bulldozer_candidate_filter(s) });
 			this.memory.count = targets.length;

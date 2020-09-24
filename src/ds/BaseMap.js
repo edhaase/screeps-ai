@@ -1,6 +1,10 @@
-/** /ds/BaseMap.js - Map extensions */
-'use strict';
+/**
+ * @module
+ */
 
+/**
+ * @class
+ */
 export default class BaseMap extends Map {
 	sort(fn, order = ['desc']) {
 		const en = [...this.entries()];

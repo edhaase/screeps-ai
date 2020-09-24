@@ -9,6 +9,8 @@ import Pager from '/os/core/pager/thp';
 import { evict } from '/Intel';
 
 import { IS_MMO } from '/os/core/constants';
+import { MAP_ICON_SIZE, MAP_ICON_OPACITY } from '/os/core/constants';
+import { ICON_ATTACK, ICON_REPAIR } from '/lib/icons';
 
 export const ALLIANCE_UNKNOWN = '?';
 export const LOAN_SEGMENT_PORTALS = 97;
@@ -82,11 +84,15 @@ export default class IntelProc extends Process {
 						} else if (entry.event === EVENT_HEAL) {
 							this.modifyDamage(obj.owner.username, -1 * entry.data.amount);
 							this.info(`${obj.name}/${obj.pos}/${obj.owner.username} healing ${target}/${target.pos} on ${Game.time} (amount ${entry.data.amount})`);
+							if (Game.map.visual && target && target.pos) // Leaks so much memory
+								Game.map.visual.text(ICON_REPAIR, new RoomPosition(25, 25, target.pos.roomName), { opacity: MAP_ICON_OPACITY, fontSize: MAP_ICON_SIZE });
 						} else if (entry.event === EVENT_ATTACK) {
 							if (obj instanceof StructureTower)
 								continue;	// Defending players don't boost aggression.
 							this.modifyDamage(obj.owner.username, entry.data.damage);
 							this.info(`${obj.name}/${obj.pos}/${obj.owner.username} attacking ${target}/${target.pos} on ${Game.time} (amount ${entry.data.damage})`);
+							if (Game.map.visual && target && target.pos) // Leaks so much memory
+								Game.map.visual.text(ICON_ATTACK, new RoomPosition(25, 25, target.pos.roomName), { opacity: MAP_ICON_OPACITY, fontSize: MAP_ICON_SIZE });
 						}
 					} catch (e) {
 						this.error(JSON.stringify(entry));

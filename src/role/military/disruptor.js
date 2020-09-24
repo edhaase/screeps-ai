@@ -3,8 +3,8 @@
  *
  * moves to location, 
  *
- * @todo: target lock hostile structures
- * @todo: flee threats?
+ * @todo target lock hostile structures
+ * @todo flee threats?
  */
 'use strict';
 

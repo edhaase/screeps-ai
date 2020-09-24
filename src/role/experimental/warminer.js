@@ -3,8 +3,8 @@
  *
  * Economy/Combat unit. Mines SK sources and minerals, prioritizes combat and SK spawning.
  * 
- * @todo: heal nearby allies
- * @todo: build own container
+ * @todo heal nearby allies
+ * @todo build own container
  * 
  * 2016-12-17: Now groups up on all non source-keepers, not just invaders.
  */
@@ -75,7 +75,6 @@ export default {
 
 					target = source || mineral;
 					if (!_.isEmpty(structures)) {
-						// _.each(structures, s => console.log(ex(s)));
 						const cont = _.find(structures, s => s.structureType === STRUCTURE_CONTAINER);
 						if (cont)
 							this.memory.cid = cont.id;
@@ -86,7 +85,6 @@ export default {
 
 					if (target) {
 						this.say('found!');
-						console.log(`this ${this.name} found ${target}`);
 						this.memory.target = target.id;
 						goal = target;
 					}

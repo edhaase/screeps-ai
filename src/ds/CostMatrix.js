@@ -1,13 +1,18 @@
-/** /ds/costmatrix.js - Cost matrix extensions */
-'use strict';
-
-/* global CLAMP */
+/**
+ * @module
+ */
 import { getColorRange } from '/lib/util';
 import { CLAMP } from '/os/core/math';
 
+/**
+ * @constant {number} - Marks a tile as unwalkable in a cost matrix
+ */
 export const TILE_UNWALKABLE = 255;
 export const CM_COLORS = getColorRange(256);
 
+/**
+ * @class
+ */
 export default class CostMatrix extends PathFinder.CostMatrix {
 	/** @inherits static deserialize */
 	/** @inherits serialize */
@@ -19,7 +24,9 @@ export default class CostMatrix extends PathFinder.CostMatrix {
 		this._bits[x * 50 + y] = value;
 	}
 
-	/** Slightly faster version of get. */
+	/**
+	 *  Slightly faster version of get
+	 */
 	get(x, y) {
 		return this._bits[x * 50 + y];
 	}
@@ -114,8 +121,9 @@ export default class CostMatrix extends PathFinder.CostMatrix {
 	}
 
 	freeze() {
+		// We can't freeze a TypedArray, but we can prevent it from being modified by normal means
+		this.set = () => { throw new Error(`Can not modify cost matrix after it has been frozen`); }
 		Object.freeze(this);
-		Object.freeze(this._bits);
 		return this;
 	}
 

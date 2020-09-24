@@ -42,7 +42,7 @@ export default {
 		// Don't overflow us
 		if (this.carryCapacityAvailable < (HARVEST_MINERAL_POWER * this.memory.w * 2)) {
 			const res = _.findKey(this.carry);
-			this.pushState('Transfer', { res, amt: this.carry[res], dest: container.id });
+			return this.pushState('Transfer', { res, amt: this.carry[res], dest: container.id });
 		}
 
 		// Harvest!

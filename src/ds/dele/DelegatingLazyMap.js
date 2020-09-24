@@ -1,8 +1,11 @@
-/**  */
-'use strict';
-
+/**
+ * @module
+ */
 import DelegatingMap from './DelegatingMap';
 
+/**
+ * @class
+ */
 export default class DelegatingLazyMap extends DelegatingMap {
 	constructor(factory, backing = new Map) {
 		super(backing);
@@ -11,7 +14,7 @@ export default class DelegatingLazyMap extends DelegatingMap {
 
 	get(key) {
 		if (!super.has(key)) {
-			super.set(key, this.factory(key));
+			this.set(key, this.factory(key));
 		}
 		return super.get(key);
 	}

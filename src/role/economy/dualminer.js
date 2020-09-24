@@ -17,12 +17,12 @@ export default {
 	},
 	body: function ({ totalCapacity, steps }) {
 		const workParts = Math.ceil(totalCapacity / HARVEST_POWER / (ENERGY_REGEN_TIME - steps)) + 1; // +2 margin of error
-		Log.info(`Dual mining op has ${totalCapacity} total capacity`, 'Creep');
+		Log.info(`Dual mining op has ${totalCapacity} effective capacity`, 'Creep');
 		Log.info(`Dual mining op wants ${workParts} harvest parts`, 'Creep');
 		const moveParts = Math.ceil((1 + workParts) / 2);
 		const size = workParts + 1 + moveParts;
 		if (size > MAX_CREEP_SIZE) {
-			Log.warn('Body of this would be too big to build', 'Controller');
+			Log.warn('Body of dualminer would exceed creep size limit', 'Controller');
 			return null;
 		}
 		return RLD([workParts, WORK, 1, CARRY, moveParts, MOVE]);
@@ -49,13 +49,18 @@ export default {
 
 		const goal = target.container || target;
 		const range = (goal instanceof StructureContainer) ? 0 : 1;
-		if (!this.pos.inRangeTo(goal, range))
+		if (!this.pos.inRangeTo(goal, range)) {
+			// Get off my container
+			if (range === 0) {
+				const obstacle = goal.pos.getCreep();
+				if (obstacle) obstacle.scatter();
+			}
 			this.moveTo(goal, {
 				ignoreCreeps: (this.memory.stuck || 0) < 3,
 				reusePath: 20,
 				range: range
 			});
-		else if (target.energy <= 0 && target.ticksToRegeneration > 1) {
+		} else if (target.energy <= 0 && target.ticksToRegeneration > 1) {
 			// if(target && this.pos.isNearTo(target.pos) && target.energy <= 0 && target.ticksToRegeneration > 1)
 			return this.defer(target.ticksToRegeneration);
 		}

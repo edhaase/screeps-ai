@@ -46,8 +46,8 @@ export function* filter(itr, fn) {
 	}
 };
 
-export function* compact(itr, filter = _.identity) {
-	yield* filter(itr, (v) => v !== null && filter(v));
+export function* compact(itr, fn = _.identity) {
+	yield* filter(itr, (v) => v !== null && fn(v));
 };
 
 export function* sample(items) {

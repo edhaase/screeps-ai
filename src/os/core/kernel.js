@@ -1,8 +1,9 @@
-/** AbstractKernel.js - Base implementation */
-'use strict';
+/**
+ * @module
+ */
 
 /* global ENV, ENVC, SEGMENT_PROC, MM_AVG, DEFERRED_MODULES, MAKE_CONSTANT, Log */
-import { Log, LOG_LEVEL } from '/os/core/Log';
+import { Log } from '/os/core/Log';
 import { ENV, ENVC, MAKE_CONSTANT } from '/os/core/macros';
 import { MM_AVG, CLAMP } from '/os/core/math';
 import { to_precision } from '/lib/util';
@@ -19,7 +20,7 @@ import Process from '/os/core/process';
 import Thread from '/os/core/thread';
 import GCP from '/os/gc';
 import { createShardLocalUUID } from '/os/core/uuid';
-import { OperationNotPermitted } from '/os/core/errors';
+import { OperationNotPermittedError } from '/os/core/errors';
 import PROGRAMS from '/programs/index';
 
 export const MAX_CPU_SAFE_THRESHOLD = 0.90; // As a percentage
@@ -32,14 +33,15 @@ export const MAX_PRECISION = 7;
 export const DEFAULT_PRECISION = 5;
 global.CPU_PRECISION = ENVC('process.default_cpu_precision', DEFAULT_PRECISION, 0, MAX_PRECISION);
 
-// @todo load stats once, sync to heap, switch to write only
-// @todo base stats logging (to segment) [bucket, cpu, cpu.used, gcl, gpl, heap]
-// @todo os stats logging [kernel, process, threads, #running, #pending, #asleep]
-// @todo market logging [prices]
-// add os.async
-// kill process with zero threads
-// Improve error handling (macaros?)
-// Total cpu loading / #ticks to load
+/**
+ * @class
+ * 
+ * @todo load stats once, sync to heap, switch to write only
+ * @todo base stats logging (to segment) [bucket, cpu, cpu.used, gcl, gpl, heap]
+ * @todo os stats logging [kernel, process, threads, #running, #pending, #asleep]
+ * add os.async
+ * kill process with zero threads
+ */
 export default class Kernel {
 
 	constructor() {
@@ -77,6 +79,21 @@ export default class Kernel {
 		Log.debug(`New kernel on tick ${Game.time}`, 'Kernel');
 	}
 
+	/**
+	 * Lookup process by pid
+	 * @param {string} pid 
+	 */
+	getProcessByPid(pid) {
+		return this.process.get(pid);
+	}
+
+	/**
+	 * @param {string} name 
+	 * @return {Process[]}
+	 */
+	getProcessByName(name) {
+		return this.processByName.get(name);
+	}
 
 	/**
 	 * Stress test of the cpu management.
@@ -110,11 +127,11 @@ export default class Kernel {
 			const heapUsage = this.getHeapUsagePct();
 			if (heapUsage < ENVC('kernel.heap_warning', DEFAULT_HEAP_WARNING, 0, 1))
 				continue;
-			if (heapUsage >= ENVC('kernel.heap_critical', DEFAULT_HEAP_CRITICAL, 0, 1)) {
+			/* if (heapUsage >= ENVC('kernel.heap_critical', DEFAULT_HEAP_CRITICAL, 0, 1)) {
 				Log.notify(`Heap exceeded critical limit, cpu halted on tick ${Game.time}`);
 				yield; // In case we need a tick to send the message.
 				Game.cpu.halt();
-			}
+			} */
 			if (!global.gc) {
 				Log.warn(`Explicit gc unavailable (heap ${100 * heapUsage})`, 'Kernel');
 				continue;
@@ -180,6 +197,12 @@ export default class Kernel {
 		Pager.write(SEGMENT_PROC, JSON.stringify(this.proc));
 	}
 
+	/**
+	 * 
+	 * @param {string} name - Process name
+	 * @param {*} opts 
+	 * @param {string} [ppid] - Parent process
+	 */
 	startProcess(name, opts = {}, ppid) {
 		const entry = _.clone(opts);
 		entry.pid = createShardLocalUUID(); /** Inspired by ags131, we're using UIDs for pids */
@@ -211,9 +234,12 @@ export default class Kernel {
 		return p;
 	}
 
+	/**
+	 * @param {string} pid 
+	 */
 	killProcess(pid) {
 		if (pid === this.pid)
-			throw new OperationNotPermitted(`Unable to kill kernel`);
+			throw new OperationNotPermittedError(`Unable to kill kernel`);
 		const process = this.process.get(pid);
 		const parent = (process && process.parent);
 		this.process.delete(pid);			// Remove process instance from map
@@ -234,9 +260,13 @@ export default class Kernel {
 		}
 	}
 
+	/**
+	 * @param {string} pid 
+	 * @param {*} [timeout]
+	 */
 	stopProcess(pid, timeout = ENV('kernel.shutdown_grace_period', DEFAULT_SHUTDOWN_GRACE_PERIOD)) {
 		if (pid === this.pid)
-			throw new OperationNotPermitted(`Unable to stop kernel`);
+			throw new OperationNotPermittedError(`Unable to stop kernel`);
 		const process = this.process.get(pid);
 		process.timeout = Game.time + timeout;
 		if (process && process.shutdown) {
@@ -245,9 +275,6 @@ export default class Kernel {
 		return false;
 	}
 
-	getProcessByName(name) {
-		return this.processByName.get(name);
-	}
 
 	/** register end-of-tick behavior */
 	postTick(fn, key = fn.toString()) {
@@ -267,11 +294,10 @@ export default class Kernel {
 			}
 			while ((thread = this.queue.pop()) != null) {
 				ran++;
-				const AVG_USED = Math.max(thread.avgSysCpu, thread.avgUsrCpu);
+				const AVG_USED = Math.max(thread.avgSysCpu, thread.avgUsrCpu) || 0;
 				if (Game.cpu.getUsed() + AVG_USED >= this.throttle) {
 					this.lastRunCpu = Game.cpu.getUsed();
-					Log.warn(`Kernel paused at ${Math.ceil(this.lastRunCpu)} / ${this.throttle} cpu usage on tick ${Game.time} with ${this.queue.length} threads pending (ran ${ran})`, 'Kernel');  // continue running next tick to prevent starvation
-					// Log.warn(`Kernel paused at ${Math.ceil(this.lastRunCpu)} / ${this.throttle} cpu usage on tick ${Game.time} with ${this.queue.length} threads pending (ran ${ran}) [${this.queue}]`, 'Kernel');  // continue running next tick to prevent starvation
+					Log.warn(`Kernel paused at ${Math.ceil(this.lastRunCpu)} / ${this.throttle} cpu usage on tick ${Game.time} with ${1+this.queue.length} threads pending (ran ${ran})`, 'Kernel');  // continue running next tick to prevent starvation					
 					break;
 				}
 
@@ -314,7 +340,7 @@ export default class Kernel {
 				}
 			}
 			this.postTickFn = {};	// Clear the post-tick actions list
-			this.lastRunCpu = Game.cpu.getUsed();			
+			this.lastRunCpu = Game.cpu.getUsed();
 			yield;
 		}
 	}
@@ -365,6 +391,9 @@ export default class Kernel {
 		}
 	}
 
+	/**
+	 * @param {*} tid 
+	 */
 	killThread(tid) {
 		const thread = this.threads.get(tid);
 		if (!thread)
@@ -393,13 +422,29 @@ export default class Kernel {
 		return true;
 	}
 
+	/**
+	 * 
+	 * @param {*} cofn - coroutine function to start
+	 * @param {*} [args] 
+	 * @param {*} [prio] 
+	 * @param {*} [desc] 
+	 * @param {*} [pid] 
+	 * @param {*} [thisArg]
+	 */
 	startThread(cofn, args = [], prio, desc, pid = this.cpid || this.pid, thisArg = this) {
 		const coro = cofn.apply(thisArg, args);
 		const thread = new this.threadClass(coro, pid, desc);
 		return this.attachThread(thread, prio, pid);
 	}
 
-	/** Attach a separately created thread (kernel.attachThread(doStuff(42))) */
+	/**
+	 * Attach an existing thread
+	 * 
+	 * @param {Thread} thread 
+	 * @param {number} tprio 
+	 * 
+	 * @example kernel.attachThread(doStuff(42)))
+	 */
 	attachThread(thread, tprio = Process.PRIORITY_DEFAULT) {
 		if (!thread || !(thread instanceof this.threadClass))
 			throw new TypeError(`Expected thread object`);
@@ -422,14 +467,25 @@ export default class Kernel {
 		return thread;
 	}
 
+	/**
+	 * 
+	 * @param {*} ticks 
+	 */
 	sleepThread(ticks) {
 		this.getCurrentThread().sleep = Game.time + ticks;
 	}
 
+	/**
+	 * @returns {Thread}
+	 */
 	getCurrentThread() {
 		return this.threads.get(this.ctid);
 	}
 
+	/**
+	 * 
+	 * @param {string} title 
+	 */
 	setThreadTitle(title) {
 		return this.getCurrentThread().desc = title;
 	}

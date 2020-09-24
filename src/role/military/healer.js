@@ -1,11 +1,12 @@
 /**
  * role.healer.js
  *
+ * @todo stop summoning this during invasions
  */
 'use strict';
 
 const DEFAULT_HEALER_FOLLOW_RANGE = 2;
-const MAXIMUM_CREEP_IDLE = 80;
+const MAXIMUM_CREEP_IDLE = CREEP_LIFE_TIME / 2;
 
 import { unauthorizedHostile } from '/lib/filter';
 

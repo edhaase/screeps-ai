@@ -4,15 +4,17 @@
  * Simple claimer. Moves to a position and claims a controller.
  * 
  * @todo Add work parts and logic to push controller to RCL 2
+ * @example Game.spawns.Spawn48.submit({ body: [MOVE,CLAIM], memory: { role: 'claimer', pos: new RoomPosition(18,9,'E59S57')} });
  */
 'use strict';
 
-import { Log, LOG_LEVEL } from '/os/core/Log';
+import { Log } from '/os/core/Log';
+import Body from '/ds/Body';
 
 /* global Log */
 
 export default {
-	body: [CLAIM, MOVE],
+	minBody: [CLAIM, MOVE],
 	init: function () {
 		this.pushState("EvadeMove", { pos: this.memory.pos, range: 1 });
 	},

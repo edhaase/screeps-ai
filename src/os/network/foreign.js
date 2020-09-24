@@ -34,6 +34,7 @@ export default class ForeignSegment {
 				yield (global.kernel.getCurrentThread().sleep = Game.time + FS_IDLE_POLL_FREQ);
 		}
 	}
+	
 	/**
 	 * Self-contained state machine. While idle waits for requests.
 	 * If requets come in, start serving them by demand. When we're done,

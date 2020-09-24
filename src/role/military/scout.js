@@ -3,10 +3,11 @@
  */
 'use strict';
 
-import { scanRoom, markRoomForCommodityHarvesting, markCandidateForRemoteMining } from '/Intel';
-import { IS_SAME_ROOM_TYPE } from '/os/core/macros';
 import { ICON_ANTENNA } from '/lib/icons';
+import { IS_SAME_ROOM_TYPE } from '/os/core/macros';
 import { Log, LOG_LEVEL } from '/os/core/Log';
+import { scanRoom } from '/Intel';
+import { MAP_ICON_SIZE, MAP_ICON_OPACITY } from '/os/core/constants';
 
 /* global Log */
 /* global FLAG_ECONOMY, FLAG_MILITARY, SITE_REMOTE, SITE_PICKUP, STRATEGY_RESERVE, STRATEGY_RESPOND */
@@ -40,6 +41,10 @@ export default {
 		
 		scanRoom(room);
 		markCandidateForRemoteMining(room);
-		markRoomForCommodityHarvesting(room);		
+		markCandidateForCommodityMining(room);		
+		markCandidateForLooting(room);
+
+		if (Game.map.visual)
+			Game.map.visual.text(ICON_ANTENNA, new RoomPosition(25, 25, this.pos.roomName), { opacity: MAP_ICON_OPACITY, fontSize: MAP_ICON_SIZE });
 	}
 };

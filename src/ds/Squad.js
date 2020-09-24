@@ -1,8 +1,6 @@
 /**
- * Creep squads represent a group of creeps. 
+ * @module
  */
-'use strict';
-
 import BaseArray from "./BaseArray";
 import { createShardLocalUUID } from '/os/core/uuid';
 import { Log, LOG_LEVEL } from '/os/core/Log';
@@ -14,6 +12,9 @@ if (!Memory.groups) {
 	};
 }
 
+/**
+ * @classdesc Represents a group of creeps
+ */
 export default class Squad {
 	constructor(members = [], id = createShardLocalUUID()) {
 		this.members = members;

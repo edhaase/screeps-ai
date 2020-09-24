@@ -1,8 +1,11 @@
-/** /ds/delemap.js - Map extensions */
-'use strict';
-
+/**
+ * @module
+ */
 import BaseMap from '../BaseMap';
 
+/**
+ * @class
+ */
 export default class DelegatingMap extends BaseMap {
 	/**
 	 * Allows an underlying map implementation choice. Great for use with the LRU map.

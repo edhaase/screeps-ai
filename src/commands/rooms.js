@@ -1,4 +1,5 @@
 import * as Cmd from '/os/core/commands';
+import { Log } from '/os/core/Log';
 
 const CMD_CATEGORY = 'Rooms';
 
@@ -6,11 +7,12 @@ const CMD_CATEGORY = 'Rooms';
  * @param {*} roomName 
  * @param {*} fn 
  */
-function wroom(roomName, fn) {			// with room
-	const ob = _.find(Game.structures, (s) => s.structureType === STRUCTURE_OBSERVER && Game.map.getRoomLinearDistance(s.pos.roomName, roomName) <= OBSERVER_RANGE && s.exec(roomName,fn) === OK);
-	if (!ob)
-		return "No observer in range";
-	return ob;
+function wroom(roomName, fn = () => true, allowScouts = true) {			// with room
+	const recon = startService('recon');
+	if (!recon)
+		return Log.warn(`No recon process running`);
+	const future = recon.request(roomName, undefined, allowScouts);
+	return future.complete((room, err) => fn(room, err));
 };
 
 /**
@@ -27,7 +29,7 @@ function releaseRoom(roomName, confirm = false) {
 /**
  * @param {*} roomName 
  */
-function resetRoom (roomName) {
+function resetRoom(roomName) {
 	var room = Game.rooms[roomName];
 	room.find(FIND_FLAGS).forEach(f => f.remove());
 	room.find(FIND_STRUCTURES).forEach(s => s.destroy());

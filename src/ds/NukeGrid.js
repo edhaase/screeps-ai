@@ -1,9 +1,12 @@
 /**
- * 
+ * @module
  */
 import { unauthorizedHostile } from '/lib/filter';
-import { Log, LOG_LEVEL } from '/os/core/Log';
+import { Log } from '/os/core/Log';
 
+/**
+ * 
+ */
 export default class NukeGrid {
 	constructor() {
 		this.arr = [];

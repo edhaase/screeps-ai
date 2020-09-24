@@ -18,7 +18,7 @@ export default class AllianceProc extends Process {
 			return;	// quietly exit, nothing to do
 		}
 
-		const [intelProcess] = global.kernel.getProcessByName('intel');
+		const intelProcess = startService('intel');
 		if (!intelProcess)
 			return;
 		yield* this.fetchAllianceData(intelProcess);
