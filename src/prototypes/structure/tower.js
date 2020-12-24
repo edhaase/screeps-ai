@@ -25,7 +25,7 @@ DEFINE_MEMORY_BACKED_PROPERTY(StructureTower.prototype, 'range');
 const TOWER_REPAIR_MAX_HITS = 20000;
 const TOWER_REPAIR_THRESHOLD = 0.75;
 
-const TOWER_MINIMUM_RESERVE = 0.75;
+export const TOWER_MINIMUM_RESERVE = 0.75;
 // global.TOWER_DAMAGE_EFFECT = [600,600,600,600,600,600,570,540,510,480,450,420,390,360,330,300,270,240,210,180,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150,150];
 // global.TOWER_REPAIR_EFFECT = [800,800,800,800,800,800,760,720,680,640,600,560,520,480,440,400,360,320,280,240,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200];
 // global.TOWER_HEAL_EFFECT = [400,400,400,400,400,400,380,360,340,320,300,280,260,240,220,200,180,160,140,120,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100];
@@ -51,23 +51,6 @@ StructureTower.prototype.onDefer = function () {
 	this.clearTarget();
 	this.clearTarget('hid');
 	this.clearTarget('rid');
-};
-
-/**
- * Structure run method
- */
-StructureTower.prototype.run = function () {
-	if (this.energy < TOWER_ENERGY_COST || this.isDeferred() || this.isBusy || !this.room.my)
-		return;
-	if (this.runAttack())
-		return;
-	if (this.energyPct > TOWER_MINIMUM_RESERVE) {
-		// if(this.runHeal() || this.runRepair())
-		if (this.runHeal())
-			return;
-		this.runRepair();
-	}
-	this.defer(_.random(7, 16));
 };
 
 const { defer } = StructureTower.prototype;

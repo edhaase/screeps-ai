@@ -8,6 +8,7 @@ import planner from './planner';
 import stats from './stats';
 import spawn from './spawn';
 import expansion from './expansion';
+import colony from './colony'
 
 /** Intel */
 import intel_alliances from './intel/alliances';
@@ -27,6 +28,7 @@ import remotes from './economy/remotes';
 const PROGRAMS = {
 	'intel.alliances': intel_alliances,
 	'legacy.rooms': legacy_rooms,
+	colony,
 	fsrecon,
 	expansion,
 	build,
