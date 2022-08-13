@@ -23,7 +23,7 @@ import { createShardLocalUUID } from '/os/core/uuid';
 import { OperationNotPermittedError } from '/os/core/errors';
 import PROGRAMS from '/programs/index';
 
-export const MAX_CPU_SAFE_THRESHOLD = 0.90; // As a percentage
+export const MAX_CPU_SAFE_THRESHOLD = 0.85; // As a percentage
 export const DEFAULT_HEAP_CHECK_FREQ = 10;
 export const DEFAULT_HEAP_WARNING = 0.85;
 export const DEFAULT_HEAP_CRITICAL = 0.95;
@@ -284,7 +284,8 @@ export default class Kernel {
 	*loop() {
 		while (true) {
 			const MIN_CPU_THIS_TICK = Math.min(Game.cpu.limit, Game.cpu.tickLimit);
-			this.throttle = MAX_CPU_SAFE_THRESHOLD * ((Game.cpu.bucket / global.BUCKET_MAX > 0.5) ? Game.cpu.tickLimit : MIN_CPU_THIS_TICK);
+			// this.throttle = MAX_CPU_SAFE_THRESHOLD * ((Game.cpu.bucket / global.BUCKET_MAX > 0.5) ? Game.cpu.tickLimit : MIN_CPU_THIS_TICK);
+			this.throttle = ((Game.cpu.bucket / global.BUCKET_MAX > 0.5) ? MIN_CPU_THIS_TICK : MAX_CPU_SAFE_THRESHOLD * MIN_CPU_THIS_TICK);
 			this.queue = this.schedule.slice(0);
 			var thread;
 			var ran = 0;
@@ -295,7 +296,7 @@ export default class Kernel {
 			while ((thread = this.queue.pop()) != null) {
 				ran++;
 				const AVG_USED = Math.max(thread.avgSysCpu, thread.avgUsrCpu) || 0;
-				if (Game.cpu.getUsed() + AVG_USED >= this.throttle) {
+				if (Math.ceil(Game.cpu.getUsed() + AVG_USED) >= this.throttle) {
 					this.lastRunCpu = Game.cpu.getUsed();
 					Log.warn(`Kernel paused at ${Math.ceil(this.lastRunCpu)} / ${this.throttle} cpu usage on tick ${Game.time} with ${1+this.queue.length} threads pending (ran ${ran})`, 'Kernel');  // continue running next tick to prevent starvation					
 					break;
@@ -306,6 +307,8 @@ export default class Kernel {
 					thread.lastRunSysTick = Game.time;
 					this.runThread(thread);
 					const delta = Game.cpu.getUsed() - start;
+					if (delta > 15)
+						Log.warn(`Thread ${thread} consumed excessive cpu: ${delta} cpu used`, 'Kernel');
 					thread.avgSysCpu = MM_AVG(delta, thread.avgSysCpu); // May count zeroes for sleeping threads
 					thread.lastTickSysCpu += delta;
 				} catch (e) {

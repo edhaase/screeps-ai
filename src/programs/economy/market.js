@@ -10,6 +10,7 @@ import { Log, LOG_LEVEL } from '/os/core/Log';
 import { TERMINAL_TAX } from '/prototypes/structure/terminal';
 import * as Co from '/os/core/co';
 import * as Intel from '/Intel';
+import Future from '/os/core/future';
 import PagedProcess from '/os/core/process/paged';
 import Process from '/os/core/process';
 
@@ -26,6 +27,7 @@ export default class MarketProc extends PagedProcess {
 		this.priority = Process.PRIORITY_LOWEST;
 		this.default_thread_prio = Process.PRIORITY_LOWEST;
 		this.pageIds = [SEGMENT_MARKET];
+		this.deals = [];
 	}
 
 	onPageCorrupted(pageId) {
@@ -44,6 +46,7 @@ export default class MarketProc extends PagedProcess {
 	*run() {
 		const [market] = yield* this.read(); // stored in this.pages
 		this.market = market;
+		this.startThread(this.executeOrders, null, undefined, 'Market order queue executor');
 		this.startThread(this.updateMarketHistory, null, undefined, 'Market transaction tracking');
 		this.startThread(this.manageAccountResources, null, undefined, 'Account resource management');
 		while (!(yield)) {
@@ -149,10 +152,12 @@ export default class MarketProc extends PagedProcess {
 		const creditsWeThinkWeHave = this.market.empire.credits;
 		const creditsWeActuallyHave = Game.market.credits - creditsInUse;
 		const diff = Math.abs(creditsWeThinkWeHave - creditsWeActuallyHave);
-		if (diff <= 0)
-			Log.notify(`Empire market adjustment reports that we are accurate!`);
+		this.market.empire.creditSkew = diff;
+
+		if (Math.round(diff) <= 0)
+			this.market.empire.skewReport = `Empire market adjustment reports that we are accurate!`;
 		else
-			Log.notify(`Empire market adjustment ${to_fixed(diff, 3)} credits skew (creditsWeThinkWeHave: ${creditsWeThinkWeHave}, creditsWeActuallyHave: ${creditsWeActuallyHave})`); // Did we lose a building?
+			this.market.empire.skewReport = `Empire market adjustment ${to_fixed(diff, 3)} credits skew (creditsWeThinkWeHave: ${creditsWeThinkWeHave}, creditsWeActuallyHave: ${creditsWeActuallyHave})`; // Did we lose a building?
 		this.market.empire.credits = creditsWeActuallyHave;
 	}
 
@@ -198,7 +203,7 @@ export default class MarketProc extends PagedProcess {
 			transaction = incoming[i];
 			if (transaction.time < limit)
 				break;
-			var { from, to, resourceType, amount, order, sender = {}, time } = transaction;			
+			var { from, to, resourceType, amount, order, sender = {}, time } = transaction;
 			// if (transaction.from && _.get(Game.rooms, transaction.from + '.controller.my', false) === true)
 			if (transaction.from && Game.rooms[transaction.from] && Game.rooms[transaction.from].my === true)
 				continue;
@@ -228,5 +233,50 @@ export default class MarketProc extends PagedProcess {
 	updateRecipient(name, roomName, transaction) {
 		// Log.info(`Recipient info: ${name} in ${roomName}`);
 		Intel.setRoomOwner(roomName, name);
+	}
+
+	/**
+	 * Schedule a deal to happen as soon as possible, but may pend if we hit the deal limit
+	 * 
+	 * @param {*} orderId 
+	 * @param {*} amount 
+	 * @param {*} roomName 
+	 * 
+	 * @returns Future - so we can await the result
+	 */
+	schedule(orderId, amount, roomName, price) {
+		const future = new Future();
+		this.deals.push([future, orderId, amount, roomName, price]);
+		return future;
+	}
+
+	/**
+	 * Execute the deal queue
+	 */
+	*executeOrders() {
+		while (true) {
+			yield false;
+			while (this.deals && this.deals.length) {
+				yield true;
+				const [[future, orderId, amount, roomName, price]] = this.deals;
+				const order = Game.market.getOrderById(orderId);
+				if (!order) {
+					Log.warn(`Order ${orderId} no longer valid`, 'Market');
+					this.deals.shift();
+					future.put(ERR_INVALID_ARGS);
+				 } else if (price && order.price !== price) {
+					Log.warn(`Price changed on order from schedule ${order.price} != ${price}, rejecting order`, 'Market');
+					this.deals.shift();
+					future.put(ERR_INVALID_ARGS);
+				} else {
+					const result = Game.market.deal(orderId, amount, roomName);
+					if (result === ERR_FULL) { // We've hit deal limit, wait and try again
+						break;
+					}
+					this.deals.shift();
+					future.put(result);
+				}
+			}
+		}
 	}
 }

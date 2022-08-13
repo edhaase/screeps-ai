@@ -18,7 +18,7 @@ export const ROUTE_EXPIRATION = ENV('route.cache_expire', 150); //
  * @constant {number} - Number of route entries to cache
  * @default 150
  */
-export const ROUTE_CACHE_SIZE = ENV('route.cache_size', 150); // 
+export const ROUTE_CACHE_SIZE = ENV('route.cache_size', 500); // 
 
 const TERRAIN_SCORE_MULTIPLIER = 2; // 5 is too significant. 
 
@@ -48,13 +48,16 @@ export default class RouteCache {
 		/* global Log */
 		if (to === from)
 			return new Route();	 // if we're not leaving the room, return the same room.			
+		const start =  Game.cpu.getUsed();
 		const key = JSON.stringify(arguments);
 		var result = RouteCache.cache.get(key);
+		const hit = !!result;
 		if (result == null) {
 			result = Route.search(from, to, opts);
 			RouteCache.cache.set(key, result);
 		}
-		Log.debug(`Find route for ${from} ${to} ${result}`, 'Route');
+		const delta = Game.cpu.getUsed() - start;
+		Log.debug(`Find route for ${from} ${to} ${result} took ${delta} cpu [hit: ${hit}]`, 'Route');
 		return result;
 	}
 }

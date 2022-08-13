@@ -145,9 +145,18 @@ StructureObserver.prototype.watch = function () {
 
 // Game.getObjectById('57e1ff70294823be1c0623f6')
 StructureObserver.prototype.sweep = function () {
-	var rooms = this.getAvailRoomsInRange();
-	var room = rooms[Game.time % rooms.length];
-	this.observeRoom(room);
+	if (!this.cache.rooms) {
+		const range = Math.min(OBSERVER_RANGE, this.getRange());
+		const region = Region.fromCenter(this.pos.roomName, range);
+		this.cache.rooms = region.getRoomsInRange(n => !Game.rooms[n] || !Game.rooms[n].my);
+	}
+
+	const itr = this.cache.rooms;
+	const { value: room, done } = itr.next();
+	if (done)
+		this.cache.rooms = null;
+	else
+		this.observeRoom(room);
 };
 
 const { observeRoom } = StructureObserver.prototype;

@@ -239,7 +239,8 @@ Flag.prototype.requestVisionAndTryAgain = function () {
 	const future = recon.request(this.pos.roomName, FLAG_VISION_TIMEOUT);
 	this.defer(FLAG_VISION_TIMEOUT);
 	future.complete((room, err) => {
-		this.runLogic();
+		if (room)
+			this.runLogic();
 	});
 	this.say(ICON_SATELLITE);
 	Log.debug(`Flag ${this.name}/${this.pos} requesting room vision`, 'Flag');

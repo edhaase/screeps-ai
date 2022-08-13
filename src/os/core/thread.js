@@ -10,6 +10,7 @@ import { Log } from '/os/core/Log';
 
 export const THREAD_CONTINUE = { done: false, value: undefined };
 export const DEFAULT_WAIT_TIMEOUT = 100;
+export const DEFAULT_AVG_USR_CPU_SAMPLES = 10;
 
 /**
  * @classdesc
@@ -22,7 +23,7 @@ export default class Thread {
 			this.rej = rej;
 		});
 		this.pid = pid;
-		this.avgUsrCpu = 0;
+		this.avgUsrCpu = 0.5;
 		this.avgSysCpu = 0;
 		this.totalCpu = 0;
 		this.minCpu = Infinity;
@@ -70,7 +71,7 @@ export default class Thread {
 				this.totalCpu += delta;
 				this.minCpu = CLAMP(0, delta, this.minCpu); // Already initialized on attach (But why were we getting negative numbers?)
 				this.maxCpu = CLAMP(this.maxCpu, delta, Game.cpu.tickLimit - 1);
-				this.avgUsrCpu = MM_AVG(delta, this.avgUsrCpu);	// Tracks only samples of when a thread actually runs	
+				this.avgUsrCpu = MM_AVG(delta, this.avgUsrCpu, DEFAULT_AVG_USR_CPU_SAMPLES);	// Tracks only samples of when a thread actually runs	
 			}
 
 			// Reset pending deliverables

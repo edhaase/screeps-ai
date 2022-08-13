@@ -6,7 +6,7 @@ import LazyLru from '/ds/LazyLru';
 import CostMatrix from '/ds/CostMatrix';
 
 const DEFAULT_COST_MATRIX_EXPIRATION = ENV('cm.cache_expire', 5);
-const DEFAULT_COST_MATRIX_CACHE_SIZE = ENV('cm.cache_size', 300);
+const DEFAULT_COST_MATRIX_CACHE_SIZE = ENV('cm.cache_size', 200);
 
 /**
  * @class

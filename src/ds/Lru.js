@@ -65,10 +65,11 @@ export default class LRU {
 		let curr, count = 0;
 		const { max } = this;
 		const now = this.ttl ? Game.time : false;
+		const start = Game.cpu.getUsed();
 		for (curr = this.head; curr; curr = curr.next) {
 			++count;
 			if ((max && max < count) || (now && now > curr.expires)) {
-				Log.debug(`Evicting page ${curr.key} (${this.name})`, 'LRU');
+				Log.debug(`Evicting page ${curr.key} (${this.name}) (${Game.cpu.getUsed() - start} cpu)`, 'LRU');
 				this.data.delete(curr.key);
 				this._remove(curr);
 			}

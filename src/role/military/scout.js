@@ -4,7 +4,7 @@
 'use strict';
 
 import { ICON_ANTENNA } from '/lib/icons';
-import { IS_SAME_ROOM_TYPE } from '/os/core/macros';
+import { IS_SAME_ROOM_TYPE } from '/Intel';
 import { Log, LOG_LEVEL } from '/os/core/Log';
 import { scanRoom } from '/Intel';
 import { MAP_ICON_SIZE, MAP_ICON_OPACITY } from '/os/core/constants';

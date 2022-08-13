@@ -2,7 +2,7 @@
  * @module
  */
 import { hsv2rgb } from '/lib/util';
-import { IS_SAME_ROOM_TYPE } from '/os/core/macros';
+import { IS_SAME_ROOM_TYPE } from '/Intel';
 import { NUMBER_FORMATTER, to_precision, to_fixed } from '/lib/util';
 import { PLAYER_STATUS } from '/Player';
 import * as Intel from '/Intel';

@@ -10,7 +10,7 @@ import LogisticsMatrix from '/ds/costmatrix/LogisticsMatrix';
 import { STATIC_OBSTACLE_MATRIX } from './StaticObstacleMatrixCache';
 
 export const LOGISTICS_COST_MATRIX_EXPIRATION = ENV('cm.logistics_cache_expire', 1);
-export const LOGISTICS_COST_MATRIX_CACHE_SIZE = ENV('cm.logistics_cache_size', 300);
+export const LOGISTICS_COST_MATRIX_CACHE_SIZE = ENV('cm.logistics_cache_size', 200);
 
 export const LOGISTICS_MATRIX = new CostMatrixCache((roomName) => {
 	try {

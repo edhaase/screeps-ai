@@ -1,7 +1,7 @@
 /** os.itr.js - Iterator methods */
 'use strict';
 
-import { IS_SAME_ROOM_TYPE } from '/os/core/macros';
+import { IS_SAME_ROOM_TYPE } from '/Intel';
 
 export function first(itr) {
 	for (const itm of itr)	// In case it's not a generator..

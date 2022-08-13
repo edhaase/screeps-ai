@@ -127,8 +127,9 @@ function terminals() {
 		return [`<font color=${RES_COLORS[res]}>${res}</font>`].concat(stored);
 	});
 	rows = _.filter(rows, r => _.any(r, ([s, v]) => v > 0));
-	const totals = _.map(te, t => ["style='text-align: right'", NUMBER_FORMATTER.format(t.total)]);
-	const credits = _.map(te, t => ["style='text-align: right'", Math.floor(t.credits)]);
+	const totals = _.map(te, t => ["style='text-align: right; padding-left: 5px'", NUMBER_FORMATTER.format(t.total)]);
+	// const credits = _.map(te, t => ["style='text-align: right; padding-left: 3px'", Math.floor(t.credits)]);
+	const credits = _.map(te, t => ["style='text-align: right; padding-left: 5px'", NUMBER_FORMATTER.format(Math.floor(t.credits))]);
 	rows.unshift(['total'].concat(totals));
 	rows.unshift(['credits'].concat(credits));
 	output += '</table>';

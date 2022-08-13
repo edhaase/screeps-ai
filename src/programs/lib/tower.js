@@ -68,7 +68,7 @@ export function* defendRoom(roomName) {
  * @param {*} roomName 
  */
 export function* healAndRepair(roomName) {
-	const towers = Game.rooms[roomName].structuresByType[STRUCTURE_TOWER];
+	const towers = Game.rooms[roomName].structuresByType[STRUCTURE_TOWER] || [];
 	let status = false;
 	for (const tower of towers) {
 		yield true; // Only continue if we still have cpu

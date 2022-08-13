@@ -1,8 +1,7 @@
 /**
  * @module
  */
-import { isHostileRoom, hasOwner } from '/Intel';
-import { IS_SAME_ROOM_TYPE } from '/os/core/macros';
+import { IS_SAME_ROOM_TYPE, isHostileRoom, hasOwner } from '/Intel';
 import { Log, LOG_LEVEL } from '/os/core/Log';
 
 function getFindRouteOptions(avoid = [], prefer = []) {
@@ -15,6 +14,7 @@ function getFindRouteOptions(avoid = [], prefer = []) {
 	 */
 	return function routeCallback(roomName, fromRoom) {
 		var score = 1;
+		const start = Game.cpu.getUsed();
 		if (!IS_SAME_ROOM_TYPE(roomName, fromRoom) || avoid.includes(roomName))
 			return Infinity;
 		const parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
@@ -31,7 +31,8 @@ function getFindRouteOptions(avoid = [], prefer = []) {
 
 		// const terrainScore = RouteCache.terrain.get(roomName);
 		// score += Math.floor(TERRAIN_SCORE_MULTIPLIER * (1 - terrainScore));
-		Log.debug(`Scoring ${roomName} ${fromRoom} at ${score}`, 'Route');
+		const delta = Game.cpu.getUsed() - start;
+		Log.debug(`Scoring ${roomName} ${fromRoom} at ${score} took ${delta} cpu`, 'Route');
 		return score;
 	};
 }
@@ -46,13 +47,15 @@ export default class Route extends Array {
 	 * @param {*} opts 
 	 */
 	static search(fromRoom, toRoom, opts) {
+		const start = Game.cpu.getUsed();
 		const { avoid, prefer, routeCallback = getFindRouteOptions(avoid, prefer) } = opts || Memory.routing || {};
 		if (avoid && avoid.includes(toRoom)) {
 			Log.warn(`Trying to route to unreachable room ${fromRoom} to ${toRoom}`, 'Route');
 			return ERR_NO_PATH;
 		}
 		const route = Game.map.findRoute(fromRoom, toRoom, { routeCallback });
-		Log.debug(`New route: ${JSON.stringify(route)}`, 'Route');
+		const delta = Game.cpu.getUsed() - start;
+		Log.debug(`New route: ${JSON.stringify(route)} (consumed ${delta} cpu)`, 'Route');
 		if (route === ERR_NO_PATH)
 			return ERR_NO_PATH;
 		if (route == null)
@@ -74,3 +77,4 @@ export default class Route extends Array {
 		return `[Route ${this.length}]`;
 	}
 }
+

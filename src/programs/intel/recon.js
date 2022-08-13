@@ -14,6 +14,7 @@ import { TimeLimitExceededError, ActorHasCeasedError } from '/os/core/errors';
 import Future from '/os/core/future';
 import ITO from '/os/core/ito';
 import Process from '/os/core/process';
+import { shiftWhile } from '/lib/util';
 
 export const DEFAULT_RECON_TIMEOUT = 1000;
 export const DEFAULT_SCOUT_SPAWN_REQUEST_FREQUENCY = 5;
@@ -48,6 +49,7 @@ export default class Recon extends Process {
 		if (Game.rooms[roomName])
 			return Future.resolve(Game.rooms[roomName]);
 		const future = new Future();
+		future.timeout = Game.time + timeout;
 		if (!this.vision_callbacks[roomName]) {
 			this.vision_callbacks[roomName] = [];
 			this.vision_requests.push([roomName, Game.time + timeout, allowScouts]);
@@ -177,6 +179,7 @@ export default class Recon extends Process {
 					continue;
 				try {
 					const callbacks = this.vision_callbacks[roomName];
+					shiftWhile(callbacks, f => f.timeout && f.timeout < Game.time, f => f.throw(new TimeLimitExceededError(`Vision request ${roomName} timed out`)));
 					this.info(`Fulfilling ${callbacks.length} vision requests for ${roomName} on tick ${Game.time}`);
 					callbacks.forEach(f => f.put(room));
 					// @todo release any remaining scouts or observers

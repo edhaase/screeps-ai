@@ -75,7 +75,7 @@ DEFINE_CACHED_GETTER(StructureTerminal.prototype, 'network', ({ id }) => _.filte
 DEFINE_CACHED_GETTER(StructureTerminal.prototype, 'creditsReservedForEnergy', (t) => TERMINAL_MINIMUM_ENERGY * (t.memory.energyPrice || TERMINAL_DEFAULT_ENERGY_PRICE) * (1.0 + MARKET_FEE));
 
 export const MINIMUM_RESOURCE_SELL_PRICE = {
-	[RESOURCE_SILICON]: 1.5
+	[RESOURCE_SILICON]: 0.25
 }
 
 /**
@@ -361,16 +361,20 @@ StructureTerminal.prototype.sell = function (resource, amt = Infinity, limit = T
 	if (Game.rooms[order.roomName] && Game.rooms[order.roomName].my)
 		Log.notify(`Yeah, we are selling to ourselves.. ${maxAmount} ${resource} from ${this.pos.roomName} to ${order.roomName}`);
 	const dealAmount = Math.min(maxAmount, order.amount);
-	const status = this.deal(order.id, dealAmount, order);
-	if (status === OK) {
-		this.say(ICON_HEART);
-		order.amount -= dealAmount; // Adjust so next terminal can choose a different order
-		order.remainingAmount -= dealAmount;
-	} else if (status === ERR_INVALID_ARGS)
-		Log.error(`${this.pos.roomName}#sell deal invalid: ${order.id}, amt ${dealAmount}`, 'Terminal');
-	else
-		Log.info(`${this.pos.roomName}#sell status: ${status}, resource: ${resource}, order id: ${order.id}, amount: ${dealAmount}`, 'Terminal');
-	return status;
+	const future = this.deal(order.id, dealAmount, order);
+	order.amount -= dealAmount; // Adjust so next terminal can choose a different order
+	order.remainingAmount -= dealAmount;
+	future.complete(status => {
+		if (status === OK) {
+			this.say(ICON_HEART);
+		} else if (status === ERR_INVALID_ARGS) {
+			Log.error(`${this.pos.roomName}#sell deal invalid: ${order.id}, amt ${dealAmount}`, 'Terminal');
+		} else {
+			Log.info(`${this.pos.roomName}#sell status: ${status}, resource: ${resource}, order id: ${order.id}, amount: ${dealAmount}`, 'Terminal');
+		}
+	});
+	
+	return future;
 };
 
 // Aim for higher energy price,just to be safe
@@ -383,6 +387,7 @@ StructureTerminal.prototype.scoreOrderForSell = function (o, amount = 1000, ener
 	o.netProfit = o.grossProfit - o.energyCost;
 	return o.netProfit;
 };
+
 /**
  * Immediate purchase
  *
@@ -410,15 +415,18 @@ StructureTerminal.prototype.buy = function (res, amount = Infinity, maxRange = I
 		return ERR_NOT_ENOUGH_RESOURCES;
 	const afford = Math.min(amount, order.amount, this.getPayloadWeCanAfford(order.roomName), Math.floor(creditsUsable / order.price));
 	if (afford <= 0)
-		return ERR_NOT_ENOUGH_RESOURCES;
-	const status = this.deal(order.id, afford, order);
-	if (status === OK) {
-		this.say(ICON_HIGH_VOLTAGE);
-		order.amount -= afford;
-		order.remainingAmount -= afford;
-	} else
-		Log.warn(`${this.pos.roomName} buy failure on ${afford} ${order.resourceType} [${order.id}], status ${status}`, 'Terminal');
-	return status;
+		return ERR_NOT_ENOUGH_RESOURCES;		
+	const future = this.deal(order.id, afford, order);
+	order.amount -= afford;
+	order.remainingAmount -= afford;
+	future.complete((status) => {
+		if (status === OK) {
+			this.say(ICON_HIGH_VOLTAGE);
+		} else {
+			Log.warn(`${this.pos.roomName} buy failure on ${afford} ${order.resourceType} [${order.id}], status ${status}`, 'Terminal');
+		}
+	});	
+	return future;
 };
 
 StructureTerminal.prototype.scoreOrderForBuy = function (o, amount = 1000, energyPrice = this.memory.energyPrice || TERMINAL_DEFAULT_ENERGY_PRICE) {
@@ -470,20 +478,26 @@ StructureTerminal.prototype.deal = function (id, amount, order = {}) {
 	const amt = Math.floor(amount);
 	if (amt <= 0)
 		return ERR_INVALID_ARGS;
-	const status = Game.market.deal(id, amt, this.pos.roomName);
-	Log.debug(`${this.pos.roomName} dealing on ${amt} ${order.resourceType}, order ${id}, status ${status}`, 'Terminal');
-	if (status === OK && order) {
-		// Don't change credits here, we're using transactions to track that.
-		const dist = Game.map.getRoomLinearDistance(order.roomName, this.pos.roomName, true);
-		const cost = this.calcTransactionCost(amount, order.roomName);
-		this.memory.avgCost = CM_AVG(cost, this.memory.avgCost || 0, 100);
-		this.memory.avgDist = CM_AVG(dist, this.memory.avgDist || 0, 100);
-		this.memory.avgFee = CM_AVG(this.getFee(order.roomName), this.memory.avgFee || 0, 100);
-		this.memory.avgAmt = CM_AVG(amt, this.memory.avgAmt || 0, 100);
-		this.busy = true; // Multiple deals can be run per tick, so let's not prevent that.
-		this.store[RESOURCE_ENERGY] -= cost; // Adjust energy storage so further calls make smart decisions.
-	}
-	return status;
+	const market = startService('market');
+	const future = market.schedule(id, amt, this.pos.roomName, order && order.price);
+	// const status = Game.market.deal(id, amt, this.pos.roomName);
+	future.complete((status, err) => {
+		Log.debug(`${this.pos.roomName} dealing on ${amt} ${order.resourceType}, order ${id}, status ${status}`, 'Terminal');
+
+		if (status === OK && order) {
+			// Don't change credits here, we're using transactions to track that.
+			const dist = Game.map.getRoomLinearDistance(order.roomName, this.pos.roomName, true);
+			const cost = this.calcTransactionCost(amount, order.roomName);
+			this.memory.avgCost = CM_AVG(cost, this.memory.avgCost || 0, 100);
+			this.memory.avgDist = CM_AVG(dist, this.memory.avgDist || 0, 100);
+			this.memory.avgFee = CM_AVG(this.getFee(order.roomName), this.memory.avgFee || 0, 100);
+			this.memory.avgAmt = CM_AVG(amt, this.memory.avgAmt || 0, 100);
+			this.busy = true; // Multiple deals can be run per tick, so let's not prevent that.
+			this.store[RESOURCE_ENERGY] -= cost; // Adjust energy storage so further calls make smart decisions.
+		}
+	});
+
+	return future;
 };
 
 /**
@@ -519,7 +533,7 @@ StructureTerminal.prototype.send = function (resourceType, amount, destination, 
 		this.busy = true;
 		const room = Game.rooms[destination];
 		if (room && room.my && room.terminal)
-			room.terminal.store[resourceType] += amount;		
+			room.terminal.store[resourceType] += amount;
 	}
 	return status;
 };

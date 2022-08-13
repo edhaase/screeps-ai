@@ -8,7 +8,7 @@ import { ENV } from '/os/core/macros';
 import Process from '/os/core/process';
 import * as Intel from '/Intel';
 import RouteCache from '/cache/RouteCache';
-import { IS_SAME_ROOM_TYPE } from '/os/core/macros';
+import { IS_SAME_ROOM_TYPE } from '/Intel';
 import { Log } from '/os/core/Log';
 
 import claimer from '/role/economy/claimer';

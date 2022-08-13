@@ -1,6 +1,7 @@
 /**
  * @module
  */
+ import { ROOMSTATUS_CACHE } from '/cache/RoomStatusCache';
 
 /**
  * @classdesc Defines a map region containing rooms
@@ -29,7 +30,9 @@ export default class Region {
 		for (y = top; y <= bottom; y++) {
 			for (x = left; x <= right; x++) {
 				const roomName = Region.coordToRoomName(x, y);
-				const roomStatus = Game.map.getRoomStatus(roomName);
+				// const roomStatus = Game.map.getRoomStatus(roomName);
+				const roomStatus = ROOMSTATUS_CACHE.get(roomName);
+
 				if (!roomStatus || roomStatus.status === 'closed')
 					continue;
 				if (filter && !filter(roomName, roomStatus))

@@ -16,7 +16,7 @@ import { unauthorizedHostile } from '/lib/filter';
 export function bulldozer_rejector_filter(s) {
 	if (!s || !CONSTRUCTION_COST[s.structureType])
 		return false;
-	if (s.structureType === STRUCTURE_CONTROLLER || s.structureType === STRUCTURE_RAMPART)
+	if (s.structureType === STRUCTURE_CONTROLLER) // || s.structureType === STRUCTURE_RAMPART)
 		return false;
 	if (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_CONTAINER)
 		return false;

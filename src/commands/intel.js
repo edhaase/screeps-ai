@@ -51,12 +51,18 @@ export function markCandidateForCommodityMining(room) {
 };
 
 /**
+ * Refresh list of lootable targets for room
  * 
  * @param {*} room 
  */
 export function markCandidateForLooting(room) {
+	// Remove old target data for room
+	for (const [id, pos] of LOOT_TARGETS) {
+		if (pos.roomName === room.name)
+			LOOT_TARGETS.delete(id);		
+	}
 	if (!thief_can_loot_room(room))
-		return;
+		return LOOT_ROOMS.delete(room.name);
 	const s = room.find(FIND_STRUCTURES, { filter: thief_candidate_filter }) || [];
 	const r = room.find(FIND_RUINS, { filter: thief_candidate_filter }) || [];
 	if (!s.length && !r.length)

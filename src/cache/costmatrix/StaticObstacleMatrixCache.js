@@ -8,7 +8,7 @@ import CostMatrixCache from '/cache/CostMatrixCache';
 import StaticObstacleMatrix from '/ds/costmatrix/StaticObstacleMatrix';
 
 export const STATIC_COST_MATRIX_EXPIRATION = ENV('cm.static_cache_expire', 7);
-export const STATIC_COST_MATRIX_CACHE_SIZE = ENV('cm.static_cache_size', 300);
+export const STATIC_COST_MATRIX_CACHE_SIZE = ENV('cm.static_cache_size', 200);
 
 export const STATIC_OBSTACLE_MATRIX = new CostMatrixCache(
 	(roomName) => {

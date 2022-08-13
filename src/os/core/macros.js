@@ -58,18 +58,3 @@ export const HIDE_PROPERTY = function (proto, propertyName) {
 	desc.enumerable = false;
 	return Object.defineProperty(proto, propertyName, desc);
 }
-
-/**
- * 
- * @param {*} roomA 
- * @param {*} roomB 
- */
-export const IS_SAME_ROOM_TYPE = function (roomA, roomB) {
-	if (!roomA || !roomB)
-		return false;
-	const statusA = Game.map.getRoomStatus(roomA);
-	const statusB = Game.map.getRoomStatus(roomB);
-	if (!statusA || !statusB)
-		return false;
-	return statusA.status === statusB.status;
-}

@@ -2,7 +2,7 @@
 'use strict';
 
 /* global ENV, ENVC, Market */
-import { ENV } from '/os/core/macros';
+import { ENV, ENVC } from '/os/core/macros';
 import Process from '/os/core/process';
 
 const DEFAULT_EMPIRE_EXPANSION_FREQ = CREEP_CLAIM_LIFE_TIME; // Let's set this to at least higher than a creep life time.
@@ -30,7 +30,8 @@ export default class EmpireProc extends Process {
 			this.memory.nextCheck = Game.time + ENV('empire.expansion_freq', DEFAULT_EMPIRE_EXPANSION_FREQ);
 			if (ENV('empire.auto_expand', true) === false)
 				continue; // Don't exit, we might change our minds.
-			if (_.sum(Game.rooms, "my") >= Game.gcl.level)
+			const MAX_ROOMS = ENVC('empire.max_rooms', Game.gcl.level, 1, MAX_OWNED_ROOMS);
+			if (_.sum(Game.rooms, "my") >= MAX_ROOMS)
 				continue;// Nothing to do.
 			startService('expansion');
 		}

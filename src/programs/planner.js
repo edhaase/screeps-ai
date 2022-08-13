@@ -29,11 +29,12 @@ export default class PlannerProc extends PagedProcess {
 	}
 
 	*planAll() {
-		for (const room of Object.values(Game.rooms)) {
-			if (!room.my)
+		for (const roomName in Game.rooms) {
+			const room = Game.rooms[roomName];
+			if (!room || !room.my)
 				continue;
 			this.startThread(this.plan, [room], undefined, `Room planner ${room.name}`);
-			yield true;
+			yield true; 
 		}
 		yield Future.all(this.threads.values());
 	}

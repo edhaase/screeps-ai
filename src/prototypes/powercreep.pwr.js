@@ -65,7 +65,7 @@ PowerCreep.prototype[`runPwr${PWR_OPERATE_EXTENSION}`] = function (opts) {
 	const extensions = this.room.structuresByType[STRUCTURE_EXTENSION] || [];
 	const empty = _.sum(extensions, e => e.store[RESOURCE_ENERGY] <= 0);
 	const availableToFill = empty / extensions.length;
-	if (availableToFill / effect < 0.85) { // 85% of intended effect
+	if (availableToFill / effect < 0.85 && !opts.force) { // 85% of intended effect
 		Log.warn(`${this.name}/${this.pos}#PWR_OPERATE_EXTENSION not enough extensions to fill, don't want to waste the energy`, 'PowerCreep');
 		return this.popState(false);
 	} if (cooldown)

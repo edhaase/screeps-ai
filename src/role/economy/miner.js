@@ -77,6 +77,7 @@ export default {
 			(s) => this.pos.findClosestByRange(s)
 		);
 
+		// @todo only fill if harvest would overflow?
 		if (this.carry[RESOURCE_ENERGY] > 25 && structs && structs.length > 0) {
 			structs = _.map(structs, lid => Game.getObjectById(lid));
 			structs = _.compact(structs);

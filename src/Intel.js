@@ -5,11 +5,11 @@
  */
 'use strict';
 
-import { IS_SAME_ROOM_TYPE } from '/os/core/macros';
 import { INVADER_USERNAME } from '/os/core/constants';
 import { Log } from '/os/core/Log';
 import { ENV } from '/os/core/macros';
 import { PLAYER_STATUS } from '/Player';
+import { ROOMSTATUS_CACHE } from '/cache/RoomStatusCache';
 
 const INTEL_MAX_AGE = 20000;
 
@@ -134,7 +134,8 @@ export function isRoomNormal(roomName) {
 
 export function isRoomClaimable(roomName, fromRoom) {
 	// if (!IS_SAME_ROOM_TYPE(roomName, fromRoom) || Room.getType(roomName) !== 'Room')
-	const roomStatus = Game.map.getRoomStatus(roomName);
+	// const roomStatus = Game.map.getRoomStatus(roomName);
+	const roomStatus = ROOMSTATUS_CACHE.get(roomName);
 	if (!roomStatus || roomStatus.status === 'closed' || Room.getType(roomName) !== 'Room')
 		return false;
 	const intel = getIntelForRoom(roomName);
@@ -176,3 +177,19 @@ export function scoreTerrain(roomName) {
 	return score / 45 ** 2;
 };
 
+/**
+ * 
+ * @param {*} roomA 
+ * @param {*} roomB 
+ */
+ export const IS_SAME_ROOM_TYPE = function (roomA, roomB) {
+	if (!roomA || !roomB)
+		return false;
+	// const statusA = Game.map.getRoomStatus(roomA);
+	// const statusB = Game.map.getRoomStatus(roomB);
+	const statusA = ROOMSTATUS_CACHE.get(roomA);
+	const statusB = ROOMSTATUS_CACHE.get(roomB);	
+	if (!statusA || !statusB)
+		return false;
+	return statusA.status === statusB.status;
+}
