@@ -30,6 +30,6 @@
 		"rollup-plugin-jsdoc": "^0.1.2",
 		"rollup-plugin-root-import": "0.2.2",
 		"rollup-plugin-terser": "^6.1.0",
-		"screeps-api": "^1.12.1"
+		"screeps-api": "^1.16.0"
 	}
 }
